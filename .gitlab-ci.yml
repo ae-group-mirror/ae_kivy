@@ -22,7 +22,7 @@ before_script:
   - apt-get update -y && apt-get upgrade -y && apt-get autoremove -y && apt-get autoclean -y
   - apt-get install software-properties-common -y
   - apt-get update
-  - add-apt-repository ppa:kivy-team/kivy
+  - add-apt-repository ppa:kivy-team/kivy-daily
   - apt-get update
   - apt-get install python3-kivy
   - pip install --upgrade pip setuptools
