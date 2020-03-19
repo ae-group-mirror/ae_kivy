@@ -1,8 +1,8 @@
 # THIS FILE IS EXCLUSIVELY MAINTAINED IN THE NAMESPACE ROOT PACKAGE. CHANGES HAVE TO BE DONE THERE.
 # All changes will be deployed automatically to all the portions of this namespace package.
 
-
-
+variables:
+  XDG_CONFIG_HOME: $CI_PROJECT_DIR
 
 
 image: python:3.6
