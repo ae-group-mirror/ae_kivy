@@ -1,4 +1,20 @@
-""" GUIApp-conform Kivy app """
+"""
+main application class for GUIApp-conform Kivy app
+==================================================
+
+This ae portion is providing two classes (:class:`FrameworkApp`
+and :class:`KivyMainApp` and some useful constants.
+
+The class :class:`KivyMainApp` is implementing a main app class,
+based on the abstract base class :class:`~ae.gui_app.MainAppBase`
+that is reducing the amount of code needed for to create a Python
+application based on the :ref:`kivy <kivy.org>` framework.
+
+The main app class :class:`KivyMainApp` is also encapsulating the
+:class:`Kivy app class <kivy.app.App>` within the :class:`FrameworkApp`. The
+instance of the Kivy app class can be directly accessed from the main app class
+instance via the :attr:`~KivyMainApp.framework_app` attribute.
+"""
 import os
 from typing import Tuple, Type
 

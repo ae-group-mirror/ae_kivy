@@ -152,9 +152,9 @@ class TestCallbacks:
         assert not app.on_pause_called
         # Clock.schedule_once(lambda dt: Window.do_pause())
         app.framework_app.dispatch('on_pause')
-        #Clock.schedule_once(app.framework_app.stop)
-        #Clock.schedule_once(lambda dt: stopTouchApp(), 0.9)
-        #app.run_app()
+        # Clock.schedule_once(app.framework_app.stop)
+        # Clock.schedule_once(lambda dt: stopTouchApp(), 0.9)
+        # app.run_app()
         assert app.on_pause_called
 
     def test_on_resume(self, restore_app_env):
