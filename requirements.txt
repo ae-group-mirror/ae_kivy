@@ -1,0 +1,3 @@
+# dependencies of the kivy_app portion
+kivy
+ae_gui_app

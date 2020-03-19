@@ -1,0 +1,185 @@
+""" GUIApp-conform Kivy app """
+import os
+from typing import Tuple, Type
+
+# import jnius                                                                # type: ignore
+import kivy                                                                 # type: ignore
+from kivy.app import App                                                    # type: ignore
+from kivy.core.window import Window                                         # type: ignore
+from kivy.factory import Factory                                            # type: ignore
+# pylint: disable=no-name-in-module
+from kivy.properties import BooleanProperty, DictProperty, ListProperty     # type: ignore
+from kivy.core.audio import SoundLoader                                     # type: ignore
+from kivy.uix.widget import Widget                                          # type: ignore
+from plyer import vibrator                                                  # type: ignore
+
+from ae.files import FilesRegister, CachedFile                              # type: ignore
+from ae.gui_app import (                                                    # type: ignore
+    THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
+    MainAppBase,
+)                                                                           # type: ignore
+
+
+__version__ = '0.0.1'
+
+
+kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
+# Window.softinput_mode = 'below_target'  # ensure android keyboard is not covering Popup/text input
+
+MAIN_KV_FILE_NAME = 'main.kv'       #: default file name of the main kv file
+
+LOVE_VIBRATE_PATTERN = (0.0, 0.12, 0.12, 0.21, 0.03, 0.12, 0.12, 0.12)
+""" short/~1.2s vibrate pattern for fun/love notification. """
+
+ERROR_VIBRATE_PATTERN = (0.0, 0.09, 0.09, 0.18, 0.18, 0.27, 0.18, 0.36, 0.27, 0.45)
+""" long/~2s vibrate pattern for error notification. """
+
+CRITICAL_VIBRATE_PATTERN = (0.00, 0.12, 0.12, 0.12, 0.12, 0.12,
+                            0.12, 0.24, 0.12, 0.24, 0.12, 0.24,
+                            0.12, 0.12, 0.12, 0.12, 0.12, 0.12)
+""" very long/~2.4s vibrate pattern for critical error notification (sending SOS to the mobile world;). """
+
+
+class FrameworkApp(App):
+    """ kivy framework app class proxy redirecting events and callbacks to the main app class instance. """
+
+    landscape = BooleanProperty()                           #: True if app win width is bigger than the app win height
+    font_color = ListProperty(THEME_DARK_FONT_COLOR)        #: rgba color of the font used for labels/buttons/...
+    ae_states = DictProperty()                              #: duplicate of MainAppBase app state for events/binds
+
+    def __init__(self, main_app: 'KivyMainApp', **kwargs):
+        """ init kivy app """
+        self.main_app = main_app                            #: set reference to KivyMainApp instance
+        self.title = main_app.app_title                     #: set kivy.app.App.title
+        self.icon = os.path.join("img", "app_icon.png")     #: set kivy.app.App.icon
+
+        super().__init__(**kwargs)
+
+        # redirecting class name, app name and directory to the main app class for kv/ini file names is
+        # .. no longer needed because main.kv get set in :meth:`KivyMainApp.app_init` and app states
+        # .. get stored in the :ref:`ae config files <config-files>`.
+        # self.__class__.__name__ = main_app.__class__.__name__
+        # self._app_name = main_app.app_name
+        # self._app_directory = '.'
+
+    def build(self) -> Widget:
+        """ kivy build app callback """
+        self.main_app.po('App.build(), user_data_dir', self.user_data_dir,
+                         "config files", getattr(self.main_app, '_cfg_files'))
+
+        Window.bind(on_resize=self.win_pos_size_changed,
+                    left=self.win_pos_size_changed,
+                    top=self.win_pos_size_changed,
+                    on_key_down=self.on_key_down,
+                    on_key_up=self.on_key_up)
+
+        return Factory.Main()
+
+    def on_key_down(self, keyboard, key_code, _scan_code, key_text, modifiers) -> bool:
+        """ key press/down event. """
+        return self.main_app.call_event('on_key_press',
+                                        key_text or keyboard.command_keys.get(key_code, key_code),
+                                        modifiers)
+
+    def on_key_up(self, keyboard, key_code, _scan_code) -> bool:
+        """ key release/up event. """
+        return self.main_app.call_event('on_key_release', keyboard.command_keys.get(key_code, key_code))
+
+    def on_start(self):
+        """ app start event """
+        self.win_pos_size_changed()  # init. app./self.landscape (on app startup and after build)
+        self.main_app.root_layout = self.root
+        self.main_app.root_win = self.root.parent
+        self.main_app.call_event('on_app_start')
+
+    def on_pause(self) -> bool:
+        """ app pause event """
+        self.main_app.save_app_states()
+        self.main_app.call_event('on_app_pause')
+        return True
+
+    def on_resume(self) -> bool:
+        """ app resume event """
+        self.main_app.load_app_states()
+        self.main_app.call_event('on_app_resume')
+        return True
+
+    def on_stop(self):
+        """ quit app event """
+        self.main_app.save_app_states()
+        self.main_app.call_event('on_app_stop')
+
+    def win_pos_size_changed(self, *_):
+        """ screen resize handler """
+        win_pos_size = (Window.left, Window.top, Window.width, Window.height)
+        # self.landscape = self.root.width >= self.root.height
+        self.landscape = Window.width >= Window.height
+        self.main_app.po('win_pos_size_changed', self.landscape, *win_pos_size)
+        self.main_app.change_app_state('win_rectangle', win_pos_size)
+        self.main_app.call_event('on_win_pos_size')
+
+
+class KivyMainApp(MainAppBase):
+    """ Kivy application """
+    def app_init(self, framework_app_class: Type[FrameworkApp] = FrameworkApp):     # pylint: disable=arguments-differ
+        """ initialize framework app instance """
+        win_rect = self.win_rectangle
+        if win_rect:
+            Window.left, Window.top = win_rect[:2]
+            Window.size = win_rect[2:]
+
+        self.framework_app = framework_app_class(self)
+        if os.path.exists(MAIN_KV_FILE_NAME):
+            self.framework_app.kv_file = MAIN_KV_FILE_NAME
+        self._update_observable_app_states(self.retrieve_app_states())  # copy app states to duplicate DictProperty
+
+        self.switch_theme(self.light_theme)
+
+    def load_sounds(self):
+        """ override for to pre-load audio sounds from app folder snd into sound file cache. """
+        self.sound_files = FilesRegister('snd', file_class=CachedFile,
+                                         object_loader=lambda f: SoundLoader.load(f.path))
+
+    def play_beep(self):
+        """ make a short beep sound. """
+        self.play_sound('error')
+
+    def play_sound(self, sound_name: str):
+        """ play audio/sound file. """
+        self.dpo(f"KivyMainApp.play_sound {sound_name}")
+        file = self.find_sound(sound_name)
+        if file:
+            try:
+                sound_obj = file.loaded_object
+                sound_obj.pitch = file.properties.get('pitch', 1.0)
+                sound_obj.volume = (
+                    file.properties.get('volume', 1.0) * self.framework_app.ae_states.get('sound_volume', 1.))
+                sound_obj.play()
+            except Exception as ex:
+                self.po(f"KivyMainApp.play_sound exception {ex}")
+        else:
+            self.dpo(f"KivyMainApp.play_sound({sound_name}) not found")
+
+    def play_vibrate(self, pattern: Tuple = (0.03, 0.3)):
+        """ play vibrate pattern. """
+        self.dpo(f"KivyMainApp.play_vibrate {pattern}")
+        try:        # added because is crashing with current plyer version (master should work)
+            vibrator.pattern(pattern)
+        # except jnius.jnius.JavaException as ex:
+        #    self.po(f"KivyMainApp.play_vibrate JavaException {ex}, update plyer to git/master")
+        except Exception as ex:
+            self.po(f"KivyMainApp.play_vibrate exception {ex}")
+
+    def run_app(self) -> str:
+        """ startup/display the application """
+        self.framework_app.run()
+        return ""
+
+    def switch_theme(self, light_theme: bool):
+        """ switch app theme between light (True) and dark (False).
+
+        :param light_theme:     True == light theme, False == dark theme
+        """
+        Window.clearcolor = THEME_LIGHT_BACKGROUND_COLOR if light_theme else THEME_DARK_BACKGROUND_COLOR
+        self.framework_app.font_color = THEME_LIGHT_FONT_COLOR if light_theme else THEME_DARK_FONT_COLOR
+        self.change_app_state('light_theme', light_theme)
