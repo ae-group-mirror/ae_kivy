@@ -1,3 +1,4 @@
 # dependencies of the kivy_app portion
 kivy
+plyer
 ae_gui_app
