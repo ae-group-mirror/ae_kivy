@@ -9,6 +9,9 @@ image: python:3.6
 
 before_script:
   - python --version
+  - pip install --upgrade setuptools
+  - pip install --upgrade -r requirements.txt -r test_requirements.txt
+
   # last 3 commented lines are resulting in errors:
   # E: Unable to locate package python3-pip
   # E: Package 'build-essential' has no installation candidate
@@ -19,15 +22,23 @@ before_script:
   # - apt-get install -y python3-pip build-essential git python3 python3-dev ffmpeg libsdl2-dev libsdl2-image-dev
   # - apt-get install -y libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev
   # - apt-get install -y libavcodec-dev zlib1g-dev libgstreamer1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good
-  - apt-get update -y && apt-get upgrade -y && apt-get autoremove -y && apt-get autoclean -y
-  - apt-get install software-properties-common -y
-  - apt-get update
-  - add-apt-repository ppa:kivy-team/kivy-daily
-  - apt-get update
-  - apt-get install python3-kivy
-  - pip install --upgrade pip setuptools
-  - pip install Cython==0.29.9
-  - pip install --upgrade -r requirements.txt -r test_requirements.txt
+
+  # V 0.0.7: try kivy ppa: kivy ppa not found for ubuntu 20.4 and kivy-daily ppa shows signed error:
+  # Err:4 http://ppa.launchpad.net/kivy-team/kivy-daily/ubuntu focal InRelease
+  # The following signatures couldn't be verified because the public key is not available: NO_PUBKEY A94F2C37A863D2D6
+  # Reading package lists...
+  # W: GPG error: http://ppa.launchpad.net/kivy-team/kivy-daily/ubuntu focal InRelease: The following signatures
+  # couldn't be verified because the public key is not available: NO_PUBKEY A94F2C37A863D2D6
+  # E: The repository 'http://ppa.launchpad.net/kivy-team/kivy-daily/ubuntu focal InRelease' is not signed.
+  # - apt-get update -y && apt-get upgrade -y && apt-get autoremove -y && apt-get autoclean -y
+  # - apt-get install software-properties-common -y
+  # - apt-get update
+  # - add-apt-repository ppa:kivy-team/kivy-daily
+  # - apt-get update
+  # - apt-get install python3-kivy
+  # - pip install --upgrade pip setuptools
+  # - pip install Cython==0.29.9
+  # - pip install --upgrade -r requirements.txt -r test_requirements.txt
 
 
 pytest:

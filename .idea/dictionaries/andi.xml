@@ -1,14 +1,26 @@
 <component name="ProjectDictionaryState">
   <dictionary name="andi">
     <words>
+      <w>autoclean</w>
+      <w>autoremove</w>
       <w>clearcolor</w>
+      <w>cython</w>
+      <w>ffmpeg</w>
+      <w>gstreamer</w>
       <w>jnius</w>
       <w>kivy</w>
+      <w>libavcodec</w>
+      <w>libavformat</w>
+      <w>libgstreamer</w>
+      <w>libportmidi</w>
+      <w>libsdl</w>
+      <w>libswscale</w>
       <w>meth</w>
       <w>plyer</w>
       <w>pylint</w>
       <w>rgba</w>
       <w>softinput</w>
+      <w>zlib</w>
     </words>
   </dictionary>
 </component>

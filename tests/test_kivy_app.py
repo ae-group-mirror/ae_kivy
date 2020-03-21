@@ -12,6 +12,10 @@ from ae.gui_app import APP_STATE_SECTION_NAME, MainAppBase
 from ae.kivy_app import MAIN_KV_FILE_NAME, KivyMainApp, FrameworkApp
 
 
+if 'CI_PROJECT_NAME' in os.environ:
+    pytest.mark.skip(reason="headless gitlab CI image lacks window system")
+
+
 TST_VAR = 'win_rectangle'
 TST_VAL = (90, 60, 900, 600)
 
