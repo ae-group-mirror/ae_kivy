@@ -9,12 +9,8 @@ from kivy.clock import Clock
 from kivy.lang import Builder
 
 from ae.gui_app import APP_STATE_SECTION_NAME, MainAppBase
-from ae.kivy_app import MAIN_KV_FILE_NAME, KivyMainApp, FrameworkApp
-
-
-if 'CI_PROJECT_ID' in os.environ:
-    pytest.skip("headless gitlab CI python 3.6 image lacks window system", allow_module_level=True)
-
+from ae.kivy_app import (
+    MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN, KivyMainApp, FrameworkApp)
 
 TST_VAR = 'win_rectangle'
 TST_VAL = (90, 60, 900, 600)
@@ -116,6 +112,27 @@ class KivyAppTest(KivyMainApp):
         return True
 
 
+# some basic constant tests (running also on github ci image, because pytest returns exit code 5 if all tests skip)
+def test_vibrate_pattern_types():
+    assert isinstance(LOVE_VIBRATE_PATTERN, tuple)
+    assert isinstance(ERROR_VIBRATE_PATTERN, tuple)
+    assert isinstance(CRITICAL_VIBRATE_PATTERN, tuple)
+
+
+def test_kv_default_file_name():
+    assert isinstance(MAIN_KV_FILE_NAME, str)
+
+
+def test_main_app_class_abstracts():
+    assert hasattr(MainAppBase, 'app_init')
+    assert hasattr(MainAppBase, 'run_app')
+
+
+SKIP_EXPRESSION = "'CI_PROJECT_ID' in os.environ"
+skip_gitlab_ci = pytest.mark.skipif(SKIP_EXPRESSION, reason="headless gitlab CI python 3.6 image lacks window system")
+
+
+@skip_gitlab_ci
 class TestCallbacks:
     def test_setup_app_states(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
@@ -184,6 +201,7 @@ class TestCallbacks:
         assert app.on_stop_called
 
 
+@skip_gitlab_ci
 class TestAppState:
     def test_retrieve_app_states(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
@@ -265,6 +283,7 @@ class TestAppState:
         assert app.on_font_size_called
 
 
+@skip_gitlab_ci
 class TestHelperMethods:
     def test_call_event_valid_method(self, ini_file, restore_app_env):
         app = KivyAppTest(additional_cfg_files=(ini_file,))
@@ -333,6 +352,7 @@ class TestHelperMethods:
         assert app.play_vibrate(('invalid pattern', )) is None
 
 
+@skip_gitlab_ci
 class TestContext:
     def test_set_context_with_send_event(self, ini_file, restore_app_env):
         app = KivyAppTest(additional_cfg_files=(ini_file,))
@@ -400,6 +420,7 @@ class TestContext:
         assert app.context_id == ctx3
 
 
+@skip_gitlab_ci
 class TestKeyEvents:
     def test_key_press_text(self, restore_app_env):
         app = KivyAppTest()
