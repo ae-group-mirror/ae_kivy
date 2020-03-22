@@ -14,6 +14,22 @@ The main app class :class:`KivyMainApp` is also encapsulating the
 :class:`Kivy app class <kivy.app.App>` within the :class:`FrameworkApp`. The
 instance of the Kivy app class can be directly accessed from the main app class
 instance via the :attr:`~KivyMainApp.framework_app` attribute.
+
+
+unit tests
+----------
+
+For to run the unit tests of this ae portion you need a system
+with a graphic system supporting at least V 2.0 of OpenGL and the
+kivy framework installed.
+
+.. note::
+    unit tests does have 100 % coverage but are currently not passing the gitlab CI
+    tests because we failing in setup a proper running window system on the
+    python image that all ae portions are using.
+
+Any help for to fix the problems with the used gitlab CI image is highly appreciated.
+
 """
 import os
 from typing import Tuple, Type
@@ -36,7 +52,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.8'
+__version__ = '0.0.9'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
