@@ -32,7 +32,7 @@ Any help for to fix the problems with the used gitlab CI image is highly appreci
 
 """
 import os
-from typing import Tuple, Type
+from typing import Optional, Tuple, Type
 
 # import jnius                                                                # type: ignore
 import kivy                                                                 # type: ignore
@@ -52,7 +52,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.9'
+__version__ = '0.0.10'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -102,20 +102,21 @@ class FrameworkApp(App):
         Window.bind(on_resize=self.win_pos_size_changed,
                     left=self.win_pos_size_changed,
                     top=self.win_pos_size_changed,
-                    on_key_down=self.on_key_down,
-                    on_key_up=self.on_key_up)
+                    on_key_down=self.key_press_from_kivy,
+                    on_key_up=self.key_release_from_kivy)
 
         return Factory.Main()
 
-    def on_key_down(self, keyboard, key_code, _scan_code, key_text, modifiers) -> bool:
+    def key_press_from_kivy(self, keyboard, key_code, _scan_code, key_text, modifiers) -> bool:
         """ key press/down event. """
-        return self.main_app.call_event('on_key_press',
-                                        key_text or keyboard.command_keys.get(key_code, key_code),
-                                        modifiers)
+        return self.main_app.key_press_from_framework(
+            "".join(_.capitalize() for _ in sorted(modifiers)),
+            key_text or keyboard.command_keys.get(key_code, str(key_code)),
+            )
 
-    def on_key_up(self, keyboard, key_code, _scan_code) -> bool:
+    def key_release_from_kivy(self, keyboard, key_code, _scan_code) -> bool:
         """ key release/up event. """
-        return self.main_app.call_event('on_key_release', keyboard.command_keys.get(key_code, key_code))
+        return self.main_app.call_event('on_key_release', keyboard.command_keys.get(key_code, str(key_code)))
 
     def on_start(self):
         """ app start event """
@@ -179,7 +180,7 @@ class KivyMainApp(MainAppBase):
     def play_sound(self, sound_name: str):
         """ play audio/sound file. """
         self.dpo(f"KivyMainApp.play_sound {sound_name}")
-        file = self.find_sound(sound_name)
+        file: Optional[CachedFile] = self.find_sound(sound_name)
         if file:
             try:
                 sound_obj = file.loaded_object
@@ -204,6 +205,8 @@ class KivyMainApp(MainAppBase):
 
     def run_app(self) -> str:
         """ startup/display the application """
+        if not self._parsed_args:
+            self._parse_args()
         self.framework_app.run()
         return ""
 

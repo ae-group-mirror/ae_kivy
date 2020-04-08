@@ -99,10 +99,10 @@ class KivyAppTest(KivyMainApp):
         """ called from KivyMainApp """
         self.on_font_size_called = True
 
-    def on_key_press(self, key, modifier):
+    def on_key_press(self, modifiers, key):
         """ key press callback """
         self.on_key_press_called = True
-        self.last_keys = key, modifier
+        self.last_keys = modifiers, key
         return True
 
     def on_key_release(self, key):
@@ -426,23 +426,23 @@ class TestKeyEvents:
         app = KivyAppTest()
         kbd = KeyboardStub()
         key_code = 32
-        key_text = ' '
-        modifiers = 0
-        assert app.framework_app.on_key_down(kbd, key_code, None, key_text, modifiers)
-        assert app.last_keys == (key_text, modifiers)
+        key_text = 'y'
+        modifiers = ["alt"]
+        app.framework_app.key_press_from_kivy(kbd, key_code, None, key_text, modifiers)
+        assert app.last_keys == (modifiers[0].capitalize(), key_text)
 
     def test_key_press_code(self, restore_app_env):
         app = KivyAppTest()
         kbd = KeyboardStub()
-        key_code = 32
+        key_code = 369
         key_text = ''
-        modifiers = 0
-        assert app.framework_app.on_key_down(kbd, key_code, None, key_text, modifiers)
-        assert app.last_keys == (key_code, modifiers)
+        modifiers = ["meta", "ctrl"]
+        app.framework_app.key_press_from_kivy(kbd, key_code, None, key_text, modifiers)
+        assert app.last_keys == ("CtrlMeta", str(key_code))
 
     def test_key_release(self, restore_app_env):
         app = KivyAppTest()
         kbd = KeyboardStub()
         key_code = 32
-        assert app.framework_app.on_key_up(kbd, key_code, None)
-        assert app.last_keys == (key_code, )
+        app.framework_app.key_release_from_kivy(kbd, key_code, None)
+        assert app.last_keys == (str(key_code), )
