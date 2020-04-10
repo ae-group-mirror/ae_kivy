@@ -3,6 +3,7 @@
     <words>
       <w>autoclean</w>
       <w>autoremove</w>
+      <w>capslock</w>
       <w>clearcolor</w>
       <w>cython</w>
       <w>ffmpeg</w>
@@ -16,6 +17,7 @@
       <w>libsdl</w>
       <w>libswscale</w>
       <w>meth</w>
+      <w>numlock</w>
       <w>plyer</w>
       <w>pylint</w>
       <w>pytest</w>

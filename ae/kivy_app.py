@@ -52,7 +52,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.11'
+__version__ = '0.0.12'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -108,9 +108,17 @@ class FrameworkApp(App):
         return Factory.Main()
 
     def key_press_from_kivy(self, keyboard, key_code, _scan_code, key_text, modifiers) -> bool:
-        """ key press/down event. """
+        """ convert and redistribute key down/press events coming from Window.on_key_down.
+
+        :param keyboard:        used keyboard.
+        :param key_code:        key code of pressed key.
+        :param _scan_code:      key scan code of pressed key.
+        :param key_text:        key text of pressed key.
+        :param modifiers:       list of modifier keys (including e.g. 'capslock', 'numlock', ...)
+        :return:                True if key event got processed used by the app, else False.
+        """
         return self.main_app.key_press_from_framework(
-            "".join(_.capitalize() for _ in sorted(modifiers)),
+            "".join(_.capitalize() for _ in sorted(modifiers) if _ in ('alt', 'ctrl', 'meta', 'shift')),
             key_text or keyboard.command_keys.get(key_code, str(key_code)),
             )
 
