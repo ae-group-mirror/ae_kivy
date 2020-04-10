@@ -32,7 +32,7 @@ Any help for to fix the problems with the used gitlab CI image is highly appreci
 
 """
 import os
-from typing import Optional, Tuple, Type
+from typing import Callable, Optional, Tuple, Type
 
 # import jnius                                                                # type: ignore
 import kivy                                                                 # type: ignore
@@ -52,7 +52,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.10'
+__version__ = '0.0.11'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -88,7 +88,7 @@ class FrameworkApp(App):
         super().__init__(**kwargs)
 
         # redirecting class name, app name and directory to the main app class for kv/ini file names is
-        # .. no longer needed because main.kv get set in :meth:`KivyMainApp.app_init` and app states
+        # .. no longer needed because main.kv get set in :meth:`KivyMainApp.init_app` and app states
         # .. get stored in the :ref:`ae config files <config-files>`.
         # self.__class__.__name__ = main_app.__class__.__name__
         # self._app_name = main_app.app_name
@@ -154,7 +154,8 @@ class FrameworkApp(App):
 
 class KivyMainApp(MainAppBase):
     """ Kivy application """
-    def app_init(self, framework_app_class: Type[FrameworkApp] = FrameworkApp):     # pylint: disable=arguments-differ
+    def init_app(self, framework_app_class: Type[FrameworkApp] = FrameworkApp) -> Tuple[Callable, Callable]:
+        # pylint: disable=arguments-differ
         """ initialize framework app instance """
         win_rect = self.win_rectangle
         if win_rect:
@@ -167,6 +168,8 @@ class KivyMainApp(MainAppBase):
         self._update_observable_app_states(self.retrieve_app_states())  # copy app states to duplicate DictProperty
 
         self.switch_theme(self.light_theme)
+
+        return self.framework_app.run, self.framework_app.stop
 
     def load_sounds(self):
         """ override for to pre-load audio sounds from app folder snd into sound file cache. """
@@ -202,13 +205,6 @@ class KivyMainApp(MainAppBase):
         #    self.po(f"KivyMainApp.play_vibrate JavaException {ex}, update plyer to git/master")
         except Exception as ex:
             self.po(f"KivyMainApp.play_vibrate exception {ex}")
-
-    def run_app(self) -> str:
-        """ startup/display the application """
-        if not self._parsed_args:
-            self._parse_args()
-        self.framework_app.run()
-        return ""
 
     def switch_theme(self, light_theme: bool):
         """ switch app theme between light (True) and dark (False).

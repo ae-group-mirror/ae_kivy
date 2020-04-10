@@ -62,11 +62,11 @@ class KivyAppTest(KivyMainApp):
     on_key_release_called = False
     last_keys = ()
 
-    def app_init(self, framework_app_class=FrameworkApp):
+    def init_app(self, framework_app_class=FrameworkApp):
         """ called from MainAppBase """
         self.on_init_called = True
         self.app_title = "KivyAppTest Stub"
-        super().app_init()
+        return super().init_app(framework_app_class=framework_app_class)
 
     def run_app(self):
         """ called by test routine """
@@ -124,8 +124,7 @@ def test_kv_default_file_name():
 
 
 def test_main_app_class_abstracts():
-    assert hasattr(MainAppBase, 'app_init')
-    assert hasattr(MainAppBase, 'run_app')
+    assert hasattr(MainAppBase, 'init_app')
 
 
 SKIP_EXPRESSION = "'CI_PROJECT_ID' in os.environ"
@@ -295,7 +294,7 @@ class TestHelperMethods:
         app = KivyAppTest(additional_cfg_files=(ini_file,))
         assert not app.on_run_called
         Clock.schedule_once(app.framework_app.stop)
-        assert app.call_event('run_app') == ""
+        app.run_app()
         assert app.on_run_called
 
     def test_call_event_invalid_method(self, ini_file, restore_app_env):
