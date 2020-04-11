@@ -52,7 +52,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.12'
+__version__ = '0.0.13'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -129,8 +129,7 @@ class FrameworkApp(App):
     def on_start(self):
         """ app start event """
         self.win_pos_size_changed()  # init. app./self.landscape (on app startup and after build)
-        self.main_app.root_layout = self.root
-        self.main_app.root_win = self.root.parent
+        self.main_app.framework_win = self.root.parent
         self.main_app.call_event('on_app_start')
 
     def on_pause(self) -> bool:
@@ -162,9 +161,13 @@ class FrameworkApp(App):
 
 class KivyMainApp(MainAppBase):
     """ Kivy application """
-    def init_app(self, framework_app_class: Type[FrameworkApp] = FrameworkApp) -> Tuple[Callable, Callable]:
-        # pylint: disable=arguments-differ
-        """ initialize framework app instance """
+    def init_app(self, framework_app_class: Type[FrameworkApp] = FrameworkApp
+                 ) -> Tuple[Optional[Callable], Optional[Callable]]:
+        """ initialize framework app instance and prepare app startup.
+
+        :param framework_app_class:     class to create app instance (optionally extended by app project).
+        :return:                        callable for to start and stop/exit the GUI event loop.
+        """
         win_rect = self.win_rectangle
         if win_rect:
             Window.left, Window.top = win_rect[:2]
