@@ -2,15 +2,19 @@
 import os
 import pytest
 import shutil
+from typing import cast
 
 # from kivy.core.window import Window
 from kivy.base import stopTouchApp
 from kivy.clock import Clock
 from kivy.lang import Builder
+from kivy.uix.widget import Widget
 
-from ae.gui_app import APP_STATE_SECTION_NAME, MainAppBase
+from ae.gui_app import APP_STATE_SECTION_NAME, id_of_flow, flow_key, replace_flow_action, MainAppBase
 from ae.kivy_app import (
-    MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN, KivyMainApp, FrameworkApp)
+    MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN,
+    KivyMainApp, FrameworkApp)
+
 
 TST_VAR = 'win_rectangle'
 TST_VAL = (90, 60, 900, 600)
@@ -55,7 +59,7 @@ class KivyAppTest(KivyMainApp):
     on_start_called = False
     on_stop_called = False
 
-    on_context_id_called = False
+    on_flow_id_called = False
     on_font_size_called = False
 
     on_key_press_called = False
@@ -91,9 +95,9 @@ class KivyAppTest(KivyMainApp):
         """ called from KivyMainApp """
         self.on_stop_called = True
 
-    def on_context_id(self):
+    def on_flow_id(self):
         """ called from KivyMainApp """
-        self.on_context_id_called = True
+        self.on_flow_id_called = True
 
     def on_font_size(self):
         """ called from KivyMainApp """
@@ -161,11 +165,11 @@ class TestCallbacks:
         app.run_app()
         assert app.on_start_called
 
-    def test_context_id(self, restore_app_env):
+    def test_flow_id(self, restore_app_env):
         app = KivyAppTest()
-        assert not app.on_context_id_called
-        app.change_app_state('context_id', 'tstCtx')
-        assert app.on_context_id_called
+        assert not app.on_flow_id_called
+        app.change_app_state('flow_id', id_of_flow('tst', 'flow'))
+        assert app.on_flow_id_called
 
     def test_on_pause(self, restore_app_env):
         app = KivyAppTest()
@@ -284,22 +288,22 @@ class TestAppState:
 
 @skip_gitlab_ci
 class TestHelperMethods:
-    def test_call_event_valid_method(self, ini_file, restore_app_env):
+    def test_call_method_valid_method(self, ini_file, restore_app_env):
         app = KivyAppTest(additional_cfg_files=(ini_file,))
-        assert not app.on_context_id_called
-        assert app.call_event('on_context_id') is None
-        assert app.on_context_id_called
+        assert not app.on_flow_id_called
+        assert app.call_method('on_flow_id') is None
+        assert app.on_flow_id_called
 
-    def test_call_event_return(self, ini_file, restore_app_env):
+    def test_call_method_return(self, ini_file, restore_app_env):
         app = KivyAppTest(additional_cfg_files=(ini_file,))
         assert not app.on_run_called
         Clock.schedule_once(app.framework_app.stop)
         app.run_app()
         assert app.on_run_called
 
-    def test_call_event_invalid_method(self, ini_file, restore_app_env):
+    def test_call_method_invalid_method(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
-        assert app.call_event('invalid_method_name') is None
+        assert app.call_method('invalid_method_name') is None
 
     def test_main_kv_load(self, restore_app_env):
         try:
@@ -352,75 +356,79 @@ class TestHelperMethods:
 
 
 @skip_gitlab_ci
-class TestContext:
-    def test_set_context_with_send_event(self, ini_file, restore_app_env):
-        app = KivyAppTest(additional_cfg_files=(ini_file,))
-        assert len(app.context_path) == 0
-        assert app.context_id == ""
-        assert not app.on_context_id_called
+class TestFlow:
+    def test_flow_enter(self, restore_app_env):
+        app = KivyAppTest()
+        assert len(app.flow_path) == 0
+        flow1 = id_of_flow('enter', 'first_flow')
+        app.change_flow(flow1)
+        assert len(app.flow_path) == 1
+        assert app.flow_path[0] == flow1
 
-        ctx1 = 'first_context'
-        app.change_app_state('context_id', ctx1)
-        assert len(app.context_path) == 0
-        assert app.context_id == ctx1
-        assert app.on_context_id_called
+    def test_flow_enter_next_id(self, restore_app_env):
+        app = KivyAppTest()
+        assert len(app.flow_path) == 0
+        assert app.flow_id == ""
+        flow1 = id_of_flow('enter', 'first_flow')
+        flow2 = id_of_flow('action', '2nd_flow')
+        app.change_flow(flow1, flow_id=flow2)
+        assert len(app.flow_path) == 1
+        assert app.flow_path[0] == flow1
+        assert app.flow_id == flow2
 
-    def test_set_context_without_send_event(self, ini_file, restore_app_env):
-        app = KivyAppTest(additional_cfg_files=(ini_file,))
-        assert len(app.context_path) == 0
-        assert app.context_id == ""
-        assert not app.on_context_id_called
+    def test_flow_leave(self, restore_app_env):
+        app = KivyAppTest()
+        flow1 = id_of_flow('enter', 'first_flow', 'tst_key')
+        app.change_flow(flow1)
+        assert len(app.flow_path) == 1
+        assert app.flow_path[0] == flow1
+        assert app.flow_id == id_of_flow('', '')
 
-        ctx1 = 'first_context'
-        app.change_app_state('context_id', ctx1, send_event=False)
-        assert len(app.context_path) == 0
-        assert app.context_id == ctx1
-        assert not app.on_context_id_called
+        flow2 = id_of_flow('leave', 'first_flow', 'tst_key')
+        app.change_flow(flow2)
+        assert len(app.flow_path) == 0
+        assert app.flow_id == replace_flow_action(flow1, 'focus')
+        assert flow_key(app.flow_id) == 'tst_key'
 
-    def test_context_enter(self, ini_file, restore_app_env):
-        app = KivyMainApp(additional_cfg_files=(ini_file,))
-        assert len(app.context_path) == 0
-        ctx1 = 'first_context'
-        app.context_enter(ctx1)
-        assert len(app.context_path) == 1
-        assert app.context_path[0] == ctx1
+    def test_flow_leave_next_id(self, restore_app_env):
+        app = KivyAppTest()
+        flow1 = id_of_flow('enter', 'first_flow', 'tst_key')
+        flow2 = id_of_flow('action', '2nd_flow', 'tst_key2')
+        flow3 = id_of_flow('leave', '3rd_flow')
+        app.change_flow(flow1, flow_id=flow2)
+        assert app.flow_id == flow2
 
-    def test_context_enter_next_id(self, ini_file, restore_app_env):
-        app = KivyMainApp(additional_cfg_files=(ini_file,))
-        assert len(app.context_path) == 0
-        assert app.context_id == ""
-        ctx1 = 'first_context'
-        ctx2 = '2nd_context'
-        app.context_enter(ctx1, ctx2)
-        assert len(app.context_path) == 1
-        assert app.context_path[0] == ctx1
-        assert app.context_id == ctx2
+        app.change_flow(flow3, flow_id=flow3)
+        assert len(app.flow_path) == 0
+        assert app.flow_id == flow3
 
-    def test_context_leave(self, ini_file, restore_app_env):
-        app = KivyMainApp(additional_cfg_files=(ini_file,))
-        ctx1 = 'first_context'
-        app.context_enter(ctx1)
+    def test_set_flow_with_send_event(self, restore_app_env):
+        app = KivyAppTest()
+        assert len(app.flow_path) == 0
+        assert app.flow_id == ""
+        assert not app.on_flow_id_called
 
-        app.context_leave()
+        flow1 = 'first_flow'
+        app.change_app_state('flow_id', flow1)
+        assert len(app.flow_path) == 0
+        assert app.flow_id == flow1
+        assert app.on_flow_id_called
 
-        assert len(app.context_path) == 0
-        assert app.context_id == ctx1
+    def test_set_flow_without_send_event(self, restore_app_env):
+        app = KivyAppTest()
+        assert len(app.flow_path) == 0
+        assert app.flow_id == ""
+        assert not app.on_flow_id_called
 
-    def test_context_leave_next_id(self, ini_file, restore_app_env):
-        app = KivyMainApp(additional_cfg_files=(ini_file,))
-        ctx1 = 'first_context'
-        ctx2 = '2nd_context'
-        ctx3 = '3rd_context'
-        app.context_enter(ctx1, ctx2)
-
-        app.context_leave(next_context_id=ctx3)
-
-        assert len(app.context_path) == 0
-        assert app.context_id == ctx3
+        flow1 = 'first_flow'
+        app.change_app_state('flow_id', flow1, send_event=False)
+        assert len(app.flow_path) == 0
+        assert app.flow_id == flow1
+        assert not app.on_flow_id_called
 
 
 @skip_gitlab_ci
-class TestKeyEvents:
+class TestEvents:
     def test_key_press_text(self, restore_app_env):
         app = KivyAppTest()
         kbd = KeyboardStub()
@@ -445,3 +453,53 @@ class TestKeyEvents:
         key_code = 32
         app.framework_app.key_release_from_kivy(kbd, key_code, None)
         assert app.last_keys == (str(key_code), )
+
+    def test_on_flow_widget_focused(self, restore_app_env):
+        app = KivyAppTest()
+
+        class Wid:
+            """ test dummy """
+            focus = False
+            is_focusable = True
+
+        wid = Wid()
+        app.widget_by_flow_id = lambda flow_id: wid
+        app.on_flow_widget_focused()
+        assert wid.focus is True
+
+    def test_on_light_theme_change(self, restore_app_env):
+        app = KivyAppTest()
+
+        app.on_light_theme_change('any', dict(light_theme=True))
+        assert app.light_theme
+
+        app.on_light_theme_change('any', dict(light_theme=False))
+        assert not app.light_theme
+
+    def test_show_popup(self, restore_app_env):
+        app = KivyAppTest()
+        called = False
+        passed_pa = None
+
+        class PopUp:
+            """ popup dummy class """
+            dismiss = None
+
+            @staticmethod
+            def open(parent):
+                """ open popup method """
+                nonlocal called, passed_pa
+                called = True
+                passed_pa = parent
+
+        # noinspection PyTypeChecker
+        popup = app.show_popup(PopUp, test_attr=True)
+        assert called
+        assert hasattr(popup, 'test_attr')
+        assert popup.test_attr is True
+
+        # noinspection PyTypeChecker
+        app.show_popup(PopUp, parent=popup, test_attr=True)
+        assert passed_pa == popup
+
+        assert hasattr(popup, 'close')

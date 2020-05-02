@@ -5,8 +5,8 @@ main application class for GUIApp-conform Kivy app
 This ae portion is providing two classes (:class:`FrameworkApp`
 and :class:`KivyMainApp` and some useful constants.
 
-The class :class:`KivyMainApp` is implementing a main app class,
-based on the abstract base class :class:`~ae.gui_app.MainAppBase`
+The class :class:`KivyMainApp` is implementing a abstract main app
+class, based on the abstract base class :class:`~ae.gui_app.MainAppBase`
 that is reducing the amount of code needed for to create a Python
 application based on the :ref:`kivy <kivy.org>` framework.
 
@@ -32,13 +32,14 @@ Any help for to fix the problems with the used gitlab CI image is highly appreci
 
 """
 import os
-from typing import Callable, Optional, Tuple, Type
+from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 # import jnius                                                                # type: ignore
 import kivy                                                                 # type: ignore
 from kivy.app import App                                                    # type: ignore
 from kivy.core.window import Window                                         # type: ignore
-from kivy.factory import Factory                                            # type: ignore
+from kivy.factory import Factory, FactoryException                          # type: ignore
+from kivy.lang import Builder                                               # type: ignore
 # pylint: disable=no-name-in-module
 from kivy.properties import BooleanProperty, DictProperty, ListProperty     # type: ignore
 from kivy.core.audio import SoundLoader                                     # type: ignore
@@ -46,13 +47,15 @@ from kivy.uix.widget import Widget                                          # ty
 from plyer import vibrator                                                  # type: ignore
 
 from ae.files import FilesRegister, CachedFile                              # type: ignore
+# id_of_flow not used here - added for easier import in app project
+# noinspection PyUnresolvedReferences
 from ae.gui_app import (                                                    # type: ignore
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
-    MainAppBase,
+    MainAppBase
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.13'
+__version__ = '0.0.15'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -69,7 +72,223 @@ ERROR_VIBRATE_PATTERN = (0.0, 0.09, 0.09, 0.18, 0.18, 0.27, 0.18, 0.36, 0.27, 0.
 CRITICAL_VIBRATE_PATTERN = (0.00, 0.12, 0.12, 0.12, 0.12, 0.12,
                             0.12, 0.24, 0.12, 0.24, 0.12, 0.24,
                             0.12, 0.12, 0.12, 0.12, 0.12, 0.12)
-""" very long/~2.4s vibrate pattern for critical error notification (sending SOS to the mobile world;). """
+""" very long/~2.4s vibrate pattern for critical error notification (sending SOS to the mobile world;) """
+
+
+WIDGETS = '''\
+#: import Window kivy.core.window.Window
+
+#: import MIN_FONT_SIZE ae.gui_app.MIN_FONT_SIZE
+#: import MAX_FONT_SIZE ae.gui_app.MAX_FONT_SIZE
+#: import THEME_LIGHT_BACKGROUND_COLOR ae.gui_app.THEME_LIGHT_BACKGROUND_COLOR
+#: import THEME_LIGHT_FONT_COLOR ae.gui_app.THEME_LIGHT_FONT_COLOR
+#: import THEME_DARK_BACKGROUND_COLOR ae.gui_app.THEME_DARK_BACKGROUND_COLOR
+#: import THEME_DARK_FONT_COLOR ae.gui_app.THEME_DARK_FONT_COLOR
+
+#: import id_of_flow ae.gui_app.id_of_flow
+#: import flow_key ae.gui_app.flow_key
+#: import flow_key_split ae.gui_app.flow_key_split
+
+<FlowButton@ButtonBehavior+Image>:
+    ae_flow_id: ''
+    ae_clicked_kwargs: dict(popup_kwargs=dict(parent=self))
+    ae_icon_name: ""
+    on_release: app.main_app.change_flow(self.ae_flow_id, **self.ae_clicked_kwargs)
+    source:
+        app.main_app.img_file(self.ae_icon_name or flow_key_split(self.ae_flow_id)[0], \
+                              app.ae_states['font_size'], app.ae_states['light_theme'])
+    background_normal: 'atlas://data/images/defaulttheme/slider_cursor'
+    allow_stretch: True
+    keep_ratio: False
+
+<FlowPopup@DropDown>:
+    ae_closed_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
+    on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.ae_closed_kwargs)
+
+
+<UserPreferencesButton@FlowButton>:
+    ae_flow_id: id_of_flow('open', 'user_preferences')
+    minimum_width: self.height
+    size_hint_max_x: self.height
+    canvas.before:
+        Color:
+            rgba: 0.69, 0.69, 0.99, 0.9
+        Ellipse:
+            pos: self.pos[0] + sp(4.5), self.pos[1] + sp(4.5)
+            size: self.size[0] - sp(9), self.size[1] - sp(9)
+
+<UserPreferencesOpenPopup@FlowPopup>:
+    auto_width: False
+    width: (Window.width - sp(90)) / 1.8
+    canvas.after:
+        Color:
+            rgba: 0.69, 0.69, 0.99, 0.9
+        Line:
+            width: sp(1.8)
+            rounded_rectangle: self.x + sp(3), self.y + sp(3), self.width - sp(6), self.height - sp(6), sp(9)
+    UserPrefSlider:
+        app_state_name: 'sound_volume'
+        cursor_image: 'atlas://data/images/defaulttheme/audio-volume-high'
+    #UserPrefSlider:    current kivy module vibrator.py does not support amplitudes arg of android api
+    #   app_state_name: 'vibrate_amplitude'
+    #   cursor_image: app.main_app.img_file('vibrate', app.ae_states['font_size'], app.ae_states['light_theme'])
+    FontSizeButton:
+        size_hint_y: None
+        height: app.ae_states['font_size'] * 1.5
+    BoxLayout:
+        size_hint_y: None
+        height: app.ae_states['font_size'] * 1.2
+        ThemeButton:
+            text: "dark"
+            on_release: app.main_app.on_user_preference_theme_changed(self.text)
+            color: THEME_DARK_FONT_COLOR
+            back_color: THEME_DARK_BACKGROUND_COLOR
+        ThemeButton:
+            text: "light"
+            on_release: app.main_app.on_user_preference_theme_changed(self.text)
+            color: THEME_LIGHT_FONT_COLOR
+            back_color: THEME_LIGHT_BACKGROUND_COLOR
+    ChangeColorButton:
+        color_name: 'flow_id_ink'
+    ChangeColorButton:
+        color_name: 'flow_path_ink'
+    ChangeColorButton:
+        color_name: 'selected_item_ink'
+    ChangeColorButton:
+        color_name: 'unselected_item_ink'
+
+
+<UserPrefSlider@Slider>:
+    app_state_name: ''
+    value: app.ae_states.get(self.app_state_name, 1.0)
+    on_value: app.main_app.change_app_state(self.app_state_name, self.value)
+    min: 0.0
+    max: 1.0
+    step: 0.03
+    size_hint_y: None
+    height: app.ae_states['font_size'] * 1.5
+    cursor_size: app.ae_states['font_size'] * 1.5, app.ae_states['font_size'] * 1.5
+    padding: app.ae_states['font_size'] * 1.2 / 2.1
+    canvas.before:
+        Color:
+            rgba: Window.clearcolor
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+
+
+<ThemeButton@ButtonBehavior+Label>:
+    back_color: THEME_DARK_BACKGROUND_COLOR
+    canvas.before:
+        Color:
+            rgba: self.back_color or THEME_DARK_BACKGROUND_COLOR
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+
+
+<FontSizeButton@FlowButton>:
+    ae_flow_id: id_of_flow('edit', 'font_size')
+    ae_clicked_kwargs: dict(popup_kwargs=dict(parent_popup_to_close=self.parent.parent, parent=self))
+    font_size: app.ae_states['font_size'] * 1.5
+    size_hint_y: None
+    height: app.ae_states['font_size'] * 2.1
+    canvas.before:
+        Color:
+            rgba: Window.clearcolor
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+
+<FontSizeEditPopup@FlowPopup>:
+    parent_popup_to_close: None
+    on_select:
+        app.main_app.change_flow(id_of_flow('change', 'font_size'), \
+        font_size=args[1], popups_to_close=(self.parent_popup_to_close, ))
+    auto_width: False
+    width: Window.width - sp(90)
+    canvas.before:
+        Color:
+            rgba: app.font_color
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+    canvas.after:
+        Color:
+            rgba: app.font_color
+        Line:
+            width: sp(1.8)
+            rounded_rectangle: self.x + sp(2), self.y + sp(2), self.width - sp(4), self.height - sp(4), sp(6)
+    FontSizeSelectButton:
+        font_size: MIN_FONT_SIZE
+    FontSizeSelectButton:
+        font_size: MIN_FONT_SIZE + (MAX_FONT_SIZE - MIN_FONT_SIZE) * 1 / 6
+    FontSizeSelectButton:
+        font_size: MIN_FONT_SIZE + (MAX_FONT_SIZE - MIN_FONT_SIZE) * 2 / 6
+    FontSizeSelectButton:
+        font_size: (MIN_FONT_SIZE + MAX_FONT_SIZE) / 2
+    FontSizeSelectButton:
+        font_size: MIN_FONT_SIZE + (MAX_FONT_SIZE - MIN_FONT_SIZE) * 4 / 6
+    FontSizeSelectButton:
+        font_size: MIN_FONT_SIZE + (MAX_FONT_SIZE - MIN_FONT_SIZE) * 5 / 6
+    FontSizeSelectButton:
+        font_size: MAX_FONT_SIZE
+
+<FontSizeSelectButton@Button>:
+    #text: f'Aa Bb Zz {round(self.font_size)}'      displays always 15 as font size
+    text: 'Aa Bb Zz {}'.format(round(self.font_size))
+    on_release: self.parent.parent.select(self.font_size)
+    size_hint_y: None
+    size: self.texture_size
+    color: app.font_color
+    background_normal: ''
+    background_color: Window.clearcolor
+
+
+<ChangeColorButton@ButtonBehavior+Label>:
+    color_name: 'flow_id_ink'
+    text: self.color_name
+    on_release:
+        app.main_app.change_flow(id_of_flow('open', 'color_picker', self.color_name), popup_kwargs=dict(parent=self))
+    size_hint_y: None
+    height: app.ae_states['font_size'] * 1.2
+    font_size: app.ae_states['font_size'] / 1.2
+    color: app.font_color
+    canvas.before:
+        Color:
+            rgba: Window.clearcolor
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: app.ae_states[self.color_name]
+        Ellipse:
+            pos: self.pos[0] + self.width / 6, self.pos[1] + sp(3)
+            size: self.size[0] - 2 * self.width / 6, self.size[1] - sp(6)
+
+<ColorPickerOpenPopup@FlowPopup>:
+    auto_width: False
+    width: min(Window.width - (self.attach_to.x if self.attach_to else sp(90)) - sp(9), sp(690))
+    canvas.after:
+        Color:
+            rgba: app.font_color
+        Line:
+            width: sp(1.8)
+            rounded_rectangle: self.x + sp(2), self.y + sp(2), self.width - sp(4), self.height - sp(4), sp(6)
+    ColorPicker:
+        color: app.ae_states[root.attach_to.color_name] if root.attach_to else (0, 0, 0, 0)
+        on_color:
+            app.main_app.change_app_state(root.attach_to.color_name, tuple(args[1])) if root.attach_to else lambda : 0
+        size_hint_y: None
+        height: self.width
+        canvas.before:
+            Color:
+                rgba: Window.clearcolor
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+'''
+""" helper widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size) """
 
 
 class FrameworkApp(App):
@@ -119,48 +338,49 @@ class FrameworkApp(App):
         """
         return self.main_app.key_press_from_framework(
             "".join(_.capitalize() for _ in sorted(modifiers) if _ in ('alt', 'ctrl', 'meta', 'shift')),
-            key_text or keyboard.command_keys.get(key_code, str(key_code)),
-            )
+            keyboard.command_keys.get(key_code) or key_text or str(key_code))
 
     def key_release_from_kivy(self, keyboard, key_code, _scan_code) -> bool:
         """ key release/up event. """
-        return self.main_app.call_event('on_key_release', keyboard.command_keys.get(key_code, str(key_code)))
+        return self.main_app.call_method('on_key_release', keyboard.command_keys.get(key_code, str(key_code)))
 
     def on_start(self):
         """ app start event """
         self.win_pos_size_changed()  # init. app./self.landscape (on app startup and after build)
         self.main_app.framework_win = self.root.parent
-        self.main_app.call_event('on_app_start')
+        self.main_app.call_method('on_app_start')
 
     def on_pause(self) -> bool:
         """ app pause event """
         self.main_app.save_app_states()
-        self.main_app.call_event('on_app_pause')
+        self.main_app.call_method('on_app_pause')
         return True
 
     def on_resume(self) -> bool:
         """ app resume event """
         self.main_app.load_app_states()
-        self.main_app.call_event('on_app_resume')
+        self.main_app.call_method('on_app_resume')
         return True
 
     def on_stop(self):
         """ quit app event """
         self.main_app.save_app_states()
-        self.main_app.call_event('on_app_stop')
+        self.main_app.call_method('on_app_stop')
 
     def win_pos_size_changed(self, *_):
-        """ screen resize handler """
-        win_pos_size = (Window.left, Window.top, Window.width, Window.height)
-        # self.landscape = self.root.width >= self.root.height
-        self.landscape = Window.width >= Window.height
-        self.main_app.po('win_pos_size_changed', self.landscape, *win_pos_size)
-        self.main_app.change_app_state('win_rectangle', win_pos_size)
-        self.main_app.call_event('on_win_pos_size')
+        """ resize handler updates :attr:`~MainAppBase.win_rectangle` app state and :attr:`~FrameworkApp.landscape`. """
+        self.main_app.win_pos_size_changed(Window.left, Window.top, Window.width, Window.height)
 
 
 class KivyMainApp(MainAppBase):
     """ Kivy application """
+    flow_id_ink: tuple = (0.99, 0.99, 0.69, 0.69)           #: rgba color tuple for flow id / drag&drop node placeholder
+    flow_path_ink: tuple = (0.99, 0.99, 0.39, 0.48)         #: rgba color tuple for flow_path/drag&drop item placeholder
+    selected_item_ink: tuple = (0.69, 1.0, 0.39, 0.18)      #: rgba color tuple for list items (selected)
+    unselected_item_ink: tuple = (0.39, 0.39, 0.39, 0.18)   #: rgba color tuple for list items (unselected)
+
+    # abstract methods
+
     def init_app(self, framework_app_class: Type[FrameworkApp] = FrameworkApp
                  ) -> Tuple[Optional[Callable], Optional[Callable]]:
         """ initialize framework app instance and prepare app startup.
@@ -168,6 +388,9 @@ class KivyMainApp(MainAppBase):
         :param framework_app_class:     class to create app instance (optionally extended by app project).
         :return:                        callable for to start and stop/exit the GUI event loop.
         """
+        Builder.load_string(WIDGETS)
+        self.call_method('on_app_init')
+
         win_rect = self.win_rectangle
         if win_rect:
             Window.left, Window.top = win_rect[:2]
@@ -178,14 +401,52 @@ class KivyMainApp(MainAppBase):
             self.framework_app.kv_file = MAIN_KV_FILE_NAME
         self._update_observable_app_states(self.retrieve_app_states())  # copy app states to duplicate DictProperty
 
-        self.switch_theme(self.light_theme)
+        self.change_light_theme(self.light_theme)
 
         return self.framework_app.run, self.framework_app.stop
+
+    # overwritten and helper methods
+
+    def change_light_theme(self, light_theme: bool):
+        """
+
+        :param light_theme:
+        :return:
+        """
+        Window.clearcolor = THEME_LIGHT_BACKGROUND_COLOR if light_theme else THEME_DARK_BACKGROUND_COLOR
+        self.framework_app.font_color = THEME_LIGHT_FONT_COLOR if light_theme else THEME_DARK_FONT_COLOR
+
+    @staticmethod
+    def class_by_name(class_name: str) -> Optional[Type]:
+        """ resolve kv widgets """
+        try:
+            return Factory.get(class_name)
+        except (FactoryException, AttributeError):
+            return None
 
     def load_sounds(self):
         """ override for to pre-load audio sounds from app folder snd into sound file cache. """
         self.sound_files = FilesRegister('snd', file_class=CachedFile,
                                          object_loader=lambda f: SoundLoader.load(f.path))
+
+    def on_flow_widget_focused(self):
+        """ set focus to the widget referenced by the current flow id. """
+        liw = self.widget_by_flow_id(self.flow_id)
+        self.dpo(f"KivyMainApp.on_flow_widget_focused() '{self.flow_id}'"
+                 f" {liw} has={getattr(liw, 'focus') if liw else ''}")
+        if liw and liw.is_focusable and not liw.focus:
+            liw.focus = True
+
+    def on_light_theme_change(self, flow_id: str, event_kwargs: Dict[str, Any]) -> bool:
+        """ font size app state change event handler.
+
+        :param flow_id:        flow id.
+        :param event_kwargs:    event kwargs with key `'light_theme'` containing True|False for light|dark theme.
+        :return:                True for to confirm change of flow id.
+        """
+        light_theme: bool = event_kwargs['light_theme']
+        self.change_light_theme(light_theme)
+        return super().on_light_theme_change(flow_id, event_kwargs)     # save light_theme app state
 
     def play_beep(self):
         """ make a short beep sound. """
@@ -217,11 +478,23 @@ class KivyMainApp(MainAppBase):
         except Exception as ex:
             self.po(f"KivyMainApp.play_vibrate exception {ex}")
 
-    def switch_theme(self, light_theme: bool):
-        """ switch app theme between light (True) and dark (False).
+    def show_popup(self, popup_class: Type[Widget], parent: Widget = None, **popup_attributes) -> Widget:
+        """ open Popup using the `open` method. Overwriting the main app class method.
 
-        :param light_theme:     True == light theme, False == dark theme
+        :param popup_class:         class of the Popup widget/window.
+        :param parent:              popup parent widget (will be passed to the popup.open method as widget argument).
+        :param popup_attributes:    args for to be set as attributes of the popup class instance.
+        :return:                    created and displayed/opened popup class instance.
         """
-        Window.clearcolor = THEME_LIGHT_BACKGROUND_COLOR if light_theme else THEME_DARK_BACKGROUND_COLOR
-        self.framework_app.font_color = THEME_LIGHT_FONT_COLOR if light_theme else THEME_DARK_FONT_COLOR
-        self.change_app_state('light_theme', light_theme)
+        self.dpo(f"KivyAppBase.show_popup {popup_class} {popup_attributes}")
+
+        popup_instance = popup_class()
+        for attr, value in popup_attributes.items():
+            setattr(popup_instance, attr, value)
+
+        if not hasattr(popup_instance, 'close') and hasattr(popup_instance, 'dismiss'):
+            popup_instance.close = popup_instance.dismiss   # create close() method alias for DropDown.dismiss() method
+
+        popup_instance.open(parent)
+
+        return popup_instance

@@ -6,7 +6,9 @@
       <w>capslock</w>
       <w>clearcolor</w>
       <w>cython</w>
+      <w>defaulttheme</w>
       <w>ffmpeg</w>
+      <w>focusable</w>
       <w>gstreamer</w>
       <w>jnius</w>
       <w>kivy</w>
