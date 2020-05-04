@@ -89,7 +89,31 @@ WIDGETS = '''\
 #: import flow_key ae.gui_app.flow_key
 #: import flow_key_split ae.gui_app.flow_key_split
 
-<FlowButton@ButtonBehavior+Image>:
+<ThemeButton@ButtonBehavior+Label>:
+    back_color: Window.clearcolor       #THEME_DARK_BACKGROUND_COLOR
+    source: themeButtonImage.source
+    size_hint_y: None
+    height: app.ae_states['font_size'] * 1.2
+    font_size: app.ae_states['font_size'] / 1.2
+    color: app.font_color
+    canvas.before:
+        Color:
+            rgba: self.back_color or THEME_DARK_BACKGROUND_COLOR
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+    Image:
+        id: themeButtonImage
+        source: root.source
+        allow_stretch: True
+        keep_ratio: False
+        opacity: 1 if self.source else 0
+        pos: self.parent.pos
+        size: self.parent.size
+
+
+#<FlowButton@ButtonBehavior+Image>:
+<FlowButton@ThemeButton>:
     ae_flow_id: ''
     ae_clicked_kwargs: dict(popup_kwargs=dict(parent=self))
     ae_icon_name: ""
@@ -97,13 +121,19 @@ WIDGETS = '''\
     source:
         app.main_app.img_file(self.ae_icon_name or flow_key_split(self.ae_flow_id)[0], \
                               app.ae_states['font_size'], app.ae_states['light_theme'])
-    background_normal: 'atlas://data/images/defaulttheme/slider_cursor'
-    allow_stretch: True
-    keep_ratio: False
 
-<FlowPopup@DropDown>:
+
+<FlowDropDown@DropDown>:
     ae_closed_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.ae_closed_kwargs)
+
+
+<FlowPopup@Popup>:
+    ae_closed_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
+    on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.ae_closed_kwargs)
+
+
+<HelpShowPopup@Popup>:
 
 
 <UserPreferencesButton@FlowButton>:
@@ -117,7 +147,7 @@ WIDGETS = '''\
             pos: self.pos[0] + sp(4.5), self.pos[1] + sp(4.5)
             size: self.size[0] - sp(9), self.size[1] - sp(9)
 
-<UserPreferencesOpenPopup@FlowPopup>:
+<UserPreferencesOpenPopup@FlowDropDown>:
     auto_width: False
     width: (Window.width - sp(90)) / 1.8
     canvas.after:
@@ -140,14 +170,14 @@ WIDGETS = '''\
         height: app.ae_states['font_size'] * 1.2
         ThemeButton:
             text: "dark"
-            on_release: app.main_app.on_user_preference_theme_changed(self.text)
-            color: THEME_DARK_FONT_COLOR
-            back_color: THEME_DARK_BACKGROUND_COLOR
+            on_release: app.main_app.change_flow(id_of_flow('change', 'light_theme'), light_theme=False)
+            color: THEME_DARK_FONT_COLOR or self.color
+            back_color: THEME_DARK_BACKGROUND_COLOR or self.back_color
         ThemeButton:
             text: "light"
-            on_release: app.main_app.on_user_preference_theme_changed(self.text)
-            color: THEME_LIGHT_FONT_COLOR
-            back_color: THEME_LIGHT_BACKGROUND_COLOR
+            on_release: app.main_app.change_flow(id_of_flow('change', 'light_theme'), light_theme=True)
+            color: THEME_LIGHT_FONT_COLOR or self.color
+            back_color: THEME_LIGHT_BACKGROUND_COLOR or self.back_color
     ChangeColorButton:
         color_name: 'flow_id_ink'
     ChangeColorButton:
@@ -168,20 +198,14 @@ WIDGETS = '''\
     size_hint_y: None
     height: app.ae_states['font_size'] * 1.5
     cursor_size: app.ae_states['font_size'] * 1.5, app.ae_states['font_size'] * 1.5
+    #cursor_width: app.ae_states['font_size'] * 1.5
+    #cursor_height: app.ae_states['font_size'] * 1.5
     padding: app.ae_states['font_size'] * 1.2 / 2.1
+    value_track: True
+    value_track_color: app.font_color
     canvas.before:
         Color:
             rgba: Window.clearcolor
-        RoundedRectangle:
-            pos: self.pos
-            size: self.size
-
-
-<ThemeButton@ButtonBehavior+Label>:
-    back_color: THEME_DARK_BACKGROUND_COLOR
-    canvas.before:
-        Color:
-            rgba: self.back_color or THEME_DARK_BACKGROUND_COLOR
         RoundedRectangle:
             pos: self.pos
             size: self.size
@@ -200,7 +224,7 @@ WIDGETS = '''\
             pos: self.pos
             size: self.size
 
-<FontSizeEditPopup@FlowPopup>:
+<FontSizeEditPopup@FlowDropDown>:
     parent_popup_to_close: None
     on_select:
         app.main_app.change_flow(id_of_flow('change', 'font_size'), \
@@ -266,7 +290,7 @@ WIDGETS = '''\
             pos: self.pos[0] + self.width / 6, self.pos[1] + sp(3)
             size: self.size[0] - 2 * self.width / 6, self.size[1] - sp(6)
 
-<ColorPickerOpenPopup@FlowPopup>:
+<ColorPickerOpenPopup@FlowDropDown>:
     auto_width: False
     width: min(Window.width - (self.attach_to.x if self.attach_to else sp(90)) - sp(9), sp(690))
     canvas.after:
@@ -433,8 +457,8 @@ class KivyMainApp(MainAppBase):
         """ set focus to the widget referenced by the current flow id. """
         liw = self.widget_by_flow_id(self.flow_id)
         self.dpo(f"KivyMainApp.on_flow_widget_focused() '{self.flow_id}'"
-                 f" {liw} has={getattr(liw, 'focus') if liw else ''}")
-        if liw and liw.is_focusable and not liw.focus:
+                 f" {liw} has={getattr(liw, 'focus', 'unsupported') if liw else ''}")
+        if liw and getattr(liw, 'is_focusable', False) and not liw.focus:
             liw.focus = True
 
     def on_light_theme_change(self, flow_id: str, event_kwargs: Dict[str, Any]) -> bool:
