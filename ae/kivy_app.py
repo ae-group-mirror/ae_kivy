@@ -55,7 +55,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.15'
+__version__ = '0.0.16'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -90,29 +90,37 @@ WIDGETS = '''\
 #: import flow_key_split ae.gui_app.flow_key_split
 
 <ThemeButton@ButtonBehavior+Label>:
-    back_color: Window.clearcolor       #THEME_DARK_BACKGROUND_COLOR
+    circle_fill_color: 0, 0, 0, 0
+    square_fill_color: 0, 0, 0, 0
+    fill_pos: self.pos
+    fill_size: self.size
     source: themeButtonImage.source
-    size_hint_y: None
-    height: app.ae_states['font_size'] * 1.2
-    font_size: app.ae_states['font_size'] / 1.2
+    size_hint: 0.003, None
+    size_hint_min_x: self.height
+    height: app.ae_states['font_size'] * 1.5
+    font_size: app.ae_states['font_size']
     color: app.font_color
     canvas.before:
         Color:
-            rgba: self.back_color or THEME_DARK_BACKGROUND_COLOR
+            rgba: self.square_fill_color
         RoundedRectangle:
-            pos: self.pos
-            size: self.size
+            pos: self.fill_pos or self.pos
+            size: self.fill_size or self.size
+        Color:
+            rgba: self.circle_fill_color
+        Ellipse:
+            pos: self.fill_pos or self.pos
+            size: self.fill_size or self.size
     Image:
         id: themeButtonImage
         source: root.source
         allow_stretch: True
         keep_ratio: False
         opacity: 1 if self.source else 0
-        pos: self.parent.pos
-        size: self.parent.size
+        pos: self.parent.fill_pos or self.parent.pos
+        size: self.parent.fill_size or self.parent.size
 
 
-#<FlowButton@ButtonBehavior+Image>:
 <FlowButton@ThemeButton>:
     ae_flow_id: ''
     ae_clicked_kwargs: dict(popup_kwargs=dict(parent=self))
@@ -123,9 +131,27 @@ WIDGETS = '''\
                               app.ae_states['font_size'], app.ae_states['light_theme'])
 
 
+<OptionalButton@FlowButton>:
+    visible: True
+    size_hint: None, None
+    width: self.width if self.visible else 0
+    width: self.height if self.visible else 0
+    disabled: not self.visible
+    opacity: 1 if self.visible else 0
+
+
+# DropDown flow gets handled identical like for a Popup
 <FlowDropDown@DropDown>:
     ae_closed_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.ae_closed_kwargs)
+    auto_width: False
+    width: min(Window.width - (self.attach_to.x if self.attach_to else sp(90)) - sp(9), sp(960))
+    canvas.after:
+        Color:
+            rgba: app.font_color
+        Line:
+            width: sp(1.8)
+            rounded_rectangle: self.x, self.y, self.width, self.height, sp(9)
 
 
 <FlowPopup@Popup>:
@@ -138,46 +164,30 @@ WIDGETS = '''\
 
 <UserPreferencesButton@FlowButton>:
     ae_flow_id: id_of_flow('open', 'user_preferences')
-    minimum_width: self.height
-    size_hint_max_x: self.height
-    canvas.before:
-        Color:
-            rgba: 0.69, 0.69, 0.99, 0.9
-        Ellipse:
-            pos: self.pos[0] + sp(4.5), self.pos[1] + sp(4.5)
-            size: self.size[0] - sp(9), self.size[1] - sp(9)
+    circle_fill_color: 0.69, 0.69, 0.99, 0.9
 
 <UserPreferencesOpenPopup@FlowDropDown>:
-    auto_width: False
-    width: (Window.width - sp(90)) / 1.8
-    canvas.after:
-        Color:
-            rgba: 0.69, 0.69, 0.99, 0.9
-        Line:
-            width: sp(1.8)
-            rounded_rectangle: self.x + sp(3), self.y + sp(3), self.width - sp(6), self.height - sp(6), sp(9)
     UserPrefSlider:
         app_state_name: 'sound_volume'
         cursor_image: 'atlas://data/images/defaulttheme/audio-volume-high'
-    #UserPrefSlider:    current kivy module vibrator.py does not support amplitudes arg of android api
-    #   app_state_name: 'vibrate_amplitude'
-    #   cursor_image: app.main_app.img_file('vibrate', app.ae_states['font_size'], app.ae_states['light_theme'])
+    # UserPrefSlider:    current kivy module vibrator.py does not support amplitudes arg of android api
+    #    app_state_name: 'vibrate_amplitude'
+    #    cursor_image: app.main_app.img_file('vibrate', app.ae_states['font_size'], app.ae_states['light_theme'])
     FontSizeButton:
-        size_hint_y: None
-        height: app.ae_states['font_size'] * 1.5
+        # pass
     BoxLayout:
         size_hint_y: None
-        height: app.ae_states['font_size'] * 1.2
+        height: app.ae_states['font_size'] * 1.5
         ThemeButton:
             text: "dark"
             on_release: app.main_app.change_flow(id_of_flow('change', 'light_theme'), light_theme=False)
             color: THEME_DARK_FONT_COLOR or self.color
-            back_color: THEME_DARK_BACKGROUND_COLOR or self.back_color
+            square_fill_color: THEME_DARK_BACKGROUND_COLOR or self.square_fill_color
         ThemeButton:
             text: "light"
             on_release: app.main_app.change_flow(id_of_flow('change', 'light_theme'), light_theme=True)
             color: THEME_LIGHT_FONT_COLOR or self.color
-            back_color: THEME_LIGHT_BACKGROUND_COLOR or self.back_color
+            square_fill_color: THEME_LIGHT_BACKGROUND_COLOR or self.square_fill_color
     ChangeColorButton:
         color_name: 'flow_id_ink'
     ChangeColorButton:
@@ -198,9 +208,7 @@ WIDGETS = '''\
     size_hint_y: None
     height: app.ae_states['font_size'] * 1.5
     cursor_size: app.ae_states['font_size'] * 1.5, app.ae_states['font_size'] * 1.5
-    #cursor_width: app.ae_states['font_size'] * 1.5
-    #cursor_height: app.ae_states['font_size'] * 1.5
-    padding: app.ae_states['font_size'] * 1.2 / 2.1
+    padding: app.ae_states['font_size'] * 2.4
     value_track: True
     value_track_color: app.font_color
     canvas.before:
@@ -214,35 +222,13 @@ WIDGETS = '''\
 <FontSizeButton@FlowButton>:
     ae_flow_id: id_of_flow('edit', 'font_size')
     ae_clicked_kwargs: dict(popup_kwargs=dict(parent_popup_to_close=self.parent.parent, parent=self))
-    font_size: app.ae_states['font_size'] * 1.5
-    size_hint_y: None
-    height: app.ae_states['font_size'] * 2.1
-    canvas.before:
-        Color:
-            rgba: Window.clearcolor
-        RoundedRectangle:
-            pos: self.pos
-            size: self.size
+    square_fill_color: Window.clearcolor
 
 <FontSizeEditPopup@FlowDropDown>:
     parent_popup_to_close: None
     on_select:
         app.main_app.change_flow(id_of_flow('change', 'font_size'), \
         font_size=args[1], popups_to_close=(self.parent_popup_to_close, ))
-    auto_width: False
-    width: Window.width - sp(90)
-    canvas.before:
-        Color:
-            rgba: app.font_color
-        RoundedRectangle:
-            pos: self.pos
-            size: self.size
-    canvas.after:
-        Color:
-            rgba: app.font_color
-        Line:
-            width: sp(1.8)
-            rounded_rectangle: self.x + sp(2), self.y + sp(2), self.width - sp(4), self.height - sp(4), sp(6)
     FontSizeSelectButton:
         font_size: MIN_FONT_SIZE
     FontSizeSelectButton:
@@ -259,7 +245,7 @@ WIDGETS = '''\
         font_size: MAX_FONT_SIZE
 
 <FontSizeSelectButton@Button>:
-    #text: f'Aa Bb Zz {round(self.font_size)}'      displays always 15 as font size
+    # text: f'Aa Bb Zz {round(self.font_size)}'      displays always 15 as font size
     text: 'Aa Bb Zz {}'.format(round(self.font_size))
     on_release: self.parent.parent.select(self.font_size)
     size_hint_y: None
@@ -269,36 +255,15 @@ WIDGETS = '''\
     background_color: Window.clearcolor
 
 
-<ChangeColorButton@ButtonBehavior+Label>:
+<ChangeColorButton@FlowButton>:
     color_name: 'flow_id_ink'
+    ae_flow_id: id_of_flow('open', 'color_picker', self.color_name)
+    ae_clicked_kwargs: dict(popup_kwargs=dict(parent=self))
+    square_fill_color: Window.clearcolor
+    circle_fill_color: app.ae_states[self.color_name]
     text: self.color_name
-    on_release:
-        app.main_app.change_flow(id_of_flow('open', 'color_picker', self.color_name), popup_kwargs=dict(parent=self))
-    size_hint_y: None
-    height: app.ae_states['font_size'] * 1.2
-    font_size: app.ae_states['font_size'] / 1.2
-    color: app.font_color
-    canvas.before:
-        Color:
-            rgba: Window.clearcolor
-        Rectangle:
-            pos: self.pos
-            size: self.size
-        Color:
-            rgba: app.ae_states[self.color_name]
-        Ellipse:
-            pos: self.pos[0] + self.width / 6, self.pos[1] + sp(3)
-            size: self.size[0] - 2 * self.width / 6, self.size[1] - sp(6)
 
 <ColorPickerOpenPopup@FlowDropDown>:
-    auto_width: False
-    width: min(Window.width - (self.attach_to.x if self.attach_to else sp(90)) - sp(9), sp(690))
-    canvas.after:
-        Color:
-            rgba: app.font_color
-        Line:
-            width: sp(1.8)
-            rounded_rectangle: self.x + sp(2), self.y + sp(2), self.width - sp(4), self.height - sp(4), sp(6)
     ColorPicker:
         color: app.ae_states[root.attach_to.color_name] if root.attach_to else (0, 0, 0, 0)
         on_color:
@@ -342,9 +307,9 @@ class FrameworkApp(App):
         self.main_app.po('App.build(), user_data_dir', self.user_data_dir,
                          "config files", getattr(self.main_app, '_cfg_files'))
 
-        Window.bind(on_resize=self.win_pos_size_changed,
-                    left=self.win_pos_size_changed,
-                    top=self.win_pos_size_changed,
+        Window.bind(on_resize=self.win_pos_size_change,
+                    left=self.win_pos_size_change,
+                    top=self.win_pos_size_change,
                     on_key_down=self.key_press_from_kivy,
                     on_key_up=self.key_release_from_kivy)
 
@@ -370,7 +335,7 @@ class FrameworkApp(App):
 
     def on_start(self):
         """ app start event """
-        self.win_pos_size_changed()  # init. app./self.landscape (on app startup and after build)
+        self.win_pos_size_change()  # init. app./self.landscape (on app startup and after build)
         self.main_app.framework_win = self.root.parent
         self.main_app.call_method('on_app_start')
 
@@ -391,9 +356,9 @@ class FrameworkApp(App):
         self.main_app.save_app_states()
         self.main_app.call_method('on_app_stop')
 
-    def win_pos_size_changed(self, *_):
+    def win_pos_size_change(self, *_):
         """ resize handler updates :attr:`~MainAppBase.win_rectangle` app state and :attr:`~FrameworkApp.landscape`. """
-        self.main_app.win_pos_size_changed(Window.left, Window.top, Window.width, Window.height)
+        self.main_app.win_pos_size_change(Window.left, Window.top, Window.width, Window.height)
 
 
 class KivyMainApp(MainAppBase):
@@ -507,6 +472,7 @@ class KivyMainApp(MainAppBase):
 
         :param popup_class:         class of the Popup widget/window.
         :param parent:              popup parent widget (will be passed to the popup.open method as widget argument).
+                                    If not passed then self.framework_win will passed into the widget argument.
         :param popup_attributes:    args for to be set as attributes of the popup class instance.
         :return:                    created and displayed/opened popup class instance.
         """
@@ -519,6 +485,6 @@ class KivyMainApp(MainAppBase):
         if not hasattr(popup_instance, 'close') and hasattr(popup_instance, 'dismiss'):
             popup_instance.close = popup_instance.dismiss   # create close() method alias for DropDown.dismiss() method
 
-        popup_instance.open(parent)
+        popup_instance.open(parent or self.framework_win)
 
         return popup_instance
