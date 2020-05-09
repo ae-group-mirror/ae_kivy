@@ -55,7 +55,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.16'
+__version__ = '0.0.17'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -92,8 +92,8 @@ WIDGETS = '''\
 <ThemeButton@ButtonBehavior+Label>:
     circle_fill_color: 0, 0, 0, 0
     square_fill_color: 0, 0, 0, 0
-    fill_pos: self.pos
-    fill_size: self.size
+    fill_pos: self.fill_pos or self.pos
+    fill_size: self.fill_size or self.size
     source: themeButtonImage.source
     size_hint: 0.003, None
     size_hint_min_x: self.height
@@ -120,6 +120,12 @@ WIDGETS = '''\
         pos: self.parent.fill_pos or self.parent.pos
         size: self.parent.fill_size or self.parent.size
 
+
+<ThemeInput@TextInput>:
+    font_size: app.ae_states['font_size']
+    cursor_color: app.font_color
+    foreground_color: app.font_color
+    background_color: Window.clearcolor
 
 <FlowButton@ThemeButton>:
     ae_flow_id: ''
@@ -157,9 +163,10 @@ WIDGETS = '''\
 <FlowPopup@Popup>:
     ae_closed_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.ae_closed_kwargs)
-
-
-<HelpShowPopup@Popup>:
+    auto_dismiss: True
+    separator_color: app.font_color
+    title_align: 'center'
+    title_size: app.main_app.font_size
 
 
 <UserPreferencesButton@FlowButton>:
@@ -167,14 +174,22 @@ WIDGETS = '''\
     circle_fill_color: 0.69, 0.69, 0.99, 0.9
 
 <UserPreferencesOpenPopup@FlowDropDown>:
+    ChangeColorButton:
+        color_name: 'flow_id_ink'
+    ChangeColorButton:
+        color_name: 'flow_path_ink'
+    ChangeColorButton:
+        color_name: 'selected_item_ink'
+    ChangeColorButton:
+        color_name: 'unselected_item_ink'
+    FontSizeButton:
+        # pass
     UserPrefSlider:
         app_state_name: 'sound_volume'
         cursor_image: 'atlas://data/images/defaulttheme/audio-volume-high'
     # UserPrefSlider:    current kivy module vibrator.py does not support amplitudes arg of android api
     #    app_state_name: 'vibrate_amplitude'
     #    cursor_image: app.main_app.img_file('vibrate', app.ae_states['font_size'], app.ae_states['light_theme'])
-    FontSizeButton:
-        # pass
     BoxLayout:
         size_hint_y: None
         height: app.ae_states['font_size'] * 1.5
@@ -188,14 +203,6 @@ WIDGETS = '''\
             on_release: app.main_app.change_flow(id_of_flow('change', 'light_theme'), light_theme=True)
             color: THEME_LIGHT_FONT_COLOR or self.color
             square_fill_color: THEME_LIGHT_BACKGROUND_COLOR or self.square_fill_color
-    ChangeColorButton:
-        color_name: 'flow_id_ink'
-    ChangeColorButton:
-        color_name: 'flow_path_ink'
-    ChangeColorButton:
-        color_name: 'selected_item_ink'
-    ChangeColorButton:
-        color_name: 'unselected_item_ink'
 
 
 <UserPrefSlider@Slider>:
@@ -245,7 +252,7 @@ WIDGETS = '''\
         font_size: MAX_FONT_SIZE
 
 <FontSizeSelectButton@Button>:
-    # text: f'Aa Bb Zz {round(self.font_size)}'      displays always 15 as font size
+    # text: f'Aa Bb Zz {round(self.font_size)}'      F-STRINGS don't work - displays always 15 as font size
     text: 'Aa Bb Zz {}'.format(round(self.font_size))
     on_release: self.parent.parent.select(self.font_size)
     size_hint_y: None
@@ -266,8 +273,7 @@ WIDGETS = '''\
 <ColorPickerOpenPopup@FlowDropDown>:
     ColorPicker:
         color: app.ae_states[root.attach_to.color_name] if root.attach_to else (0, 0, 0, 0)
-        on_color:
-            app.main_app.change_app_state(root.attach_to.color_name, tuple(args[1])) if root.attach_to else lambda : 0
+        on_color: root.attach_to and app.main_app.change_app_state(root.attach_to.color_name, tuple(args[1]))
         size_hint_y: None
         height: self.width
         canvas.before:
@@ -467,17 +473,19 @@ class KivyMainApp(MainAppBase):
         except Exception as ex:
             self.po(f"KivyMainApp.play_vibrate exception {ex}")
 
-    def show_popup(self, popup_class: Type[Widget], parent: Widget = None, **popup_attributes) -> Widget:
+    def show_popup(self, popup_class: Type[Widget], **popup_attributes) -> Widget:
         """ open Popup using the `open` method. Overwriting the main app class method.
 
         :param popup_class:         class of the Popup widget/window.
-        :param parent:              popup parent widget (will be passed to the popup.open method as widget argument).
-                                    If not passed then self.framework_win will passed into the widget argument.
-        :param popup_attributes:    args for to be set as attributes of the popup class instance.
+        :param popup_attributes:    args for to be set as attributes of the popup class instance plus an optional
+                                    `'parent'` kwarg that will be passed as the popup parent widget arg
+                                    to the popup.open method; if parent does not get passed then
+                                    self.framework_win will passed into the popup.open method as the widget argument.
         :return:                    created and displayed/opened popup class instance.
         """
         self.dpo(f"KivyAppBase.show_popup {popup_class} {popup_attributes}")
 
+        parent = popup_attributes.pop('parent', self.framework_win)
         popup_instance = popup_class()
         for attr, value in popup_attributes.items():
             setattr(popup_instance, attr, value)
@@ -485,6 +493,6 @@ class KivyMainApp(MainAppBase):
         if not hasattr(popup_instance, 'close') and hasattr(popup_instance, 'dismiss'):
             popup_instance.close = popup_instance.dismiss   # create close() method alias for DropDown.dismiss() method
 
-        popup_instance.open(parent or self.framework_win)
+        popup_instance.open(parent)
 
         return popup_instance

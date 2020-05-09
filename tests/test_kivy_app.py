@@ -2,13 +2,10 @@
 import os
 import pytest
 import shutil
-from typing import cast
 
-# from kivy.core.window import Window
 from kivy.base import stopTouchApp
 from kivy.clock import Clock
 from kivy.lang import Builder
-from kivy.uix.widget import Widget
 
 from ae.gui_app import APP_STATE_SECTION_NAME, id_of_flow, flow_key, replace_flow_action, MainAppBase
 from ae.kivy_app import (
