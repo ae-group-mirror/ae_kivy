@@ -88,7 +88,7 @@ class KivyAppTest(KivyMainApp):
         """ called from KivyMainApp """
         self.on_resume_called = True
 
-    def on_app_stop(self):
+    def on_kivy_app_stop(self):
         """ called from KivyMainApp """
         self.on_stop_called = True
 
@@ -189,6 +189,7 @@ class TestCallbacks:
     def test_on_stop(self, restore_app_env):
         app = KivyAppTest()
         assert not app.on_stop_called
+        # Clock.schedule_once(app.stop_app)
         Clock.schedule_once(app.framework_app.stop)
         app.run_app()
         assert app.on_stop_called

@@ -5,15 +5,29 @@ main application class for GUIApp-conform Kivy app
 This ae portion is providing two classes (:class:`FrameworkApp`
 and :class:`KivyMainApp` and some useful constants.
 
-The class :class:`KivyMainApp` is implementing a abstract main app
-class, based on the abstract base class :class:`~ae.gui_app.MainAppBase`
-that is reducing the amount of code needed for to create a Python
-application based on the :ref:`kivy <kivy.org>` framework.
+The class :class:`KivyMainApp` is implementing a main app
+class that is reducing the amount of code needed for
+to create a Python application based on the
+:ref:`kivy framework<kivy.org>`.
+
+:class:`KivyMainApp` is based on the following classes:
+
+* the abstract base class :class:`~ae.gui_app.MainAppBase`
+  which adds the concepts of :ref:`application status`
+  (including :ref:`app-state-variables` and :ref:`app-state-constants`),
+  :ref:`application flow` and :ref:`application events`.
+* the class :class:`~ae.console.ConsoleApp` is adding
+  :ref:`config-files`, :ref:`config-variables`
+  and :ref:`config-options`.
+* the class :class:`~ae.core.AppBase` is adding
+  :ref:`application logging` and :ref:`application debugging`.
+
 
 The main app class :class:`KivyMainApp` is also encapsulating the
-:class:`Kivy app class <kivy.app.App>` within the :class:`FrameworkApp`. The
-instance of the Kivy app class can be directly accessed from the main app class
-instance via the :attr:`~KivyMainApp.framework_app` attribute.
+:class:`Kivy app class <kivy.app.App>` within the :class:`FrameworkApp`.
+An instance of the Kivy app class can be directly accessed from
+the main app class instance via the
+:attr:`~KivyMainApp.framework_app` attribute.
 
 
 unit tests
@@ -55,7 +69,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.17'
+__version__ = '0.0.18'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -340,10 +354,16 @@ class FrameworkApp(App):
         return self.main_app.call_method('on_key_release', keyboard.command_keys.get(key_code, str(key_code)))
 
     def on_start(self):
-        """ app start event """
-        self.win_pos_size_change()  # init. app./self.landscape (on app startup and after build)
+        """ kivy app start event.
+
+        Fired after call of :meth:`MainAppBase.run_app` method and MainAppBase.on_app_start event.
+
+        Kivy just created the main layout by calling its :meth:`~kivy.app.App.build` method and
+        attached it to the main window.
+        """
         self.main_app.framework_win = self.root.parent
-        self.main_app.call_method('on_app_start')
+        self.win_pos_size_change()  # init. app./self.landscape (on app startup and after build)
+        self.main_app.call_method('on_kivy_app_start')
 
     def on_pause(self) -> bool:
         """ app pause event """
@@ -358,9 +378,9 @@ class FrameworkApp(App):
         return True
 
     def on_stop(self):
-        """ quit app event """
+        """ quit app event (:meth:`MainAppBase.stop_app` emits the `on_app_stop` event) """
         self.main_app.save_app_states()
-        self.main_app.call_method('on_app_stop')
+        self.main_app.call_method('on_kivy_app_stop')
 
     def win_pos_size_change(self, *_):
         """ resize handler updates :attr:`~MainAppBase.win_rectangle` app state and :attr:`~FrameworkApp.landscape`. """
@@ -384,7 +404,6 @@ class KivyMainApp(MainAppBase):
         :return:                        callable for to start and stop/exit the GUI event loop.
         """
         Builder.load_string(WIDGETS)
-        self.call_method('on_app_init')
 
         win_rect = self.win_rectangle
         if win_rect:
