@@ -69,13 +69,13 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.19'
+__version__ = '0.0.20'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
-# Window.softinput_mode = 'below_target'  # ensure android keyboard is not covering Popup/text input
+Window.softinput_mode = 'below_target'  # ensure android keyboard is not covering Popup/text input
 
-MAIN_KV_FILE_NAME = 'main.kv'       #: default file name of the main kv file
+MAIN_KV_FILE_NAME = 'main.kv'           #: default file name of the main kv file
 
 LOVE_VIBRATE_PATTERN = (0.0, 0.12, 0.12, 0.21, 0.03, 0.12, 0.12, 0.12)
 """ short/~1.2s vibrate pattern for fun/love notification. """
@@ -116,64 +116,10 @@ WIDGETS = '''\
     color: app.font_color
     canvas.before:
         Color:
-            rgba:
-                self.square_fill_color[0] / 3 + .66, \
-                self.square_fill_color[1] / 3 + .66, \
-                self.square_fill_color[2] / 3 + .66, \
-                (self.fill_size or 0) and self.square_fill_color[3] and self.square_fill_color[3] / 3 + .66
-        Line:
-            width: 1
-            rounded_rectangle:
-                (self.fill_pos[0] if self.fill_pos else self.pos[0]) - app.ae_states['font_size'] / 36, \
-                self.fill_pos[1] if self.fill_pos else self.pos[1], \
-                (self.fill_size[0] if self.fill_size else 0) + app.ae_states['font_size'] / 36, \
-                (self.fill_size[1] if self.fill_size else 0) + app.ae_states['font_size'] / 36, \
-                sp(9)
-        Color:
-            rgba:
-                self.square_fill_color[0] / 3, \
-                self.square_fill_color[1] / 3, \
-                self.square_fill_color[2] / 3, \
-                (self.fill_size or 0) and self.square_fill_color[3] / 3
-        Line:
-            width: 1
-            rounded_rectangle:
-                self.fill_pos[0] if self.fill_pos else self.pos[0], \
-                (self.fill_pos[1] if self.fill_pos else self.pos[1]) - app.ae_states['font_size'] / 36, \
-                (self.fill_size[0] if self.fill_size else 0) + app.ae_states['font_size'] / 36, \
-                (self.fill_size[1] if self.fill_size else 0) + app.ae_states['font_size'] / 36, \
-                sp(9)
-        Color:
             rgba: self.square_fill_color
         RoundedRectangle:
             pos: self.fill_pos or self.pos
             size: self.fill_size or self.size
-        Color:
-            rgba:
-                self.circle_fill_color[0] / 3 + .66, \
-                self.circle_fill_color[1] / 3 + .66, \
-                self.circle_fill_color[2] / 3 + .66, \
-                (self.fill_size or 0) and self.circle_fill_color[3] and self.circle_fill_color[3] / 3 + .66
-        Line:
-            width: 1
-            ellipse:
-                (self.fill_pos[0] if self.fill_pos else self.pos[0]) - app.ae_states['font_size'] / 36, \
-                self.fill_pos[1] if self.fill_pos else self.pos[1], \
-                (self.fill_size[0] if self.fill_size else 0) + app.ae_states['font_size'] / 36, \
-                (self.fill_size[1] if self.fill_size else 0) + app.ae_states['font_size'] / 36
-        Color:
-            rgba:
-                self.circle_fill_color[0] / 3, \
-                self.circle_fill_color[1] / 3, \
-                self.circle_fill_color[2] / 3, \
-                (self.fill_size or 0) and self.circle_fill_color[3] and self.circle_fill_color[3] / 3
-        Line:
-            width: 1
-            ellipse:
-                self.fill_pos[0] if self.fill_pos else self.pos[0], \
-                (self.fill_pos[1] if self.fill_pos else self.pos[1]) - app.ae_states['font_size'] / 36, \
-                (self.fill_size[0] if self.fill_size else 0) + app.ae_states['font_size'] / 36, \
-                (self.fill_size[1] if self.fill_size else 0) + app.ae_states['font_size'] / 36
         Color:
             rgba: self.circle_fill_color
         Ellipse:
