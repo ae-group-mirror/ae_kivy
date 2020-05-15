@@ -73,7 +73,8 @@ __version__ = '0.0.20'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
-Window.softinput_mode = 'below_target'  # ensure android keyboard is not covering Popup/text input
+if Window:                                  # is None on gitlab ci
+    Window.softinput_mode = 'below_target'  # ensure android keyboard is not covering Popup/text input
 
 MAIN_KV_FILE_NAME = 'main.kv'           #: default file name of the main kv file
 
