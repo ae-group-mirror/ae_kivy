@@ -207,7 +207,8 @@ class TestAppState:
     def test_retrieve_app_states(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
         assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
-        assert app.retrieve_app_states() == TST_DICT
+        fas = app.retrieve_app_states()
+        assert all(k in fas and v == fas[k] for k, v in TST_DICT.items())
 
     def test_load_app_states(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))

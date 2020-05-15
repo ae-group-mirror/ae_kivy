@@ -69,7 +69,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.18'
+__version__ = '0.0.19'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -116,10 +116,64 @@ WIDGETS = '''\
     color: app.font_color
     canvas.before:
         Color:
+            rgba:
+                self.square_fill_color[0] / 3 + .66, \
+                self.square_fill_color[1] / 3 + .66, \
+                self.square_fill_color[2] / 3 + .66, \
+                (self.fill_size or 0) and self.square_fill_color[3] and self.square_fill_color[3] / 3 + .66
+        Line:
+            width: 1
+            rounded_rectangle:
+                (self.fill_pos[0] if self.fill_pos else self.pos[0]) - app.ae_states['font_size'] / 36, \
+                self.fill_pos[1] if self.fill_pos else self.pos[1], \
+                (self.fill_size[0] if self.fill_size else 0) + app.ae_states['font_size'] / 36, \
+                (self.fill_size[1] if self.fill_size else 0) + app.ae_states['font_size'] / 36, \
+                sp(9)
+        Color:
+            rgba:
+                self.square_fill_color[0] / 3, \
+                self.square_fill_color[1] / 3, \
+                self.square_fill_color[2] / 3, \
+                (self.fill_size or 0) and self.square_fill_color[3] / 3
+        Line:
+            width: 1
+            rounded_rectangle:
+                self.fill_pos[0] if self.fill_pos else self.pos[0], \
+                (self.fill_pos[1] if self.fill_pos else self.pos[1]) - app.ae_states['font_size'] / 36, \
+                (self.fill_size[0] if self.fill_size else 0) + app.ae_states['font_size'] / 36, \
+                (self.fill_size[1] if self.fill_size else 0) + app.ae_states['font_size'] / 36, \
+                sp(9)
+        Color:
             rgba: self.square_fill_color
         RoundedRectangle:
             pos: self.fill_pos or self.pos
             size: self.fill_size or self.size
+        Color:
+            rgba:
+                self.circle_fill_color[0] / 3 + .66, \
+                self.circle_fill_color[1] / 3 + .66, \
+                self.circle_fill_color[2] / 3 + .66, \
+                (self.fill_size or 0) and self.circle_fill_color[3] and self.circle_fill_color[3] / 3 + .66
+        Line:
+            width: 1
+            ellipse:
+                (self.fill_pos[0] if self.fill_pos else self.pos[0]) - app.ae_states['font_size'] / 36, \
+                self.fill_pos[1] if self.fill_pos else self.pos[1], \
+                (self.fill_size[0] if self.fill_size else 0) + app.ae_states['font_size'] / 36, \
+                (self.fill_size[1] if self.fill_size else 0) + app.ae_states['font_size'] / 36
+        Color:
+            rgba:
+                self.circle_fill_color[0] / 3, \
+                self.circle_fill_color[1] / 3, \
+                self.circle_fill_color[2] / 3, \
+                (self.fill_size or 0) and self.circle_fill_color[3] and self.circle_fill_color[3] / 3
+        Line:
+            width: 1
+            ellipse:
+                self.fill_pos[0] if self.fill_pos else self.pos[0], \
+                (self.fill_pos[1] if self.fill_pos else self.pos[1]) - app.ae_states['font_size'] / 36, \
+                (self.fill_size[0] if self.fill_size else 0) + app.ae_states['font_size'] / 36, \
+                (self.fill_size[1] if self.fill_size else 0) + app.ae_states['font_size'] / 36
         Color:
             rgba: self.circle_fill_color
         Ellipse:
@@ -446,7 +500,7 @@ class KivyMainApp(MainAppBase):
     def on_flow_widget_focused(self):
         """ set focus to the widget referenced by the current flow id. """
         liw = self.widget_by_flow_id(self.flow_id)
-        self.dpo(f"KivyMainApp.on_flow_widget_focused() '{self.flow_id}'"
+        self.vpo(f"KivyMainApp.on_flow_widget_focused() '{self.flow_id}'"
                  f" {liw} has={getattr(liw, 'focus', 'unsupported') if liw else ''}")
         if liw and getattr(liw, 'is_focusable', False) and not liw.focus:
             liw.focus = True
@@ -468,7 +522,7 @@ class KivyMainApp(MainAppBase):
 
     def play_sound(self, sound_name: str):
         """ play audio/sound file. """
-        self.dpo(f"KivyMainApp.play_sound {sound_name}")
+        self.vpo(f"KivyMainApp.play_sound {sound_name}")
         file: Optional[CachedFile] = self.find_sound(sound_name)
         if file:
             try:
@@ -484,7 +538,7 @@ class KivyMainApp(MainAppBase):
 
     def play_vibrate(self, pattern: Tuple = (0.03, 0.3)):
         """ play vibrate pattern. """
-        self.dpo(f"KivyMainApp.play_vibrate {pattern}")
+        self.vpo(f"KivyMainApp.play_vibrate {pattern}")
         try:        # added because is crashing with current plyer version (master should work)
             vibrator.pattern(pattern)
         # except jnius.jnius.JavaException as ex:
