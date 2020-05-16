@@ -500,7 +500,7 @@ class KivyMainApp(MainAppBase):
     @staticmethod
     def prevent_keyboard_covering(input_box_bottom: float):
         """ prevent that the virtual keyboard popping up on mobile platforms is covering the text input field.
-        
+
         :param input_box_bottom:    y position of the bottom of the input field box.
         """
         keyboard_height = Window.keyboard_height or Window.height / 3  # 'or'-fallback because SDL2 reports 0 kbd height
