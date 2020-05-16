@@ -69,12 +69,16 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.20'
+__version__ = '0.0.21'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
-if Window:                                  # is None on gitlab ci
-    Window.softinput_mode = 'below_target'  # ensure android keyboard is not covering Popup/text input
+
+# if the entry field is on top of the screen then it will be disappear with below_target mode
+# and in the default mode ('') the keyboard will cover the entry field if it is in the lower part of the screen
+# therefore commented out the following two code lines (and setting it now depending on the entry field y position)
+# if Window:                                  # is None on gitlab ci
+#    Window.softinput_mode = 'below_target'  # ensure android keyboard is not covering Popup/text input if at bottom
 
 MAIN_KV_FILE_NAME = 'main.kv'           #: default file name of the main kv file
 
@@ -493,6 +497,15 @@ class KivyMainApp(MainAppBase):
         except Exception as ex:
             self.po(f"KivyMainApp.play_vibrate exception {ex}")
 
+    @staticmethod
+    def prevent_keyboard_covering(input_box_bottom: float):
+        """ prevent that the virtual keyboard popping up on mobile platforms is covering the text input field.
+        
+        :param input_box_bottom:    y position of the bottom of the input field box.
+        """
+        keyboard_height = Window.keyboard_height or Window.height / 3  # 'or'-fallback because SDL2 reports 0 kbd height
+        Window.softinput_mode = 'below_target' if input_box_bottom < keyboard_height else ''
+
     def show_popup(self, popup_class: Type[Widget], **popup_attributes) -> Widget:
         """ open Popup using the `open` method. Overwriting the main app class method.
 
@@ -513,6 +526,7 @@ class KivyMainApp(MainAppBase):
         if not hasattr(popup_instance, 'close') and hasattr(popup_instance, 'dismiss'):
             popup_instance.close = popup_instance.dismiss   # create close() method alias for DropDown.dismiss() method
 
+        self.prevent_keyboard_covering(popup_instance.y)
         popup_instance.open(parent)
 
         return popup_instance

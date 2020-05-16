@@ -483,6 +483,7 @@ class TestEvents:
         class PopUp:
             """ popup dummy class """
             dismiss = None
+            y = 0
 
             @staticmethod
             def open(parent):
