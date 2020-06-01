@@ -69,7 +69,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.21'
+__version__ = '0.0.22'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -159,8 +159,8 @@ WIDGETS = '''\
 <OptionalButton@FlowButton>:
     visible: True
     size_hint: None, None
-    width: self.width if self.visible else 0
     width: self.height if self.visible else 0
+    height: self.height if self.visible else 0
     disabled: not self.visible
     opacity: 1 if self.visible else 0
 
