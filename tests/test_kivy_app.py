@@ -8,6 +8,9 @@ from kivy.clock import Clock
 from kivy.lang import Builder
 
 from ae.gui_app import APP_STATE_SECTION_NAME, id_of_flow, flow_key, replace_flow_action, MainAppBase
+from kivy.properties import BooleanProperty
+from kivy.uix.popup import Popup
+
 from ae.kivy_app import (
     MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN,
     KivyMainApp, FrameworkApp)
@@ -480,10 +483,9 @@ class TestEvents:
         called = False
         passed_pa = None
 
-        class PopUp:
-            """ popup dummy class """
-            dismiss = None
-            y = 0
+        class TestPopUp(Popup):
+            """ popup test class """
+            test_attr = BooleanProperty(False)
 
             @staticmethod
             def open(parent):
@@ -493,13 +495,13 @@ class TestEvents:
                 passed_pa = parent
 
         # noinspection PyTypeChecker
-        popup = app.show_popup(PopUp, test_attr=True)
+        popup = app.show_popup(TestPopUp, test_attr=True)
         assert called
         assert hasattr(popup, 'test_attr')
         assert popup.test_attr is True
 
         # noinspection PyTypeChecker
-        app.show_popup(PopUp, parent=popup, test_attr=True)
+        app.show_popup(TestPopUp, parent=popup, test_attr=True)
         assert passed_pa == popup
 
         assert hasattr(popup, 'close')

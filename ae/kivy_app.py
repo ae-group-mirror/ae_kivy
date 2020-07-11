@@ -55,8 +55,10 @@ from kivy.core.window import Window                                         # ty
 from kivy.factory import Factory, FactoryException                          # type: ignore
 from kivy.lang import Builder                                               # type: ignore
 # pylint: disable=no-name-in-module
-from kivy.properties import BooleanProperty, DictProperty, ListProperty     # type: ignore
+from kivy.properties import BooleanProperty, DictProperty, ListProperty, ObjectProperty  # type: ignore
 from kivy.core.audio import SoundLoader                                     # type: ignore
+from kivy.uix.dropdown import DropDown                                      # type: ignore
+from kivy.uix.popup import Popup                                            # type: ignore
 from kivy.uix.widget import Widget                                          # type: ignore
 from plyer import vibrator                                                  # type: ignore
 
@@ -69,7 +71,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.22'
+__version__ = '0.0.23'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -166,7 +168,7 @@ WIDGETS = '''\
 
 
 # DropDown flow gets handled identical like for a Popup
-<FlowDropDown@DropDown>:
+<FlowDropDown>:
     ae_closed_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.ae_closed_kwargs)
     auto_width: False
@@ -179,7 +181,7 @@ WIDGETS = '''\
             rounded_rectangle: self.x, self.y, self.width, self.height, sp(9)
 
 
-<FlowPopup@Popup>:
+<FlowPopup>:
     ae_closed_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.ae_closed_kwargs)
     auto_dismiss: True
@@ -250,8 +252,7 @@ WIDGETS = '''\
     ae_clicked_kwargs: dict(popup_kwargs=dict(parent_popup_to_close=self.parent.parent, parent=self))
     square_fill_color: Window.clearcolor
 
-<FontSizeEditPopup@FlowDropDown>:
-    parent_popup_to_close: None
+<FontSizeEditPopup>:
     on_select:
         app.main_app.change_flow(id_of_flow('change', 'font_size'), \
         font_size=args[1], popups_to_close=(self.parent_popup_to_close, ))
@@ -303,6 +304,29 @@ WIDGETS = '''\
                 size: self.size
 '''
 """ helper widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size) """
+
+
+class FlowDropDown(DropDown):
+    """ drop down widget used for user selections from a list of items (represented by the children-widgets).
+
+    explicit class declaration for docs and for to allow initialization of ae_closed_kwargs attribute via __init__.
+    """
+
+    ae_closed_kwargs = DictProperty()   #: kwargs passed to all close action flow change event handlers
+
+
+class FlowPopup(Popup):
+    """ pop up widget used for dialogs and other top-most or modal windows.
+
+    explicit class declaration for docs and for to allow initialization of ae_closed_kwargs property via __init__.
+    """
+
+    ae_closed_kwargs = DictProperty()   #: kwargs passed to all close action flow change event handlers
+
+
+class FontSizeEditPopup(FlowDropDown):
+    """ drop down to select font size """
+    parent_popup_to_close = ObjectProperty()
 
 
 class FrameworkApp(App):
@@ -503,7 +527,7 @@ class KivyMainApp(MainAppBase):
 
         :param input_box_bottom:    y position of the bottom of the input field box.
         """
-        keyboard_height = Window.keyboard_height or Window.height / 3  # 'or'-fallback because SDL2 reports 0 kbd height
+        keyboard_height = Window.keyboard_height or Window.height / 2  # 'or'-fallback because SDL2 reports 0 kbd height
         Window.softinput_mode = 'below_target' if input_box_bottom < keyboard_height else ''
 
     def show_popup(self, popup_class: Type[Widget], **popup_attributes) -> Widget:
@@ -519,9 +543,7 @@ class KivyMainApp(MainAppBase):
         self.dpo(f"KivyAppBase.show_popup {popup_class} {popup_attributes}")
 
         parent = popup_attributes.pop('parent', self.framework_win)
-        popup_instance = popup_class()
-        for attr, value in popup_attributes.items():
-            setattr(popup_instance, attr, value)
+        popup_instance = popup_class(**popup_attributes)
 
         if not hasattr(popup_instance, 'close') and hasattr(popup_instance, 'dismiss'):
             popup_instance.close = popup_instance.dismiss   # create close() method alias for DropDown.dismiss() method
