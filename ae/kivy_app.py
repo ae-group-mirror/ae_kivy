@@ -71,7 +71,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.23'
+__version__ = '0.0.24'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -99,6 +99,10 @@ CRITICAL_VIBRATE_PATTERN = (0.00, 0.12, 0.12, 0.12, 0.12, 0.12,
 WIDGETS = '''\
 #: import Window kivy.core.window.Window
 
+#: import DEBUG_LEVELS ae.core.DEBUG_LEVELS
+#: import DEF_LANGUAGE ae.i18n.DEF_LANGUAGE
+#: import installed_languages ae.i18n.installed_languages
+
 #: import MIN_FONT_SIZE ae.gui_app.MIN_FONT_SIZE
 #: import MAX_FONT_SIZE ae.gui_app.MAX_FONT_SIZE
 #: import THEME_LIGHT_BACKGROUND_COLOR ae.gui_app.THEME_LIGHT_BACKGROUND_COLOR
@@ -109,6 +113,7 @@ WIDGETS = '''\
 #: import id_of_flow ae.gui_app.id_of_flow
 #: import flow_key ae.gui_app.flow_key
 #: import flow_key_split ae.gui_app.flow_key_split
+
 
 <ThemeButton@ButtonBehavior+Label>:
     circle_fill_color: 0, 0, 0, 0
@@ -147,6 +152,7 @@ WIDGETS = '''\
     cursor_color: app.font_color
     foreground_color: app.font_color
     background_color: Window.clearcolor
+
 
 <FlowButton@ThemeButton>:
     ae_flow_id: ''
@@ -194,7 +200,14 @@ WIDGETS = '''\
     ae_flow_id: id_of_flow('open', 'user_preferences')
     circle_fill_color: 0.69, 0.69, 0.99, 0.9
 
+
 <UserPreferencesOpenPopup@FlowDropDown>:
+    canvas.before:
+        Color:
+            rgba: (.69, .69, .69, 1.0)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
     ChangeColorButton:
         color_name: 'flow_id_ink'
     ChangeColorButton:
@@ -213,6 +226,21 @@ WIDGETS = '''\
     #    cursor_image: app.main_app.img_file('vibrate', app.ae_states['font_size'], app.ae_states['light_theme'])
     BoxLayout:
         size_hint_y: None
+        height: app.ae_states['font_size'] * 1.5 if installed_languages else 0
+        FlowButton:
+            ae_flow_id: id_of_flow('change', 'lang_code', self.text)
+            ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
+            square_fill_color: (.69, .69, .69, 1.0) if app.main_app.lang_code in ('', self.text) else Window.clearcolor
+            size_hint_x: 1
+            text: DEF_LANGUAGE
+        LangCodeButton:
+            lang_idx: 0
+        LangCodeButton:
+            lang_idx: 1
+        LangCodeButton:
+            lang_idx: 2
+    BoxLayout:
+        size_hint_y: None
         height: app.ae_states['font_size'] * 1.5
         ThemeButton:
             text: "dark"
@@ -224,6 +252,17 @@ WIDGETS = '''\
             on_release: app.main_app.change_flow(id_of_flow('change', 'light_theme'), light_theme=True)
             color: THEME_LIGHT_FONT_COLOR or self.color
             square_fill_color: THEME_LIGHT_BACKGROUND_COLOR or self.square_fill_color
+    BoxLayout:
+        size_hint_y: None
+        height: app.ae_states['font_size'] * 1.5
+        DebugLevelButton:
+            level_idx: 0
+        DebugLevelButton:
+            level_idx: 1
+        DebugLevelButton:
+            level_idx: 2
+        DebugLevelButton:
+            level_idx: 3
 
 
 <UserPrefSlider@Slider>:
@@ -252,6 +291,7 @@ WIDGETS = '''\
     ae_clicked_kwargs: dict(popup_kwargs=dict(parent_popup_to_close=self.parent.parent, parent=self))
     square_fill_color: Window.clearcolor
 
+
 <FontSizeEditPopup>:
     on_select:
         app.main_app.change_flow(id_of_flow('change', 'font_size'), \
@@ -271,6 +311,7 @@ WIDGETS = '''\
     FontSizeSelectButton:
         font_size: MAX_FONT_SIZE
 
+
 <FontSizeSelectButton@Button>:
     # text: f'Aa Bb Zz {round(self.font_size)}'      F-STRINGS don't work - displays always 15 as font size
     text: 'Aa Bb Zz {}'.format(round(self.font_size))
@@ -279,7 +320,7 @@ WIDGETS = '''\
     size: self.texture_size
     color: app.font_color
     background_normal: ''
-    background_color: Window.clearcolor
+    background_color: (.69, .69, .69, 1.0) if app.main_app.font_size == self.font_size else Window.clearcolor
 
 
 <ChangeColorButton@FlowButton>:
@@ -289,6 +330,7 @@ WIDGETS = '''\
     square_fill_color: Window.clearcolor
     circle_fill_color: app.ae_states[self.color_name]
     text: self.color_name
+
 
 <ColorPickerOpenPopup@FlowDropDown>:
     ColorPicker:
@@ -302,6 +344,26 @@ WIDGETS = '''\
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
+
+
+<LangCodeButton@OptionalButton>:
+    lang_idx: 0
+    ae_flow_id: id_of_flow('change', 'lang_code', self.text)
+    ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
+    square_fill_color: (.69, .69, .69, 1.0) if app.main_app.lang_code == self.text else Window.clearcolor
+    size_hint_x: 1 if self.visible else None
+    text: installed_languages[min(self.lang_idx, len(installed_languages) - 1)]
+    visible: len(installed_languages) > self.lang_idx
+
+
+<DebugLevelButton@FlowButton>:
+    level_idx: 0
+    ae_flow_id: id_of_flow('change', 'debug_level', self.text)
+    ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
+    square_fill_color: (.69, .69, .69, 1.0) if app.main_app.debug_level == self.level_idx else Window.clearcolor
+    size_hint_x: 1 if self.visible else None
+    text: DEBUG_LEVELS[min(self.level_idx, len(DEBUG_LEVELS) - 1)]
+    visible: len(DEBUG_LEVELS) > self.level_idx
 '''
 """ helper widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size) """
 
