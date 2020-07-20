@@ -3,9 +3,10 @@ import os
 import pytest
 import shutil
 
+from ae.i18n import default_language
 from kivy.base import stopTouchApp
 from kivy.clock import Clock
-from kivy.lang import Builder
+from kivy.lang import Builder, Observable
 
 from ae.gui_app import APP_STATE_SECTION_NAME, id_of_flow, flow_key, replace_flow_action, MainAppBase
 from kivy.properties import BooleanProperty
@@ -13,7 +14,7 @@ from kivy.uix.popup import Popup
 
 from ae.kivy_app import (
     MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN,
-    KivyMainApp, FrameworkApp)
+    KivyMainApp, FrameworkApp, get_txt)
 
 
 TST_VAR = 'win_rectangle'
@@ -505,3 +506,58 @@ class TestEvents:
         assert passed_pa == popup
 
         assert hasattr(popup, 'close')
+
+
+called_bound = False
+
+
+def bound(*args, **kwargs):
+    """ bound func for TestI18N """
+    print(args, kwargs)
+    global called_bound
+    called_bound = True
+
+
+@skip_gitlab_ci
+class TestI18N:
+    def test_get_txt_instance(self):
+        assert callable(get_txt)
+        assert hasattr(get_txt, 'switch_lang')
+        assert isinstance(get_txt, Observable)
+
+    def test_binding(self):
+        assert not get_txt.observers
+        get_txt.fbind('_', bound)
+        assert len(get_txt.observers) == 1
+
+        get_txt.fbind('any', bound)
+        assert len(get_txt.observers) == 1
+
+    def test_unbinding(self):
+        assert len(get_txt.observers) == 1      # from last test method
+        get_txt.funbind('_', bound)
+        assert not get_txt.observers
+
+        get_txt.funbind('any', bound)
+        assert not get_txt.observers
+
+    def test_switch_lang(self):
+        old_lang = default_language()
+        get_txt.switch_lang('xx_XX')
+        assert default_language() == 'xx_XX'
+        default_language(old_lang)
+
+    def test_translate(self):
+        assert get_txt("text to translate") == "text to translate"
+
+    def test_update(self):
+        get_txt.fbind('_', bound, ('arg0', ))
+        assert not called_bound
+        get_txt.switch_lang('yy_YY')
+        assert called_bound
+
+    def test_on_lang_code_change(self, restore_app_env):
+        app = KivyAppTest()
+
+        app.on_lang_code_change('zz_ZZ', dict())
+        assert default_language() == 'zz_ZZ'

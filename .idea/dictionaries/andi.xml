@@ -7,8 +7,10 @@
       <w>clearcolor</w>
       <w>cython</w>
       <w>defaulttheme</w>
+      <w>fbind</w>
       <w>ffmpeg</w>
       <w>focusable</w>
+      <w>funbind</w>
       <w>gstreamer</w>
       <w>jnius</w>
       <w>kivy</w>

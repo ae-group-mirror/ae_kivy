@@ -46,12 +46,13 @@ Any help for to fix the problems with the used gitlab CI image is highly appreci
 
 """
 import os
-from typing import Any, Callable, Dict, Optional, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 # import jnius                                                                # type: ignore
 import kivy                                                                 # type: ignore
 from kivy.app import App                                                    # type: ignore
 from kivy.core.window import Window                                         # type: ignore
+from kivy.lang import Observable                                            # type: ignore
 from kivy.factory import Factory, FactoryException                          # type: ignore
 from kivy.lang import Builder                                               # type: ignore
 # pylint: disable=no-name-in-module
@@ -63,6 +64,8 @@ from kivy.uix.widget import Widget                                          # ty
 from plyer import vibrator                                                  # type: ignore
 
 from ae.files import FilesRegister, CachedFile                              # type: ignore
+from ae.i18n import default_language, get_f_string                          # type: ignore
+
 # id_of_flow not used here - added for easier import in app project
 # noinspection PyUnresolvedReferences
 from ae.gui_app import (                                                    # type: ignore
@@ -71,7 +74,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.24'
+__version__ = '0.0.25'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -373,7 +376,6 @@ class FlowDropDown(DropDown):
 
     explicit class declaration for docs and for to allow initialization of ae_closed_kwargs attribute via __init__.
     """
-
     ae_closed_kwargs = DictProperty()   #: kwargs passed to all close action flow change event handlers
 
 
@@ -382,7 +384,6 @@ class FlowPopup(Popup):
 
     explicit class declaration for docs and for to allow initialization of ae_closed_kwargs property via __init__.
     """
-
     ae_closed_kwargs = DictProperty()   #: kwargs passed to all close action flow change event handlers
 
 
@@ -478,6 +479,61 @@ class FrameworkApp(App):
         self.main_app.win_pos_size_change(Window.left, Window.top, Window.width, Window.height)
 
 
+class _GetTextBinder(Observable):
+    """ redirect ae.i18n.get_f_string to an instance of this class.
+
+    kivy currently only support a single one automatic binding in kv files for all function names ending with `_`
+    (see `watched_keys` extension in kivy/lang/parser.py line 201; e.g. `f_` would get recognized by the lang_tr
+    re pattern, but kivy will only add the `_` symbol to watched_keys and therefore `f_` not gets bound.)
+    For to allow both - f-strings and simple get_text messages - this module binds only :func:`ae.i18n.get_f_string`
+    to the `get_txt` symbol (instead of :func:`ae.i18n.get_text` to `_` and :func:`ae.i18n.get_f_string` to `f_`).
+
+    :data:`get_txt` can be used as translation callable, but also for to switch the current default language.
+    Additionally :data:`get_txt` is implemented as an observer that automatically updates any translations
+    messages of all active/visible kv rules on switch of the language at app run-time.
+
+    inspired by (see also discussion at https://github.com/kivy/kivy/issues/1664):
+    - https://github.com/tito/kivy-gettext-example
+    - https://github.com/Kovak/kivy_i18n_test
+    - https://git.bluedynamics.net/phil/woodmaster-trainer/-/blob/master/src/ui/kivy/i18n.py
+
+    """
+    observers: List[Tuple[Callable, tuple, dict]] = []
+
+    def fbind(self, name: str, func: Callable, *args, **kwargs):
+        """ bind """
+        if name == "_":
+            self.observers.append((func, args, kwargs))
+        else:
+            super().fbind(name, func, *args, **kwargs)
+
+    def funbind(self, name: str, func: Callable, *args, **kwargs):
+        """ unbind """
+        if name == "_":
+            key = (func, args, kwargs)
+            if key in self.observers:
+                self.observers.remove(key)
+        else:
+            super().funbind(name, func, *args, **kwargs)
+
+    def switch_lang(self, lang_code: str):
+        """ change language and update kv rules properties """
+        default_language(lang_code)
+
+        for func, args, _kwargs in self.observers:
+            func(args[0], None, None)
+
+        app = App.get_running_app()
+        app.title = get_txt(app.main_app.app_title)
+
+    def __call__(self, text: str, count: Optional[int] = None, language: str = '', **kwargs) -> str:
+        """ translate text """
+        return get_f_string(text, count=count, language=language, **kwargs)
+
+
+get_txt = _GetTextBinder()  #: global i18n translation callable and language switcher - rename to `_` in kv file imports
+
+
 class KivyMainApp(MainAppBase):
     """ Kivy application """
     flow_id_ink: tuple = (0.99, 0.99, 0.69, 0.69)           #: rgba color tuple for flow id / drag&drop node placeholder
@@ -541,6 +597,17 @@ class KivyMainApp(MainAppBase):
                  f" {liw} has={getattr(liw, 'focus', 'unsupported') if liw else ''}")
         if liw and getattr(liw, 'is_focusable', False) and not liw.focus:
             liw.focus = True
+
+    def on_lang_code_change(self, lang_code: str, _event_kwargs: Dict[str, Any]) -> bool:
+        """ language app state change event handler.
+
+        :param lang_code:       the new language code to be set (passed as flow key).
+        :param _event_kwargs:   unused event kwargs.
+        :return:                True for to confirm the language change.
+        """
+        self.vpo(f"KivyMainApp.on_lang_code_change to {lang_code}")
+        get_txt.switch_lang(lang_code)
+        return super().on_lang_code_change(lang_code, _event_kwargs)
 
     def on_light_theme_change(self, flow_id: str, event_kwargs: Dict[str, Any]) -> bool:
         """ font size app state change event handler.
