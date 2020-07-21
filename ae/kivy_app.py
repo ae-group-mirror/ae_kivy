@@ -46,9 +46,8 @@ Any help for to fix the problems with the used gitlab CI image is highly appreci
 
 """
 import os
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type
+from typing import Callable, List, Optional, Tuple, Type
 
-# import jnius                                                                # type: ignore
 import kivy                                                                 # type: ignore
 from kivy.app import App                                                    # type: ignore
 from kivy.core.window import Window                                         # type: ignore
@@ -74,7 +73,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.25'
+__version__ = '0.0.26'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -371,19 +370,15 @@ WIDGETS = '''\
 """ helper widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size) """
 
 
-class FlowDropDown(DropDown):
-    """ drop down widget used for user selections from a list of items (represented by the children-widgets).
+# explicit class declaration for docs and for to allow initialization of ae_closed_kwargs attribute via __init__.
 
-    explicit class declaration for docs and for to allow initialization of ae_closed_kwargs attribute via __init__.
-    """
+class FlowDropDown(DropDown):
+    """ drop down widget used for user selections from a list of items (represented by the children-widgets). """
     ae_closed_kwargs = DictProperty()   #: kwargs passed to all close action flow change event handlers
 
 
 class FlowPopup(Popup):
-    """ pop up widget used for dialogs and other top-most or modal windows.
-
-    explicit class declaration for docs and for to allow initialization of ae_closed_kwargs property via __init__.
-    """
+    """ pop up widget used for dialogs and other top-most or modal windows. """
     ae_closed_kwargs = DictProperty()   #: kwargs passed to all close action flow change event handlers
 
 
@@ -499,13 +494,21 @@ class _GetTextBinder(Observable):
 
     """
     observers: List[Tuple[Callable, tuple, dict]] = []
+    _bound_uid = -1
 
-    def fbind(self, name: str, func: Callable, *args, **kwargs):
-        """ bind """
+    def fbind(self, name: str, func: Callable, *args, **kwargs) -> int:
+        """ override fbind from :class:`Observable` for to collect and separate `_` bindings. """
         if name == "_":
             self.observers.append((func, args, kwargs))
-        else:
-            super().fbind(name, func, *args, **kwargs)
+            # Observable.bound_uid - initialized in _event.pyx/Observable.cinit() - is not available in python:
+            # uid = self.bound_uid      # also not available via getattr(self, 'bound_uid')
+            # self.bound_uid += 1
+            # return uid
+            uid = self._bound_uid
+            self._bound_uid -= 1
+            return uid                  # alternative ugly hack: return -len(self.observers)
+
+        return super().fbind(name, func, *args, **kwargs)
 
     def funbind(self, name: str, func: Callable, *args, **kwargs):
         """ unbind """
@@ -562,6 +565,8 @@ class KivyMainApp(MainAppBase):
             self.framework_app.kv_file = MAIN_KV_FILE_NAME
         self._update_observable_app_states(self.retrieve_app_states())  # copy app states to duplicate DictProperty
 
+        # setup loaded app states within the now available framework app and its widgets
+        get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
 
         return self.framework_app.run, self.framework_app.stop
@@ -569,10 +574,9 @@ class KivyMainApp(MainAppBase):
     # overwritten and helper methods
 
     def change_light_theme(self, light_theme: bool):
-        """
+        """ change font and window clear/background colors to match 'light'/'black' themes.
 
-        :param light_theme:
-        :return:
+        :param light_theme:     pass True for light theme, False for black theme.
         """
         Window.clearcolor = THEME_LIGHT_BACKGROUND_COLOR if light_theme else THEME_DARK_BACKGROUND_COLOR
         self.framework_app.font_color = THEME_LIGHT_FONT_COLOR if light_theme else THEME_DARK_FONT_COLOR
@@ -598,27 +602,15 @@ class KivyMainApp(MainAppBase):
         if liw and getattr(liw, 'is_focusable', False) and not liw.focus:
             liw.focus = True
 
-    def on_lang_code_change(self, lang_code: str, _event_kwargs: Dict[str, Any]) -> bool:
-        """ language app state change event handler.
+    def on_lang_code(self):
+        """ language code app-state-change-event-handler for to refresh kv rules. """
+        self.vpo(f"KivyMainApp.on_lang_code: language got changed to {self.lang_code}")
+        get_txt.switch_lang(self.lang_code)
 
-        :param lang_code:       the new language code to be set (passed as flow key).
-        :param _event_kwargs:   unused event kwargs.
-        :return:                True for to confirm the language change.
-        """
-        self.vpo(f"KivyMainApp.on_lang_code_change to {lang_code}")
-        get_txt.switch_lang(lang_code)
-        return super().on_lang_code_change(lang_code, _event_kwargs)
-
-    def on_light_theme_change(self, flow_id: str, event_kwargs: Dict[str, Any]) -> bool:
-        """ font size app state change event handler.
-
-        :param flow_id:        flow id.
-        :param event_kwargs:    event kwargs with key `'light_theme'` containing True|False for light|dark theme.
-        :return:                True for to confirm change of flow id.
-        """
-        light_theme: bool = event_kwargs['light_theme']
-        self.change_light_theme(light_theme)
-        return super().on_light_theme_change(flow_id, event_kwargs)     # save light_theme app state
+    def on_light_theme(self):
+        """ theme app-state-change-event-handler. """
+        self.vpo(f"KivyMainApp.on_light_theme: theme got changed to {self.light_theme}")
+        self.change_light_theme(self.light_theme)
 
     def play_beep(self):
         """ make a short beep sound. """
