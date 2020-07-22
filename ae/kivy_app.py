@@ -50,6 +50,7 @@ from typing import Callable, List, Optional, Tuple, Type
 
 import kivy                                                                 # type: ignore
 from kivy.app import App                                                    # type: ignore
+from kivy.clock import Clock                                                # type: ignore
 from kivy.core.window import Window                                         # type: ignore
 from kivy.lang import Observable                                            # type: ignore
 from kivy.factory import Factory, FactoryException                          # type: ignore
@@ -62,6 +63,7 @@ from kivy.uix.popup import Popup                                            # ty
 from kivy.uix.widget import Widget                                          # type: ignore
 from plyer import vibrator                                                  # type: ignore
 
+from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED               # type: ignore
 from ae.files import FilesRegister, CachedFile                              # type: ignore
 from ae.i18n import default_language, get_f_string                          # type: ignore
 
@@ -73,7 +75,7 @@ from ae.gui_app import (                                                    # ty
 )                                                                           # type: ignore
 
 
-__version__ = '0.0.26'
+__version__ = '0.0.27'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -200,13 +202,13 @@ WIDGETS = '''\
 
 <UserPreferencesButton@FlowButton>:
     ae_flow_id: id_of_flow('open', 'user_preferences')
-    circle_fill_color: 0.69, 0.69, 0.99, 0.9
+    circle_fill_color: app.mixed_back_ink
 
 
 <UserPreferencesOpenPopup@FlowDropDown>:
     canvas.before:
         Color:
-            rgba: (.69, .69, .69, 1.0)
+            rgba: app.mixed_back_ink
         RoundedRectangle:
             pos: self.pos
             size: self.size
@@ -228,21 +230,6 @@ WIDGETS = '''\
     #    cursor_image: app.main_app.img_file('vibrate', app.ae_states['font_size'], app.ae_states['light_theme'])
     BoxLayout:
         size_hint_y: None
-        height: app.ae_states['font_size'] * 1.5 if installed_languages else 0
-        FlowButton:
-            ae_flow_id: id_of_flow('change', 'lang_code', self.text)
-            ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
-            square_fill_color: (.69, .69, .69, 1.0) if app.main_app.lang_code in ('', self.text) else Window.clearcolor
-            size_hint_x: 1
-            text: DEF_LANGUAGE
-        LangCodeButton:
-            lang_idx: 0
-        LangCodeButton:
-            lang_idx: 1
-        LangCodeButton:
-            lang_idx: 2
-    BoxLayout:
-        size_hint_y: None
         height: app.ae_states['font_size'] * 1.5
         ThemeButton:
             text: "dark"
@@ -256,7 +243,26 @@ WIDGETS = '''\
             square_fill_color: THEME_LIGHT_BACKGROUND_COLOR or self.square_fill_color
     BoxLayout:
         size_hint_y: None
-        height: app.ae_states['font_size'] * 1.5
+        height: app.ae_states['font_size'] * 1.5 if installed_languages and app.main_app.debug_level else 0
+        opacity: 1 if installed_languages and app.main_app.debug_level else 0
+        OptionalButton:
+            ae_flow_id: id_of_flow('change', 'lang_code', self.text)
+            ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
+            square_fill_color:
+                app.ae_states['selected_item_ink'] if app.main_app.lang_code in ('', self.text) else Window.clearcolor
+            visible: DEF_LANGUAGE not in installed_languages
+            size_hint_x: 1
+            text: DEF_LANGUAGE
+        LangCodeButton:
+            lang_idx: 0
+        LangCodeButton:
+            lang_idx: 1
+        LangCodeButton:
+            lang_idx: 2
+    BoxLayout:
+        size_hint_y: None
+        height: app.ae_states['font_size'] * 1.5 if app.main_app.debug_level else 0
+        opacity: 1 if app.main_app.debug_level else 0
         DebugLevelButton:
             level_idx: 0
         DebugLevelButton:
@@ -322,7 +328,8 @@ WIDGETS = '''\
     size: self.texture_size
     color: app.font_color
     background_normal: ''
-    background_color: (.69, .69, .69, 1.0) if app.main_app.font_size == self.font_size else Window.clearcolor
+    background_color:
+        app.ae_states['selected_item_ink'] if app.main_app.font_size == self.font_size else Window.clearcolor
 
 
 <ChangeColorButton@FlowButton>:
@@ -352,7 +359,7 @@ WIDGETS = '''\
     lang_idx: 0
     ae_flow_id: id_of_flow('change', 'lang_code', self.text)
     ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
-    square_fill_color: (.69, .69, .69, 1.0) if app.main_app.lang_code == self.text else Window.clearcolor
+    square_fill_color: app.ae_states['selected_item_ink'] if app.main_app.lang_code == self.text else Window.clearcolor
     size_hint_x: 1 if self.visible else None
     text: installed_languages[min(self.lang_idx, len(installed_languages) - 1)]
     visible: len(installed_languages) > self.lang_idx
@@ -362,7 +369,8 @@ WIDGETS = '''\
     level_idx: 0
     ae_flow_id: id_of_flow('change', 'debug_level', self.text)
     ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
-    square_fill_color: (.69, .69, .69, 1.0) if app.main_app.debug_level == self.level_idx else Window.clearcolor
+    square_fill_color:
+        app.ae_states['selected_item_ink'] if app.main_app.debug_level == self.level_idx else Window.clearcolor
     size_hint_x: 1 if self.visible else None
     text: DEBUG_LEVELS[min(self.level_idx, len(DEBUG_LEVELS) - 1)]
     visible: len(DEBUG_LEVELS) > self.level_idx
@@ -392,6 +400,8 @@ class FrameworkApp(App):
 
     landscape = BooleanProperty()                           #: True if app win width is bigger than the app win height
     font_color = ListProperty(THEME_DARK_FONT_COLOR)        #: rgba color of the font used for labels/buttons/...
+    mixed_back_ink = ListProperty((.69, .69, .69, 1.))      #: background color mixed from available back inks
+
     ae_states = DictProperty()                              #: duplicate of MainAppBase app state for events/binds
 
     def __init__(self, main_app: 'KivyMainApp', **kwargs):
@@ -539,10 +549,12 @@ get_txt = _GetTextBinder()  #: global i18n translation callable and language swi
 
 class KivyMainApp(MainAppBase):
     """ Kivy application """
-    flow_id_ink: tuple = (0.99, 0.99, 0.69, 0.69)           #: rgba color tuple for flow id / drag&drop node placeholder
-    flow_path_ink: tuple = (0.99, 0.99, 0.39, 0.48)         #: rgba color tuple for flow_path/drag&drop item placeholder
-    selected_item_ink: tuple = (0.69, 1.0, 0.39, 0.18)      #: rgba color tuple for list items (selected)
-    unselected_item_ink: tuple = (0.39, 0.39, 0.39, 0.18)   #: rgba color tuple for list items (unselected)
+    flow_id_ink: tuple = (0.99, 0.99, 0.69, 0.69)           #: rgba color for flow id / drag&drop node placeholder
+    flow_path_ink: tuple = (0.99, 0.99, 0.39, 0.48)         #: rgba color for flow_path/drag&drop item placeholder
+    selected_item_ink: tuple = (0.69, 1.0, 0.39, 0.18)      #: rgba color for list items (selected)
+    unselected_item_ink: tuple = (0.39, 0.39, 0.39, 0.18)   #: rgba color for list items (unselected)
+
+    _debug_enable_clicks: int = 0
 
     # abstract methods
 
@@ -569,6 +581,12 @@ class KivyMainApp(MainAppBase):
         get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
 
+        # redirect back ink color changes to actualize mixed_back_ink
+        setattr(self, 'on_flow_id_ink', self.mix_background_ink)
+        setattr(self, 'on_flow_path_ink', self.mix_background_ink)
+        setattr(self, 'on_selected_item_ink', self.mix_background_ink)
+        setattr(self, 'on_unselected_item_ink', self.mix_background_ink)
+
         return self.framework_app.run, self.framework_app.stop
 
     # overwritten and helper methods
@@ -594,6 +612,11 @@ class KivyMainApp(MainAppBase):
         self.sound_files = FilesRegister('snd', file_class=CachedFile,
                                          object_loader=lambda f: SoundLoader.load(f.path))
 
+    def mix_background_ink(self):
+        """ remix background ink if one of the basic back colours change. """
+        self.framework_app.mixed_back_ink = (sum(_) / len(_) for _ in zip(
+            self.flow_id_ink, self.flow_path_ink, self.selected_item_ink, self.unselected_item_ink))
+
     def on_flow_widget_focused(self):
         """ set focus to the widget referenced by the current flow id. """
         liw = self.widget_by_flow_id(self.flow_id)
@@ -611,6 +634,28 @@ class KivyMainApp(MainAppBase):
         """ theme app-state-change-event-handler. """
         self.vpo(f"KivyMainApp.on_light_theme: theme got changed to {self.light_theme}")
         self.change_light_theme(self.light_theme)
+
+    def on_user_preferences_open(self, _flow_id: str, _event_kwargs) -> bool:
+        """ enable debug mode after clicking 3 times within 6 seconds.
+
+        :param _flow_id:        new flow id.
+        :param _event_kwargs:   optional event kwargs; the optional item with the key `popup_kwargs`
+                                will be passed onto the `__init__` method of the found Popup class.
+        :return:                False for :meth:`~.on_flow_change` get called, opening user preferences popup.
+
+        """
+        def _timeout_reset(_dt: float):
+            self._debug_enable_clicks = 0
+
+        if self.debug_level == DEBUG_LEVEL_DISABLED:
+            self._debug_enable_clicks += 1
+            if self._debug_enable_clicks >= 3:
+                self.set_opt('debug_level', DEBUG_LEVEL_ENABLED)
+                self._debug_enable_clicks = 0
+            elif self._debug_enable_clicks == 1:
+                Clock.schedule_once(_timeout_reset, 6.0)
+
+        return False
 
     def play_beep(self):
         """ make a short beep sound. """

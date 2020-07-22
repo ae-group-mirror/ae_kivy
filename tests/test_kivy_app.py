@@ -3,15 +3,15 @@ import os
 import pytest
 import shutil
 
-from ae.i18n import default_language
 from kivy.base import stopTouchApp
 from kivy.clock import Clock
 from kivy.lang import Builder, Observable
-
-from ae.gui_app import APP_STATE_SECTION_NAME, id_of_flow, flow_key, replace_flow_action, MainAppBase
 from kivy.properties import BooleanProperty
 from kivy.uix.popup import Popup
 
+from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED
+from ae.i18n import default_language
+from ae.gui_app import APP_STATE_SECTION_NAME, id_of_flow, flow_key, replace_flow_action, MainAppBase
 from ae.kivy_app import (
     MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN,
     KivyMainApp, FrameworkApp, get_txt)
@@ -318,6 +318,18 @@ class TestHelperMethods:
             if os.path.exists(MAIN_KV_FILE_NAME):
                 os.remove(MAIN_KV_FILE_NAME)
 
+    def test_mix_background_ink(self, restore_app_env):
+        app = KivyMainApp()
+        app.mix_background_ink()
+        assert app.framework_app.mixed_back_ink[0] \
+            == (app.flow_id_ink[0] + app.flow_path_ink[0] + app.selected_item_ink[0] + app.unselected_item_ink[0]) / 4.0
+        assert app.framework_app.mixed_back_ink[1] \
+            == (app.flow_id_ink[1] + app.flow_path_ink[1] + app.selected_item_ink[1] + app.unselected_item_ink[1]) / 4.0
+        assert app.framework_app.mixed_back_ink[2] \
+            == (app.flow_id_ink[2] + app.flow_path_ink[2] + app.selected_item_ink[2] + app.unselected_item_ink[2]) / 4.0
+        assert app.framework_app.mixed_back_ink[3] \
+            == (app.flow_id_ink[3] + app.flow_path_ink[3] + app.selected_item_ink[3] + app.unselected_item_ink[3]) / 4.0
+
     def test_play_beep(self, restore_app_env):
         app = KivyMainApp()
         assert app.play_beep() is None
@@ -478,6 +490,33 @@ class TestEvents:
 
         app.on_light_theme_change('any', dict(light_theme=False))
         assert not app.light_theme
+
+    def test_on_user_preferences_open_enabling_debug(self, restore_app_env):
+        app = KivyAppTest()
+
+        app.debug_level = DEBUG_LEVEL_ENABLED
+        assert app._debug_enable_clicks == 0
+        assert not app.on_user_preferences_open('', dict())
+
+        app.debug_level = DEBUG_LEVEL_DISABLED
+        assert not app.on_user_preferences_open('', dict())
+        assert not app.on_user_preferences_open('', dict())
+        assert not app.on_user_preferences_open('', dict())
+        assert app.debug_level == DEBUG_LEVEL_ENABLED
+
+        app.debug_level = DEBUG_LEVEL_DISABLED
+        assert not app.on_user_preferences_open('', dict())
+        assert app._debug_enable_clicks == 1
+        # using Clock.schedule_once(_delayed_test, 6.9) and the commented sub-function underneath -> get never executed:
+        # def _delayed_test(dt: float):
+        #     print("delayed test_on_user_preferences_open_enabling_debug after:", dt)
+        #     assert app.debug_level == DEBUG_LEVEL_DISABLED
+        #     assert app._debug_enable_clicks == 0
+        started = Clock.time()
+        while Clock.time() - started < 6.9:
+            Clock.tick()
+        assert app.debug_level == DEBUG_LEVEL_DISABLED
+        assert app._debug_enable_clicks == 0
 
     def test_show_popup(self, restore_app_env):
         app = KivyAppTest()
