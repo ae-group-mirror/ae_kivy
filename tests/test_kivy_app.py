@@ -482,6 +482,19 @@ class TestEvents:
         app.on_flow_widget_focused()
         assert wid.focus is True
 
+    def test_on_kbd_input_mode_change(self, restore_app_env):
+        app = KivyAppTest()
+        old_mode = app.kbd_input_mode
+
+        app.on_kbd_input_mode_change('', dict())
+        assert app.kbd_input_mode == ''
+
+        app.on_kbd_input_mode_change('any', dict())
+        assert app.kbd_input_mode == 'any'
+
+        # app.kbd_input_mode = old_mode
+        assert app.on_kbd_input_mode_change(old_mode, dict())
+
     def test_on_light_theme_change(self, restore_app_env):
         app = KivyAppTest()
 

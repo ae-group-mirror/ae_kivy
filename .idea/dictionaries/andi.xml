@@ -12,6 +12,7 @@
       <w>focusable</w>
       <w>funbind</w>
       <w>gstreamer</w>
+      <w>hideable</w>
       <w>jnius</w>
       <w>kivy</w>
       <w>libavcodec</w>

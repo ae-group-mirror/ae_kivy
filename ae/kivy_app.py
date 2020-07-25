@@ -69,13 +69,14 @@ from ae.i18n import default_language, get_f_string                          # ty
 
 # id_of_flow not used here - added for easier import in app project
 # noinspection PyUnresolvedReferences
-from ae.gui_app import (                                                    # type: ignore
+from ae.gui_app import (  # type: ignore
+    APP_STATE_SECTION_NAME,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
     MainAppBase
-)                                                                           # type: ignore
+)  # type: ignore
 
 
-__version__ = '0.0.27'
+__version__ = '0.0.28'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -271,6 +272,26 @@ WIDGETS = '''\
             level_idx: 2
         DebugLevelButton:
             level_idx: 3
+    OptionalButton:
+        size_hint_x: 1
+        square_fill_color: Window.clearcolor
+        text: 'kivy settings'
+        visible: app.main_app.debug_level
+        on_press: app.open_settings()
+    BoxLayout:
+        size_hint_y: None
+        height: app.ae_states['font_size'] * 1.5 if app.main_app.debug_level else 0
+        opacity: 1 if app.main_app.debug_level else 0
+        KbdInputModeButton:
+            text: 'below_target'
+        KbdInputModeButton:
+            text: 'pan'
+        KbdInputModeButton:
+            text: 'scale'
+        KbdInputModeButton:
+            text: 'resize'
+        KbdInputModeButton:
+            text: ''
 
 
 <UserPrefSlider@Slider>:
@@ -371,9 +392,15 @@ WIDGETS = '''\
     ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
     square_fill_color:
         app.ae_states['selected_item_ink'] if app.main_app.debug_level == self.level_idx else Window.clearcolor
-    size_hint_x: 1 if self.visible else None
     text: DEBUG_LEVELS[min(self.level_idx, len(DEBUG_LEVELS) - 1)]
-    visible: len(DEBUG_LEVELS) > self.level_idx
+
+
+<KbdInputModeButton@FlowButton>:
+    ae_flow_id: id_of_flow('change', 'kbd_input_mode', self.text)
+    ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
+    square_fill_color:
+        app.ae_states['selected_item_ink'] if app.main_app.kbd_input_mode == self.text else Window.clearcolor
+
 '''
 """ helper widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size) """
 
@@ -554,6 +581,8 @@ class KivyMainApp(MainAppBase):
     selected_item_ink: tuple = (0.69, 1.0, 0.39, 0.18)      #: rgba color for list items (selected)
     unselected_item_ink: tuple = (0.39, 0.39, 0.39, 0.18)   #: rgba color for list items (unselected)
 
+    kbd_input_mode: str = 'pan'                             #: optional app state for to set Window[Base].softinput_mode
+
     _debug_enable_clicks: int = 0
 
     # abstract methods
@@ -581,7 +610,7 @@ class KivyMainApp(MainAppBase):
         get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
 
-        # redirect back ink color changes to actualize mixed_back_ink
+        # redirect back ink app state color changes to actualize mixed_back_ink
         setattr(self, 'on_flow_id_ink', self.mix_background_ink)
         setattr(self, 'on_flow_path_ink', self.mix_background_ink)
         setattr(self, 'on_selected_item_ink', self.mix_background_ink)
@@ -624,6 +653,18 @@ class KivyMainApp(MainAppBase):
                  f" {liw} has={getattr(liw, 'focus', 'unsupported') if liw else ''}")
         if liw and getattr(liw, 'is_focusable', False) and not liw.focus:
             liw.focus = True
+
+    def on_kbd_input_mode_change(self, mode: str, _event_kwargs: dict) -> bool:
+        """ language app state change event handler.
+
+        :param mode:            the new softinput_mode string (passed as flow key).
+        :param _event_kwargs:   unused event kwargs.
+        :return:                True for to confirm the language change.
+        """
+        self.vpo(f"MainAppBase.on_kbd_input_mode_change to {mode}")
+        self.change_app_state('kbd_input_mode', mode)
+        self.set_var('kbd_input_mode', mode, section=APP_STATE_SECTION_NAME)  # add optional app state var to config
+        return True
 
     def on_lang_code(self):
         """ language code app-state-change-event-handler for to refresh kv rules. """
@@ -687,14 +728,16 @@ class KivyMainApp(MainAppBase):
         except Exception as ex:
             self.po(f"KivyMainApp.play_vibrate exception {ex}")
 
-    @staticmethod
-    def prevent_keyboard_covering(input_box_bottom: float):
+    def prevent_keyboard_covering(self, input_box_bottom: float) -> bool:
         """ prevent that the virtual keyboard popping up on mobile platforms is covering the text input field.
 
         :param input_box_bottom:    y position of the bottom of the input field box.
+        :return:                    True if keyboard is covering the passed y/bottom position, else False.
         """
         keyboard_height = Window.keyboard_height or Window.height / 2  # 'or'-fallback because SDL2 reports 0 kbd height
-        Window.softinput_mode = 'below_target' if input_box_bottom < keyboard_height else ''
+        mode_changed = input_box_bottom < keyboard_height
+        Window.softinput_mode = self.kbd_input_mode if mode_changed else ''
+        return mode_changed
 
     def show_popup(self, popup_class: Type[Widget], **popup_attributes) -> Widget:
         """ open Popup using the `open` method. Overwriting the main app class method.
@@ -710,11 +753,12 @@ class KivyMainApp(MainAppBase):
 
         parent = popup_attributes.pop('parent', self.framework_win)
         popup_instance = popup_class(**popup_attributes)
+        if self.prevent_keyboard_covering(popup_instance.y):
+            popup_instance = popup_class(**popup_attributes)    # new instance if kbd covering popup
 
         if not hasattr(popup_instance, 'close') and hasattr(popup_instance, 'dismiss'):
             popup_instance.close = popup_instance.dismiss   # create close() method alias for DropDown.dismiss() method
 
-        self.prevent_keyboard_covering(popup_instance.y)
         popup_instance.open(parent)
 
         return popup_instance
