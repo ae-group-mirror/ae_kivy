@@ -2,6 +2,7 @@
 import os
 import pytest
 import shutil
+from unittest import mock
 
 from kivy.base import stopTouchApp
 from kivy.clock import Clock
@@ -531,7 +532,46 @@ class TestEvents:
         assert app.debug_level == DEBUG_LEVEL_DISABLED
         assert app._debug_enable_clicks == 0
 
-    def test_show_popup(self, restore_app_env):
+    def test_show_message(self, restore_app_env):
+        def _chg_flow(flow_id, popup_kwargs):
+            """ mock of app.change_flow """
+            assert flow_id == id_of_flow('show', 'message')
+            assert popup_kwargs['message'] == 'tst msg'
+            assert popup_kwargs['title'] == 'tst tit'
+        app = KivyAppTest()
+        app.change_flow = _chg_flow
+        app.show_message('tst msg', 'tst tit')
+
+    def test_show_popup_basic(self, restore_app_env):
+        app = KivyAppTest()
+        called = False
+        passed_pa = None
+
+        class TestPopUp(Popup):
+            """ popup test class """
+            test_attr = BooleanProperty(False)
+
+            @staticmethod
+            def open(parent):
+                """ open popup method """
+                nonlocal called, passed_pa
+                called = True
+                passed_pa = parent
+
+        # noinspection PyTypeChecker
+        popup = app.show_popup(TestPopUp, test_attr=True)
+        assert called
+        assert hasattr(popup, 'test_attr')
+        assert popup.test_attr is True
+
+        # noinspection PyTypeChecker
+        app.show_popup(TestPopUp, parent=popup, test_attr=True)
+        assert passed_pa == popup
+
+        assert hasattr(popup, 'close')
+
+    @mock.patch('ae.kivy_app.sys_platform', return_value='android')
+    def test_show_popup_like_android(self, restore_app_env):
         app = KivyAppTest()
         called = False
         passed_pa = None

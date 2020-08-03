@@ -3,7 +3,7 @@ main application class for GUIApp-conform Kivy app
 ==================================================
 
 This ae portion is providing two classes (:class:`FrameworkApp`
-and :class:`KivyMainApp` and some useful constants.
+and :class:`KivyMainApp`) and some useful constants.
 
 The class :class:`KivyMainApp` is implementing a main app
 class that is reducing the amount of code needed for
@@ -46,37 +46,40 @@ Any help for to fix the problems with the used gitlab CI image is highly appreci
 
 """
 import os
-from typing import Callable, List, Optional, Tuple, Type
+from typing import Callable, List, Optional, Tuple, Type, Union
+
+from plyer import storagepath, vibrator                                     # type: ignore
 
 import kivy                                                                 # type: ignore
 from kivy.app import App                                                    # type: ignore
 from kivy.clock import Clock                                                # type: ignore
-from kivy.core.window import Window                                         # type: ignore
-from kivy.lang import Observable                                            # type: ignore
-from kivy.factory import Factory, FactoryException                          # type: ignore
-from kivy.lang import Builder                                               # type: ignore
-# pylint: disable=no-name-in-module
-from kivy.properties import BooleanProperty, DictProperty, ListProperty, ObjectProperty  # type: ignore
 from kivy.core.audio import SoundLoader                                     # type: ignore
+from kivy.core.window import Window                                         # type: ignore
+from kivy.factory import Factory, FactoryException                          # type: ignore
+from kivy.input import MotionEvent                                          # type: ignore
+from kivy.lang import Builder, Observable                                   # type: ignore
+# pylint: disable=no-name-in-module
+from kivy.properties import BooleanProperty, DictProperty, ListProperty, ObjectProperty, StringProperty  # type: ignore
+from kivy.uix.behaviors import ButtonBehavior                               # type: ignore
 from kivy.uix.dropdown import DropDown                                      # type: ignore
+from kivy.uix.label import Label                                            # type: ignore
 from kivy.uix.popup import Popup                                            # type: ignore
 from kivy.uix.widget import Widget                                          # type: ignore
-from plyer import vibrator                                                  # type: ignore
 
-from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED               # type: ignore
+from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED, sys_platform  # type: ignore
 from ae.files import FilesRegister, CachedFile                              # type: ignore
-from ae.i18n import default_language, get_f_string                          # type: ignore
+from ae.i18n import default_language, get_f_string, get_text                # type: ignore
 
 # id_of_flow not used here - added for easier import in app project
 # noinspection PyUnresolvedReferences
 from ae.gui_app import (  # type: ignore
     APP_STATE_SECTION_NAME,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
-    MainAppBase
+    MainAppBase, id_of_flow
 )  # type: ignore
 
 
-__version__ = '0.0.28'
+__version__ = '0.0.29'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -85,9 +88,11 @@ kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for
 # and in the default mode ('') the keyboard will cover the entry field if it is in the lower part of the screen
 # therefore commented out the following two code lines (and setting it now depending on the entry field y position)
 # if Window:                                  # is None on gitlab ci
-#    Window.softinput_mode = 'below_target'  # ensure android keyboard is not covering Popup/text input if at bottom
+#    Window.softinput_mode = 'below_target'   # ensure android keyboard is not covering Popup/text input if at bottom
 
-MAIN_KV_FILE_NAME = 'main.kv'           #: default file name of the main kv file
+MAIN_KV_FILE_NAME = 'main.kv'   #: default file name of the main kv file
+
+DOCUMENTS_ROOT_PATH = storagepath.get_documents_dir()    #: root file path for documents import/export
 
 LOVE_VIBRATE_PATTERN = (0.0, 0.12, 0.12, 0.21, 0.03, 0.12, 0.12, 0.12)
 """ short/~1.2s vibrate pattern for fun/love notification. """
@@ -120,13 +125,13 @@ WIDGETS = '''\
 #: import flow_key_split ae.gui_app.flow_key_split
 
 
-<ThemeButton@ButtonBehavior+Label>:
+<ThemeButton>:
     circle_fill_color: 0, 0, 0, 0
     square_fill_color: 0, 0, 0, 0
     fill_pos: self.fill_pos or self.pos
     fill_size: self.fill_size or self.size
     source: themeButtonImage.source
-    size_hint: 0.003, None
+    size_hint: 1, None
     size_hint_min_x: self.height
     height: app.ae_states['font_size'] * 1.5
     font_size: app.ae_states['font_size']
@@ -170,7 +175,7 @@ WIDGETS = '''\
 
 
 <OptionalButton@FlowButton>:
-    visible: True
+    visible: False
     size_hint: None, None
     width: self.height if self.visible else 0
     height: self.height if self.visible else 0
@@ -183,7 +188,7 @@ WIDGETS = '''\
     ae_closed_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.ae_closed_kwargs)
     auto_width: False
-    width: min(Window.width - (self.attach_to.x if self.attach_to else sp(90)) - sp(9), sp(960))
+    width: min(Window.width - sp(90), sp(960))
     canvas.after:
         Color:
             rgba: app.font_color
@@ -244,16 +249,15 @@ WIDGETS = '''\
             square_fill_color: THEME_LIGHT_BACKGROUND_COLOR or self.square_fill_color
     BoxLayout:
         size_hint_y: None
-        height: app.ae_states['font_size'] * 1.5 if installed_languages and app.main_app.debug_level else 0
-        opacity: 1 if installed_languages and app.main_app.debug_level else 0
+        height: app.ae_states['font_size'] * 1.5 if installed_languages and app.main_app.debug else 0
+        opacity: 1 if installed_languages and app.main_app.debug else 0
         OptionalButton:
             ae_flow_id: id_of_flow('change', 'lang_code', self.text)
             ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
             square_fill_color:
                 app.ae_states['selected_item_ink'] if app.main_app.lang_code in ('', self.text) else Window.clearcolor
-            visible: DEF_LANGUAGE not in installed_languages
-            size_hint_x: 1
             text: DEF_LANGUAGE
+            visible: DEF_LANGUAGE not in installed_languages and app.main_app.debug
         LangCodeButton:
             lang_idx: 0
         LangCodeButton:
@@ -262,8 +266,8 @@ WIDGETS = '''\
             lang_idx: 2
     BoxLayout:
         size_hint_y: None
-        height: app.ae_states['font_size'] * 1.5 if app.main_app.debug_level else 0
-        opacity: 1 if app.main_app.debug_level else 0
+        height: app.ae_states['font_size'] * 1.5 if app.main_app.debug else 0
+        opacity: 1 if app.main_app.debug else 0
         DebugLevelButton:
             level_idx: 0
         DebugLevelButton:
@@ -276,12 +280,12 @@ WIDGETS = '''\
         size_hint_x: 1
         square_fill_color: Window.clearcolor
         text: 'kivy settings'
-        visible: app.main_app.debug_level
-        on_press: app.open_settings()
+        visible: app.main_app.debug
+        on_release: app.open_settings()
     BoxLayout:
         size_hint_y: None
-        height: app.ae_states['font_size'] * 1.5 if app.main_app.debug_level else 0
-        opacity: 1 if app.main_app.debug_level else 0
+        height: app.ae_states['font_size'] * 1.5 if app.main_app.debug else 0
+        opacity: 1 if app.main_app.debug else 0
         KbdInputModeButton:
             text: 'below_target'
         KbdInputModeButton:
@@ -383,29 +387,142 @@ WIDGETS = '''\
     square_fill_color: app.ae_states['selected_item_ink'] if app.main_app.lang_code == self.text else Window.clearcolor
     size_hint_x: 1 if self.visible else None
     text: installed_languages[min(self.lang_idx, len(installed_languages) - 1)]
-    visible: len(installed_languages) > self.lang_idx
+    visible: len(installed_languages) > self.lang_idx and app.main_app.debug
 
 
-<DebugLevelButton@FlowButton>:
+<DebugLevelButton@OptionalButton>:
     level_idx: 0
     ae_flow_id: id_of_flow('change', 'debug_level', self.text)
     ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
     square_fill_color:
         app.ae_states['selected_item_ink'] if app.main_app.debug_level == self.level_idx else Window.clearcolor
     text: DEBUG_LEVELS[min(self.level_idx, len(DEBUG_LEVELS) - 1)]
+    visible: app.main_app.debug
 
 
-<KbdInputModeButton@FlowButton>:
+<KbdInputModeButton@OptionalButton>:
     ae_flow_id: id_of_flow('change', 'kbd_input_mode', self.text)
     ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
     square_fill_color:
         app.ae_states['selected_item_ink'] if app.main_app.kbd_input_mode == self.text else Window.clearcolor
+    visible: app.main_app.debug
+
+
+<MessageShowPopup>:
+    size_hint: 0.9, None
+    height: min(Window.height, err_txt_box.height + self.title_size * 1.8)
+    ScrollView:
+        Label:
+            canvas.before:
+                Color:
+                    rgba: Window.clearcolor
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+            id: err_txt_box
+            text: root.message
+            font_size: app.main_app.font_size
+            text_size: self.width, None
+            size_hint: 1, None
+            height: self.texture_size[1]
+            color: app.font_color
+            Button:     # invisible button for close error popup on error text click
+                size: err_txt_box.size
+                background_color: 0, 0, 0, 0
+                on_release: root.dismiss()
 
 '''
 """ helper widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size) """
 
 
-# explicit class declaration for docs and for to allow initialization of ae_closed_kwargs attribute via __init__.
+# class declarations for docs and for to allow initialization of attributes via __init__ kwargs (e.g. ae_closed_kwargs).
+
+class ThemeButton(ButtonBehavior, Label):   # pragma: no cover
+    """ theme-able button base class with additional events for double/triple/long touches.
+
+    :Events:
+        `on_double_press`:
+            Fired with the touch down MotionEvent instance arg when a button get pressed twice within short time.
+        `on_triple_press`:
+            Fired with the touch down MotionEvent instance arg when a button get pressed three times within short time.
+        `on_long_press`:
+            Fired with the touch down MotionEvent instance arg when a button get pressed more than 2.4 seconds.
+
+    .. note::
+        unit tests are still missing for this widget.
+
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.register_event_type('on_double_press')     # pylint: disable=maybe-no-member
+        self.register_event_type('on_triple_press')     # pylint: disable=maybe-no-member
+        self.register_event_type('on_long_press')       # pylint: disable=maybe-no-member
+
+    def on_touch_down(self, touch: MotionEvent) -> bool:
+        """ check for additional events added by this class.
+
+        :param touch:   motion/touch event data.
+        :return:        True if event got processed/used.
+        """
+        if not self.disabled and self.collide_point(touch.x, touch.y):
+            is_triple = touch.is_triple_tap
+            if is_triple or touch.is_double_tap:
+                # pylint: disable=maybe-no-member
+                self.dispatch('on_triple_press' if is_triple else 'on_double_press', touch)
+                touch.ungrab(self)      # prevent dispatch of on_press
+                return True
+            # pylint: disable=maybe-no-member
+            touch.ud['long_touch_handler'] = long_touch_handler = lambda dt: self.dispatch('on_long_press', touch)
+            Clock.schedule_once(long_touch_handler, 2.4)
+        return super().on_touch_down(touch)
+
+    @staticmethod
+    def _cancel_long_touch_clock(touch):
+        long_touch_handler = touch.ud.pop('long_touch_handler', None)
+        if long_touch_handler:
+            Clock.unschedule(long_touch_handler)    # alternatively: long_touch_handler.cancel()
+
+    def on_touch_move(self, touch: MotionEvent) -> bool:
+        """ disable long touch on mouse/finger moves.
+
+        :param touch:   motion/touch event data.
+        :return:        True if event got processed/used.
+        """
+        # alternative method to calculate touch.pos distances is (from tripletap.py):
+        # Vector.distance(Vector(ref.sx, ref.sy), Vector(touch.osx, touch.osy)) > 0.009
+        if abs(touch.ox - touch.x) > 9 and abs(touch.oy - touch.y) > 9 and self.collide_point(touch.x, touch.y):
+            self._cancel_long_touch_clock(touch)
+        return super().on_touch_move(touch)
+
+    def on_touch_up(self, touch: MotionEvent) -> bool:
+        """ disable long touch on mouse/finger up.
+
+        :param touch:   motion/touch event data.
+        :return:        True if event got processed/used.
+        """
+        if touch.grab_current is self:
+            self._cancel_long_touch_clock(touch)
+        return super().on_touch_up(touch)
+
+    def on_double_press(self, touch: MotionEvent):
+        """ double click default handler
+
+        :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
+        """
+
+    def on_triple_press(self, touch: MotionEvent):
+        """ triple click default handler
+
+        :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
+        """
+
+    def on_long_press(self, touch: MotionEvent):
+        """ long press default handler
+
+        :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
+        """
+        touch.ungrab(self)      # prevent dispatch of on_release
+
 
 class FlowDropDown(DropDown):
     """ drop down widget used for user selections from a list of items (represented by the children-widgets). """
@@ -447,10 +564,10 @@ class FrameworkApp(App):
         # self._app_directory = '.'
 
     def build(self) -> Widget:
-        """ kivy build app callback """
-        self.main_app.po('App.build(), user_data_dir', self.user_data_dir,
-                         "config files", getattr(self.main_app, '_cfg_files'))
+        """ kivy build app callback.
 
+        :return:                root widget (Main instance) of this app.
+        """
         Window.bind(on_resize=self.win_pos_size_change,
                     left=self.win_pos_size_change,
                     top=self.win_pos_size_change,
@@ -474,41 +591,64 @@ class FrameworkApp(App):
             keyboard.command_keys.get(key_code) or key_text or str(key_code))
 
     def key_release_from_kivy(self, keyboard, key_code, _scan_code) -> bool:
-        """ key release/up event. """
+        """ key release/up event.
+
+        :return:                return value of call to `on_key_release` (True if ke got processed/used).
+        """
         return self.main_app.call_method('on_key_release', keyboard.command_keys.get(key_code, str(key_code)))
 
     def on_start(self):
-        """ kivy app start event.
-
-        Fired after call of :meth:`MainAppBase.run_app` method and MainAppBase.on_app_start event.
+        """ kivy app start event, called after :meth:`MainAppBase.run_app` method and MainAppBase.on_app_start event.
 
         Kivy just created the main layout by calling its :meth:`~kivy.app.App.build` method and
         attached it to the main window.
-        """
+
+        Emits the `on_kivy_app_start` event.
+       """
         self.main_app.framework_win = self.root.parent
         self.win_pos_size_change()  # init. app./self.landscape (on app startup and after build)
         self.main_app.call_method('on_kivy_app_start')
 
     def on_pause(self) -> bool:
-        """ app pause event """
+        """ app pause event automatically saving the app states.
+
+        Emits the `on_app_pause` event.
+
+        :return:                True.
+        """
         self.main_app.save_app_states()
         self.main_app.call_method('on_app_pause')
         return True
 
     def on_resume(self) -> bool:
-        """ app resume event """
+        """ app resume event automatically loading the app states.
+
+        Emits the `on_app_resume` event.
+
+        :return:                True.
+        """
         self.main_app.load_app_states()
         self.main_app.call_method('on_app_resume')
         return True
 
     def on_stop(self):
-        """ quit app event (:meth:`MainAppBase.stop_app` emits the `on_app_stop` event) """
+        """ quit app event automatically saving the app states.
+
+        Emits the `on_kivy_app_stop` event whereas the method :meth:`MainAppBase.stop_app`
+        emits the `on_app_stop` event.
+        """
         self.main_app.save_app_states()
         self.main_app.call_method('on_kivy_app_stop')
 
     def win_pos_size_change(self, *_):
         """ resize handler updates :attr:`~MainAppBase.win_rectangle` app state and :attr:`~FrameworkApp.landscape`. """
         self.main_app.win_pos_size_change(Window.left, Window.top, Window.width, Window.height)
+
+
+class MessageShowPopup(FlowPopup):
+    """ display_error() popup. """
+    title = StringProperty(get_text("Error"))
+    message = StringProperty()
 
 
 class _GetTextBinder(Observable):
@@ -534,7 +674,14 @@ class _GetTextBinder(Observable):
     _bound_uid = -1
 
     def fbind(self, name: str, func: Callable, *args, **kwargs) -> int:
-        """ override fbind from :class:`Observable` for to collect and separate `_` bindings. """
+        """ override fbind (fast bind) from :class:`Observable` for to collect and separate `_` bindings.
+
+        :param name:            attribute name to be bound.
+        :param func:            observer notification function (to be called if attribute changes).
+        :param args:            args to be passed to the observer.
+        :param kwargs:          kwargs to be passed to the observer.
+        :return:                unique id of this binding.
+        """
         if name == "_":
             self.observers.append((func, args, kwargs))
             # Observable.bound_uid - initialized in _event.pyx/Observable.cinit() - is not available in python:
@@ -548,7 +695,13 @@ class _GetTextBinder(Observable):
         return super().fbind(name, func, *args, **kwargs)
 
     def funbind(self, name: str, func: Callable, *args, **kwargs):
-        """ unbind """
+        """ override fast unbind.
+
+        :param name:            bound attribute name.
+        :param func:            observer notification function (called if attribute changed).
+        :param args:            args to be passed to the observer.
+        :param kwargs:          kwargs to be passed to the observer.
+        """
         if name == "_":
             key = (func, args, kwargs)
             if key in self.observers:
@@ -557,7 +710,10 @@ class _GetTextBinder(Observable):
             super().funbind(name, func, *args, **kwargs)
 
     def switch_lang(self, lang_code: str):
-        """ change language and update kv rules properties """
+        """ change language and update kv rules properties.
+
+        :param lang_code:       language code to switch this app to.
+        """
         default_language(lang_code)
 
         for func, args, _kwargs in self.observers:
@@ -567,11 +723,19 @@ class _GetTextBinder(Observable):
         app.title = get_txt(app.main_app.app_title)
 
     def __call__(self, text: str, count: Optional[int] = None, language: str = '', **kwargs) -> str:
-        """ translate text """
+        """ translate text into the current-default or the passed language.
+
+        :param text:            text to translate.
+        :param count:           optional count for pluralization.
+        :param language:        language code to translate the passed text to (def=current default language).
+        :param kwargs:          extra kwargs.
+        :return:                translated text.
+        """
         return get_f_string(text, count=count, language=language, **kwargs)
 
 
-get_txt = _GetTextBinder()  #: global i18n translation callable and language switcher - rename to `_` in kv file imports
+# Sphinx make html is failing if the comment underneath is included (by changing '# ' into '#: ')
+get_txt = _GetTextBinder()  # global i18n translation callable and language switcher, rename to `_` in kv file imports
 
 
 class KivyMainApp(MainAppBase):
@@ -691,7 +855,7 @@ class KivyMainApp(MainAppBase):
         if self.debug_level == DEBUG_LEVEL_DISABLED:
             self._debug_enable_clicks += 1
             if self._debug_enable_clicks >= 3:
-                self.set_opt('debug_level', DEBUG_LEVEL_ENABLED)
+                self.debug_level: int = DEBUG_LEVEL_ENABLED
                 self._debug_enable_clicks = 0
             elif self._debug_enable_clicks == 1:
                 Clock.schedule_once(_timeout_reset, 6.0)
@@ -734,30 +898,55 @@ class KivyMainApp(MainAppBase):
         :param input_box_bottom:    y position of the bottom of the input field box.
         :return:                    True if keyboard is covering the passed y/bottom position, else False.
         """
+        if sys_platform() != 'android':
+            return False
+
         keyboard_height = Window.keyboard_height or Window.height / 2  # 'or'-fallback because SDL2 reports 0 kbd height
         mode_changed = input_box_bottom < keyboard_height
         Window.softinput_mode = self.kbd_input_mode if mode_changed else ''
+
         return mode_changed
 
-    def show_popup(self, popup_class: Type[Widget], **popup_attributes) -> Widget:
-        """ open Popup using the `open` method. Overwriting the main app class method.
+    def show_message(self, message: str, title: str = "", is_error: bool = True):
+        """ display (error) message popup to the user.
 
-        :param popup_class:         class of the Popup widget/window.
+        :param message:         message string to display.
+        :param title:           title of message box.
+        :param is_error:        pass False to not emit error tone/vibration.
+        """
+        if is_error:
+            self.play_vibrate(ERROR_VIBRATE_PATTERN)
+            self.play_beep()
+
+        popup_kwargs = dict(message=message)
+        if title:
+            popup_kwargs['title'] = title
+
+        self.change_flow(id_of_flow('show', 'message'), popup_kwargs=popup_kwargs)
+
+    def show_popup(self, popup_class: Type[Union[Popup, DropDown]], **popup_attributes) -> Widget:
+        """ open Popup or DropDown using the `open` method. Overwriting the main app class method.
+
+        :param popup_class:         class of the Popup or DropDown widget.
         :param popup_attributes:    args for to be set as attributes of the popup class instance plus an optional
-                                    `'parent'` kwarg that will be passed as the popup parent widget arg
-                                    to the popup.open method; if parent does not get passed then
-                                    self.framework_win will passed into the popup.open method as the widget argument.
+                                    `parent` kwarg that will be passed as the popup parent widget arg
+                                    to the popup.open method; if parent does not get passed then the root widget/layout
+                                    of self.framework_app will passed into the popup.open method as the widget argument.
         :return:                    created and displayed/opened popup class instance.
         """
         self.dpo(f"KivyAppBase.show_popup {popup_class} {popup_attributes}")
 
-        parent = popup_attributes.pop('parent', self.framework_win)
+        # framework_win has absolute screen coordinates and lacks x, y properties, therefore use app.root as def parent
+        parent = popup_attributes.pop('parent', self.framework_app.root)
         popup_instance = popup_class(**popup_attributes)
         if self.prevent_keyboard_covering(popup_instance.y):
+            container = getattr(popup_instance, '_container', None)
+            if container:
+                container.clear_widgets()                       # clear container for Popup only
             popup_instance = popup_class(**popup_attributes)    # new instance if kbd covering popup
 
         if not hasattr(popup_instance, 'close') and hasattr(popup_instance, 'dismiss'):
-            popup_instance.close = popup_instance.dismiss   # create close() method alias for DropDown.dismiss() method
+            popup_instance.close = popup_instance.dismiss       # create close() method alias for DropDown.dismiss()
 
         popup_instance.open(parent)
 
