@@ -92,8 +92,6 @@ kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for
 
 MAIN_KV_FILE_NAME = 'main.kv'   #: default file name of the main kv file
 
-DOCUMENTS_ROOT_PATH = storagepath.get_documents_dir()    #: root file path for documents import/export
-
 LOVE_VIBRATE_PATTERN = (0.0, 0.12, 0.12, 0.21, 0.03, 0.12, 0.12, 0.12)
 """ short/~1.2s vibrate pattern for fun/love notification. """
 
@@ -747,6 +745,8 @@ class KivyMainApp(MainAppBase):
 
     kbd_input_mode: str = 'pan'                             #: optional app state for to set Window[Base].softinput_mode
 
+    documents_root_path: str = "."                          #: root file path for documents, e.g. for doc import/export
+
     _debug_enable_clicks: int = 0
 
     # abstract methods
@@ -758,6 +758,8 @@ class KivyMainApp(MainAppBase):
         :param framework_app_class:     class to create app instance (optionally extended by app project).
         :return:                        callable for to start and stop/exit the GUI event loop.
         """
+        self.documents_root_path = storagepath.get_documents_dir()
+
         Builder.load_string(WIDGETS)
 
         win_rect = self.win_rectangle
