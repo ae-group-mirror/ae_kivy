@@ -79,7 +79,7 @@ from ae.gui_app import (  # type: ignore
 )  # type: ignore
 
 
-__version__ = '0.0.29'
+__version__ = '0.0.30'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -234,6 +234,25 @@ WIDGETS = '''\
     #    cursor_image: app.main_app.img_file('vibrate', app.ae_states['font_size'], app.ae_states['light_theme'])
     BoxLayout:
         size_hint_y: None
+        height: app.ae_states['font_size'] * 1.5 if installed_languages else 0
+        opacity: 1 if installed_languages else 0
+        OptionalButton:
+            ae_flow_id: id_of_flow('change', 'lang_code', self.text)
+            ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
+            square_fill_color:
+                app.ae_states['selected_item_ink'] if app.main_app.lang_code in ('', self.text) else Window.clearcolor
+            text: DEF_LANGUAGE
+            visible: DEF_LANGUAGE not in installed_languages
+        LangCodeButton:
+            lang_idx: 0
+        LangCodeButton:
+            lang_idx: 1
+        LangCodeButton:
+            lang_idx: 2
+        LangCodeButton:
+            lang_idx: 3
+    BoxLayout:
+        size_hint_y: None
         height: app.ae_states['font_size'] * 1.5
         ThemeButton:
             text: "dark"
@@ -247,23 +266,6 @@ WIDGETS = '''\
             square_fill_color: THEME_LIGHT_BACKGROUND_COLOR or self.square_fill_color
     BoxLayout:
         size_hint_y: None
-        height: app.ae_states['font_size'] * 1.5 if installed_languages and app.main_app.debug else 0
-        opacity: 1 if installed_languages and app.main_app.debug else 0
-        OptionalButton:
-            ae_flow_id: id_of_flow('change', 'lang_code', self.text)
-            ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
-            square_fill_color:
-                app.ae_states['selected_item_ink'] if app.main_app.lang_code in ('', self.text) else Window.clearcolor
-            text: DEF_LANGUAGE
-            visible: DEF_LANGUAGE not in installed_languages and app.main_app.debug
-        LangCodeButton:
-            lang_idx: 0
-        LangCodeButton:
-            lang_idx: 1
-        LangCodeButton:
-            lang_idx: 2
-    BoxLayout:
-        size_hint_y: None
         height: app.ae_states['font_size'] * 1.5 if app.main_app.debug else 0
         opacity: 1 if app.main_app.debug else 0
         DebugLevelButton:
@@ -274,12 +276,6 @@ WIDGETS = '''\
             level_idx: 2
         DebugLevelButton:
             level_idx: 3
-    OptionalButton:
-        size_hint_x: 1
-        square_fill_color: Window.clearcolor
-        text: 'kivy settings'
-        visible: app.main_app.debug
-        on_release: app.open_settings()
     BoxLayout:
         size_hint_y: None
         height: app.ae_states['font_size'] * 1.5 if app.main_app.debug else 0
@@ -294,6 +290,12 @@ WIDGETS = '''\
             text: 'resize'
         KbdInputModeButton:
             text: ''
+    OptionalButton:
+        square_fill_color: Window.clearcolor
+        size_hint_x: 1
+        text: 'kivy settings'
+        visible: app.main_app.debug
+        on_release: app.open_settings()
 
 
 <UserPrefSlider@Slider>:
@@ -344,7 +346,7 @@ WIDGETS = '''\
 
 
 <FontSizeSelectButton@Button>:
-    # text: f'Aa Bb Zz {round(self.font_size)}'      F-STRINGS don't work - displays always 15 as font size
+    # text: f'Aa Bb Zz {round(self.font_size)}'  F-STRING displaying always 15 as font size
     text: 'Aa Bb Zz {}'.format(round(self.font_size))
     on_release: self.parent.parent.select(self.font_size)
     size_hint_y: None
@@ -385,7 +387,7 @@ WIDGETS = '''\
     square_fill_color: app.ae_states['selected_item_ink'] if app.main_app.lang_code == self.text else Window.clearcolor
     size_hint_x: 1 if self.visible else None
     text: installed_languages[min(self.lang_idx, len(installed_languages) - 1)]
-    visible: len(installed_languages) > self.lang_idx and app.main_app.debug
+    visible: len(installed_languages) > self.lang_idx
 
 
 <DebugLevelButton@OptionalButton>:
@@ -394,6 +396,7 @@ WIDGETS = '''\
     ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
     square_fill_color:
         app.ae_states['selected_item_ink'] if app.main_app.debug_level == self.level_idx else Window.clearcolor
+    size_hint_x: 1 if self.visible else None
     text: DEBUG_LEVELS[min(self.level_idx, len(DEBUG_LEVELS) - 1)]
     visible: app.main_app.debug
 
@@ -403,6 +406,7 @@ WIDGETS = '''\
     ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
     square_fill_color:
         app.ae_states['selected_item_ink'] if app.main_app.kbd_input_mode == self.text else Window.clearcolor
+    size_hint_x: 1 if self.visible else None
     visible: app.main_app.debug
 
 
@@ -745,7 +749,7 @@ class KivyMainApp(MainAppBase):
 
     kbd_input_mode: str = 'pan'                             #: optional app state for to set Window[Base].softinput_mode
 
-    documents_root_path: str = "."                          #: root file path for documents, e.g. for doc import/export
+    documents_root_path: str = "."                          #: root file path for app documents, e.g. for import/export
 
     _debug_enable_clicks: int = 0
 
@@ -758,7 +762,7 @@ class KivyMainApp(MainAppBase):
         :param framework_app_class:     class to create app instance (optionally extended by app project).
         :return:                        callable for to start and stop/exit the GUI event loop.
         """
-        self.documents_root_path = storagepath.get_documents_dir()
+        self.documents_root_path = os.path.join(storagepath.get_documents_dir(), self.app_name)
 
         Builder.load_string(WIDGETS)
 
