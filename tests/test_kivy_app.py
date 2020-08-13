@@ -1,5 +1,7 @@
 """ test ae.kivy_app portion. """
 import os
+from unittest.mock import MagicMock
+
 import pytest
 import shutil
 from unittest import mock
@@ -308,6 +310,24 @@ class TestHelperMethods:
     def test_call_method_invalid_method(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
         assert app.call_method('invalid_method_name') is None
+
+    def test_ensure_top_most_z_index(self, restore_app_env):
+        app = KivyAppTest()
+        app.framework_win = MagicMock()
+        app.framework_win.children = list()
+        app.framework_win.add_widget = lambda child: app.framework_win.children.insert(0, child)
+
+        wid = MagicMock()
+        app.framework_win.add_widget(wid)
+        assert app.framework_win.children[0] == wid
+        app.ensure_top_most_z_index(wid)
+        assert app.framework_win.children[0] == wid
+
+        wid2 = MagicMock()
+        app.framework_win.add_widget(wid2)
+        assert app.framework_win.children[0] != wid
+        app.ensure_top_most_z_index(wid)
+        assert app.framework_win.children[0] == wid
 
     def test_main_kv_load(self, restore_app_env):
         try:

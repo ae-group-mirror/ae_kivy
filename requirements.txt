@@ -1,3 +1,4 @@
 kivy
 plyer
-ae_gui_app
+ae_gui_help
+

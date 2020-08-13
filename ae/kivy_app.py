@@ -38,48 +38,52 @@ with a graphic system supporting at least V 2.0 of OpenGL and the
 kivy framework installed.
 
 .. note::
-    unit tests does have 100 % coverage but are currently not passing the gitlab CI
-    tests because we failing in setup a proper running window system on the
-    python image that all ae portions are using.
+    unit tests does have 100 % coverage but are currently not passing
+    the gitlab CI tests because we failing in setup a proper running
+    window system on the python image that all ae portions are using.
 
-Any help for to fix the problems with the used gitlab CI image is highly appreciated.
+Any help for to fix the problems with the used gitlab CI image
+is highly appreciated.
 
 """
 import os
-from typing import Callable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
-from plyer import storagepath, vibrator                                     # type: ignore
+from plyer import storagepath, vibrator                                             # type: ignore
 
-import kivy                                                                 # type: ignore
-from kivy.app import App                                                    # type: ignore
-from kivy.clock import Clock                                                # type: ignore
-from kivy.core.audio import SoundLoader                                     # type: ignore
-from kivy.core.window import Window                                         # type: ignore
-from kivy.factory import Factory, FactoryException                          # type: ignore
-from kivy.input import MotionEvent                                          # type: ignore
-from kivy.lang import Builder, Observable                                   # type: ignore
+import kivy                                                                         # type: ignore
+from kivy.app import App                                                            # type: ignore
+from kivy.clock import Clock                                                        # type: ignore
+from kivy.core.audio import SoundLoader                                             # type: ignore
+from kivy.core.window import Window                                                 # type: ignore
+from kivy.factory import Factory, FactoryException                                  # type: ignore
+from kivy.input import MotionEvent                                                  # type: ignore
+from kivy.lang import Builder, Observable                                           # type: ignore
 # pylint: disable=no-name-in-module
-from kivy.properties import BooleanProperty, DictProperty, ListProperty, ObjectProperty, StringProperty  # type: ignore
-from kivy.uix.behaviors import ButtonBehavior                               # type: ignore
-from kivy.uix.dropdown import DropDown                                      # type: ignore
-from kivy.uix.label import Label                                            # type: ignore
-from kivy.uix.popup import Popup                                            # type: ignore
-from kivy.uix.widget import Widget                                          # type: ignore
+from kivy.properties import (                                                       # type: ignore
+    BooleanProperty, DictProperty, ListProperty, ObjectProperty, StringProperty)
+from kivy.uix.behaviors import ButtonBehavior                                       # type: ignore
+from kivy.uix.dropdown import DropDown                                              # type: ignore
+from kivy.uix.image import Image                                                    # type: ignore
+from kivy.uix.label import Label                                                    # type: ignore
+from kivy.uix.scrollview import ScrollView                                          # type: ignore
+from kivy.uix.popup import Popup                                                    # type: ignore
+from kivy.uix.widget import Widget                                                  # type: ignore
 
-from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED, sys_platform  # type: ignore
-from ae.files import FilesRegister, CachedFile                              # type: ignore
-from ae.i18n import default_language, get_f_string, get_text                # type: ignore
+from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED, sys_platform         # type: ignore
+from ae.files import FilesRegister, CachedFile                                      # type: ignore
+from ae.i18n import default_language, get_f_string, get_text                        # type: ignore
 
 # id_of_flow not used here - added for easier import in app project
-# noinspection PyUnresolvedReferences
-from ae.gui_app import (  # type: ignore
+from ae.gui_app import (                                                            # type: ignore
     APP_STATE_SECTION_NAME,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
-    MainAppBase, id_of_flow
-)  # type: ignore
+    id_of_flow
+)
+from ae.gui_help import layout_ps_hints, HelpAppBase                                # type: ignore
 
 
-__version__ = '0.0.30'
+__version__ = '0.0.31'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -121,6 +125,59 @@ WIDGETS = '''\
 #: import id_of_flow ae.gui_app.id_of_flow
 #: import flow_key ae.gui_app.flow_key
 #: import flow_key_split ae.gui_app.flow_key_split
+
+#: import anchor_points ae.gui_help.anchor_points
+#: import layout_x ae.gui_help.layout_x
+#: import layout_y ae.gui_help.layout_y
+#: import layout_ps_hints ae.gui_help.layout_ps_hints
+
+#: import _ ae.kivy_app.get_txt
+
+
+<HelpToggler>:
+    ae_icon_name: 'help_icon' if app.help_layout else 'app_icon'
+    size_hint_x: None
+    width: self.height
+    source: app.main_app.img_file(self.ae_icon_name)
+
+
+<HelpLayout>:
+    size_hint: None, None
+    ps_hints: layout_ps_hints(*root.widget.to_window(*root.widget.pos), *root.widget.size, Window.width, Window.height)
+    width: min(help_label.width, Window.width)
+    height: min(help_label.height, Window.height)
+    x: layout_x(root.ps_hints['anchor_x'], root.ps_hints['anchor_dir'], root.width, Window.width)
+    y: layout_y(root.ps_hints['anchor_y'], root.ps_hints['anchor_dir'], root.height, Window.height)
+    canvas.before:
+        Color:
+            rgba: Window.clearcolor[:3] + (0.96, )
+        Rectangle:
+            pos: root.pos
+            size: root.size
+    canvas.after:
+        Color:
+            rgba: app.font_color
+        Line:
+            width: dp(3)
+            rectangle: root.x + dp(1), root.y + dp(1), root.width - dp(2), root.height - dp(2)
+        Triangle:
+            points:
+                anchor_points(app.main_app.font_size * 0.69, root.ps_hints['anchor_x'], root.ps_hints['anchor_y'], \
+                root.ps_hints['anchor_dir'])
+        Color:
+            rgba: Window.clearcolor
+        Line:
+            width: dp(1)
+            rectangle: root.x + dp(1), root.y + dp(1), root.width - dp(2), root.height - dp(2)
+    Label:
+        id: help_label
+        text: root.help_text
+        color: app.font_color[:3] + (0.96, )
+        font_size: app.main_app.font_size * 0.81
+        markup: True
+        padding: dp(12), dp(9)
+        size_hint: None, None
+        size: self.texture_size
 
 
 <ThemeButton>:
@@ -167,9 +224,21 @@ WIDGETS = '''\
     ae_clicked_kwargs: dict(popup_kwargs=dict(parent=self))
     ae_icon_name: ""
     on_release: app.main_app.change_flow(self.ae_flow_id, **self.ae_clicked_kwargs)
+    help_lock: app.help_layout is not None and app.help_id != app.main_app.help_flow_id(self.ae_flow_id)
     source:
         app.main_app.img_file(self.ae_icon_name or flow_key_split(self.ae_flow_id)[0], \
                               app.ae_states['font_size'], app.ae_states['light_theme'])
+    canvas.after:
+        Color:
+            rgba: app.font_color[:3] + (0.36 if self.help_lock else 0, )
+        Ellipse:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: app.font_color[:3] + (0.54 if self.help_lock else 0, )
+        Line:
+            width: dp(3)
+            rounded_rectangle: self.x + dp(3), self.y + dp(3), self.width - dp(6), self.height - dp(6), sp(15)
 
 
 <OptionalButton@FlowButton>:
@@ -198,7 +267,6 @@ WIDGETS = '''\
 <FlowPopup>:
     ae_closed_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.ae_closed_kwargs)
-    auto_dismiss: True
     separator_color: app.font_color
     title_align: 'center'
     title_size: app.main_app.font_size
@@ -227,10 +295,10 @@ WIDGETS = '''\
     FontSizeButton:
         # pass
     UserPrefSlider:
-        app_state_name: 'sound_volume'
+        ae_state_name: 'sound_volume'
         cursor_image: 'atlas://data/images/defaulttheme/audio-volume-high'
     # UserPrefSlider:    current kivy module vibrator.py does not support amplitudes arg of android api
-    #    app_state_name: 'vibrate_amplitude'
+    #    ae_state_name: 'vibrate_amplitude'
     #    cursor_image: app.main_app.img_file('vibrate', app.ae_states['font_size'], app.ae_states['light_theme'])
     BoxLayout:
         size_hint_y: None
@@ -254,14 +322,16 @@ WIDGETS = '''\
     BoxLayout:
         size_hint_y: None
         height: app.ae_states['font_size'] * 1.5
-        ThemeButton:
-            text: "dark"
-            on_release: app.main_app.change_flow(id_of_flow('change', 'light_theme'), light_theme=False)
+        FlowButton:
+            ae_flow_id: id_of_flow('change', 'light_theme')
+            ae_clicked_kwargs: dict(light_theme=False)
+            text: _("dark")
             color: THEME_DARK_FONT_COLOR or self.color
             square_fill_color: THEME_DARK_BACKGROUND_COLOR or self.square_fill_color
-        ThemeButton:
-            text: "light"
-            on_release: app.main_app.change_flow(id_of_flow('change', 'light_theme'), light_theme=True)
+        FlowButton:
+            ae_flow_id: id_of_flow('change', 'light_theme')
+            ae_clicked_kwargs: dict(light_theme=True)
+            text: _("light")
             color: THEME_LIGHT_FONT_COLOR or self.color
             square_fill_color: THEME_LIGHT_BACKGROUND_COLOR or self.square_fill_color
     BoxLayout:
@@ -299,9 +369,10 @@ WIDGETS = '''\
 
 
 <UserPrefSlider@Slider>:
-    app_state_name: ''
-    value: app.ae_states.get(self.app_state_name, 1.0)
-    on_value: app.main_app.change_app_state(self.app_state_name, self.value)
+    ae_state_name: ''
+    help_lock: app.help_layout is not None and app.help_id != app.main_app.help_app_state_id(self.ae_state_name)
+    value: app.ae_states.get(self.ae_state_name, 1.0)
+    on_value: app.main_app.help_app_state_change(self.ae_state_name, self.value)
     min: 0.0
     max: 1.0
     step: 0.03
@@ -317,6 +388,17 @@ WIDGETS = '''\
         RoundedRectangle:
             pos: self.pos
             size: self.size
+    canvas.after:
+        Color:
+            rgba: app.font_color[:3] + (0.36 if self.help_lock else 0, )
+        Ellipse:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: app.font_color[:3] + (0.54 if self.help_lock else 0, )
+        Line:
+            width: sp(3)
+            rounded_rectangle: self.x + dp(3), self.y + dp(3), self.width - dp(6), self.height - dp(6), sp(15)
 
 
 <FontSizeButton@FlowButton>:
@@ -398,7 +480,7 @@ WIDGETS = '''\
         app.ae_states['selected_item_ink'] if app.main_app.debug_level == self.level_idx else Window.clearcolor
     size_hint_x: 1 if self.visible else None
     text: DEBUG_LEVELS[min(self.level_idx, len(DEBUG_LEVELS) - 1)]
-    visible: app.main_app.debug
+    visible: app.main_app.debug and self.level_idx < len(DEBUG_LEVELS)
 
 
 <KbdInputModeButton@OptionalButton>:
@@ -412,7 +494,7 @@ WIDGETS = '''\
 
 <MessageShowPopup>:
     size_hint: 0.9, None
-    height: min(Window.height, err_txt_box.height + self.title_size * 1.8)
+    height: min(Window.height, msg_txt_box.height + self.title_size * 1.8)
     ScrollView:
         Label:
             canvas.before:
@@ -421,7 +503,7 @@ WIDGETS = '''\
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-            id: err_txt_box
+            id: msg_txt_box
             text: root.message
             font_size: app.main_app.font_size
             text_size: self.width, None
@@ -429,7 +511,7 @@ WIDGETS = '''\
             height: self.texture_size[1]
             color: app.font_color
             Button:     # invisible button for close error popup on error text click
-                size: err_txt_box.size
+                size: msg_txt_box.size
                 background_color: 0, 0, 0, 0
                 on_release: root.dismiss()
 
@@ -438,6 +520,192 @@ WIDGETS = '''\
 
 
 # class declarations for docs and for to allow initialization of attributes via __init__ kwargs (e.g. ae_closed_kwargs).
+
+class HelpToggler(Image):       # pragma: no cover
+    """ widget for to activate and deactivate the help mode. """
+    def on_touch_down(self, touch: MotionEvent) -> bool:
+        """ touch down event handler for to toggle help flow mode while preventing dismiss of open dropdowns/popups.
+
+        :param touch:           touch event.
+        :return:                True if touch happened on this button.
+        """
+        if self.collide_point(*touch.pos):
+            app = App.get_running_app()
+            app.main_app.help_activation_toggle(HelpLayout, activator=self)
+            return True
+        return False
+
+
+class HelpLayout(ScrollView):       # pragma: no cover
+    """ semi-transparent and click-through container for to display help texts. """
+    widget = ObjectProperty()
+    ps_hints = ObjectProperty()
+    help_text = StringProperty()
+
+    def _update_effect_bounds(self, *args):
+        """ override to prevent recursion error in ScrollView.
+
+        kivy bug workaround (fixed in kivy master via https://github.com/kivy/kivy/pull/6985 on 15-Jul-2020).
+        solution from https://www.gitmemory.com/issue/kivy/kivy/5638/529400808
+        """
+
+    def on_touch_down(self, touch: MotionEvent) -> bool:
+        """ check for additional events added by this class.
+
+        :param touch:   motion/touch event data.
+        :return:        True if event got processed/used.
+        """
+        return False        # let user click through this transparent help text widget
+
+
+class FlowDropDown(DropDown):       # pragma: no cover
+    """ drop down widget used for user selections from a list of items (represented by the children-widgets). """
+    ae_closed_kwargs = DictProperty()   #: kwargs passed to all close action flow change event handlers
+
+    def dismiss(self, *args):
+        """ override DropDown method for to prevent dismiss of any dropdown/popup while clicking on activator widget.
+
+        :param args:        args to be passed to DropDown.dismiss().
+        """
+        app = App.get_running_app()
+        if app.help_layout is None or not isinstance(app.help_layout.widget, HelpToggler):
+            super().dismiss(*args)
+
+
+class FlowPopup(Popup):         # pragma: no cover
+    """ pop up widget used for dialogs and other top-most or modal windows. """
+    ae_closed_kwargs = DictProperty()   #: kwargs passed to all close action flow change event handlers
+
+    def dismiss(self, *args, **kwargs):
+        """ override ModalView method for to prevent dismiss of any dropdown/popup while clicking on activator widget.
+
+        :param args:        args to be passed to ModalView.dismiss().
+        :param kwargs:      kwargs to be passed to ModalView.dismiss().
+        """
+        app = App.get_running_app()
+        if app.help_layout is None or not isinstance(app.help_layout.widget, HelpToggler):
+            super().dismiss(*args, **kwargs)
+
+
+class FontSizeEditPopup(FlowDropDown):
+    """ drop down to select font size """
+    parent_popup_to_close = ObjectProperty()
+
+
+class FrameworkApp(App):
+    """ kivy framework app class proxy redirecting events and callbacks to the main app class instance. """
+
+    landscape = BooleanProperty()                           #: True if app win width is bigger than the app win height
+    font_color = ObjectProperty(THEME_DARK_FONT_COLOR)      #: rgba color of the font used for labels/buttons/...
+    mixed_back_ink = ListProperty((.69, .69, .69, 1.))      #: background color mixed from available back inks
+    help_id = StringProperty()                              #: flow id of the currently explained flow button
+    help_layout = ObjectProperty(allownone=True)            #: layout widget if help flow mode is active else None
+
+    ae_states = DictProperty()                              #: duplicate of MainAppBase app state for events/binds
+
+    def __init__(self, main_app: 'KivyMainApp', **kwargs):
+        """ init kivy app """
+        self.main_app = main_app                            #: set reference to KivyMainApp instance
+        self.title = main_app.app_title                     #: set kivy.app.App.title
+        self.icon = os.path.join("img", "app_icon.png")     #: set kivy.app.App.icon
+
+        super().__init__(**kwargs)
+
+        # redirecting class name, app name and directory to the main app class for kv/ini file names is
+        # .. no longer needed because main.kv get set in :meth:`KivyMainApp.init_app` and app states
+        # .. get stored in the :ref:`ae config files <config-files>`.
+        # self.__class__.__name__ = main_app.__class__.__name__
+        # self._app_name = main_app.app_name
+        # self._app_directory = '.'
+
+    def build(self) -> Widget:
+        """ kivy build app callback.
+
+        :return:                root widget (Main instance) of this app.
+        """
+        Window.bind(on_resize=self.win_pos_size_change,
+                    left=self.win_pos_size_change,
+                    top=self.win_pos_size_change,
+                    on_key_down=self.key_press_from_kivy,
+                    on_key_up=self.key_release_from_kivy)
+
+        self.main_app.framework_root = root = Factory.Main()
+        return root
+
+    def key_press_from_kivy(self, keyboard, key_code, _scan_code, key_text, modifiers) -> bool:
+        """ convert and redistribute key down/press events coming from Window.on_key_down.
+
+        :param keyboard:        used keyboard.
+        :param key_code:        key code of pressed key.
+        :param _scan_code:      key scan code of pressed key.
+        :param key_text:        key text of pressed key.
+        :param modifiers:       list of modifier keys (including e.g. 'capslock', 'numlock', ...)
+        :return:                True if key event got processed used by the app, else False.
+        """
+        return self.main_app.key_press_from_framework(
+            "".join(_.capitalize() for _ in sorted(modifiers) if _ in ('alt', 'ctrl', 'meta', 'shift')),
+            keyboard.command_keys.get(key_code) or key_text or str(key_code))
+
+    def key_release_from_kivy(self, keyboard, key_code, _scan_code) -> bool:
+        """ key release/up event.
+
+        :return:                return value of call to `on_key_release` (True if ke got processed/used).
+        """
+        return self.main_app.call_method('on_key_release', keyboard.command_keys.get(key_code, str(key_code)))
+
+    def on_start(self):
+        """ kivy app start event, called after :meth:`MainAppBase.run_app` method and MainAppBase.on_app_start event.
+
+        Kivy just created the main layout by calling its :meth:`~kivy.app.App.build` method and
+        attached it to the main window.
+
+        Emits the `on_kivy_app_start` event.
+       """
+        self.main_app.framework_win = self.root.parent
+        self.win_pos_size_change()  # init. app./self.landscape (on app startup and after build)
+        self.main_app.call_method('on_kivy_app_start')
+
+    def on_pause(self) -> bool:
+        """ app pause event automatically saving the app states.
+
+        Emits the `on_app_pause` event.
+
+        :return:                True.
+        """
+        self.main_app.save_app_states()
+        self.main_app.call_method('on_app_pause')
+        return True
+
+    def on_resume(self) -> bool:
+        """ app resume event automatically loading the app states.
+
+        Emits the `on_app_resume` event.
+
+        :return:                True.
+        """
+        self.main_app.load_app_states()
+        self.main_app.call_method('on_app_resume')
+        return True
+
+    def on_stop(self):
+        """ quit app event automatically saving the app states.
+
+        Emits the `on_kivy_app_stop` event whereas the method :meth:`MainAppBase.stop_app`
+        emits the `on_app_stop` event.
+        """
+        self.main_app.save_app_states()
+        self.main_app.call_method('on_kivy_app_stop')
+
+    def win_pos_size_change(self, *_):
+        """ resize handler updates :attr:`~MainAppBase.win_rectangle` app state and :attr:`~FrameworkApp.landscape`. """
+        self.main_app.win_pos_size_change(Window.left, Window.top, Window.width, Window.height)
+
+
+class MessageShowPopup(FlowPopup):
+    """ display_error() popup. """
+    title = StringProperty(get_text("Error"))
+    message = StringProperty()
+
 
 class ThemeButton(ButtonBehavior, Label):   # pragma: no cover
     """ theme-able button base class with additional events for double/triple/long touches.
@@ -524,133 +792,6 @@ class ThemeButton(ButtonBehavior, Label):   # pragma: no cover
         :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
         """
         touch.ungrab(self)      # prevent dispatch of on_release
-
-
-class FlowDropDown(DropDown):
-    """ drop down widget used for user selections from a list of items (represented by the children-widgets). """
-    ae_closed_kwargs = DictProperty()   #: kwargs passed to all close action flow change event handlers
-
-
-class FlowPopup(Popup):
-    """ pop up widget used for dialogs and other top-most or modal windows. """
-    ae_closed_kwargs = DictProperty()   #: kwargs passed to all close action flow change event handlers
-
-
-class FontSizeEditPopup(FlowDropDown):
-    """ drop down to select font size """
-    parent_popup_to_close = ObjectProperty()
-
-
-class FrameworkApp(App):
-    """ kivy framework app class proxy redirecting events and callbacks to the main app class instance. """
-
-    landscape = BooleanProperty()                           #: True if app win width is bigger than the app win height
-    font_color = ListProperty(THEME_DARK_FONT_COLOR)        #: rgba color of the font used for labels/buttons/...
-    mixed_back_ink = ListProperty((.69, .69, .69, 1.))      #: background color mixed from available back inks
-
-    ae_states = DictProperty()                              #: duplicate of MainAppBase app state for events/binds
-
-    def __init__(self, main_app: 'KivyMainApp', **kwargs):
-        """ init kivy app """
-        self.main_app = main_app                            #: set reference to KivyMainApp instance
-        self.title = main_app.app_title                     #: set kivy.app.App.title
-        self.icon = os.path.join("img", "app_icon.png")     #: set kivy.app.App.icon
-
-        super().__init__(**kwargs)
-
-        # redirecting class name, app name and directory to the main app class for kv/ini file names is
-        # .. no longer needed because main.kv get set in :meth:`KivyMainApp.init_app` and app states
-        # .. get stored in the :ref:`ae config files <config-files>`.
-        # self.__class__.__name__ = main_app.__class__.__name__
-        # self._app_name = main_app.app_name
-        # self._app_directory = '.'
-
-    def build(self) -> Widget:
-        """ kivy build app callback.
-
-        :return:                root widget (Main instance) of this app.
-        """
-        Window.bind(on_resize=self.win_pos_size_change,
-                    left=self.win_pos_size_change,
-                    top=self.win_pos_size_change,
-                    on_key_down=self.key_press_from_kivy,
-                    on_key_up=self.key_release_from_kivy)
-
-        return Factory.Main()
-
-    def key_press_from_kivy(self, keyboard, key_code, _scan_code, key_text, modifiers) -> bool:
-        """ convert and redistribute key down/press events coming from Window.on_key_down.
-
-        :param keyboard:        used keyboard.
-        :param key_code:        key code of pressed key.
-        :param _scan_code:      key scan code of pressed key.
-        :param key_text:        key text of pressed key.
-        :param modifiers:       list of modifier keys (including e.g. 'capslock', 'numlock', ...)
-        :return:                True if key event got processed used by the app, else False.
-        """
-        return self.main_app.key_press_from_framework(
-            "".join(_.capitalize() for _ in sorted(modifiers) if _ in ('alt', 'ctrl', 'meta', 'shift')),
-            keyboard.command_keys.get(key_code) or key_text or str(key_code))
-
-    def key_release_from_kivy(self, keyboard, key_code, _scan_code) -> bool:
-        """ key release/up event.
-
-        :return:                return value of call to `on_key_release` (True if ke got processed/used).
-        """
-        return self.main_app.call_method('on_key_release', keyboard.command_keys.get(key_code, str(key_code)))
-
-    def on_start(self):
-        """ kivy app start event, called after :meth:`MainAppBase.run_app` method and MainAppBase.on_app_start event.
-
-        Kivy just created the main layout by calling its :meth:`~kivy.app.App.build` method and
-        attached it to the main window.
-
-        Emits the `on_kivy_app_start` event.
-       """
-        self.main_app.framework_win = self.root.parent
-        self.win_pos_size_change()  # init. app./self.landscape (on app startup and after build)
-        self.main_app.call_method('on_kivy_app_start')
-
-    def on_pause(self) -> bool:
-        """ app pause event automatically saving the app states.
-
-        Emits the `on_app_pause` event.
-
-        :return:                True.
-        """
-        self.main_app.save_app_states()
-        self.main_app.call_method('on_app_pause')
-        return True
-
-    def on_resume(self) -> bool:
-        """ app resume event automatically loading the app states.
-
-        Emits the `on_app_resume` event.
-
-        :return:                True.
-        """
-        self.main_app.load_app_states()
-        self.main_app.call_method('on_app_resume')
-        return True
-
-    def on_stop(self):
-        """ quit app event automatically saving the app states.
-
-        Emits the `on_kivy_app_stop` event whereas the method :meth:`MainAppBase.stop_app`
-        emits the `on_app_stop` event.
-        """
-        self.main_app.save_app_states()
-        self.main_app.call_method('on_kivy_app_stop')
-
-    def win_pos_size_change(self, *_):
-        """ resize handler updates :attr:`~MainAppBase.win_rectangle` app state and :attr:`~FrameworkApp.landscape`. """
-        self.main_app.win_pos_size_change(Window.left, Window.top, Window.width, Window.height)
-
-
-class MessageShowPopup(FlowPopup):
-    """ display_error() popup. """
-    title = StringProperty(get_text("Error"))
-    message = StringProperty()
 
 
 class _GetTextBinder(Observable):
@@ -740,7 +881,7 @@ class _GetTextBinder(Observable):
 get_txt = _GetTextBinder()  # global i18n translation callable and language switcher, rename to `_` in kv file imports
 
 
-class KivyMainApp(MainAppBase):
+class KivyMainApp(HelpAppBase):
     """ Kivy application """
     flow_id_ink: tuple = (0.99, 0.99, 0.69, 0.69)           #: rgba color for flow id / drag&drop node placeholder
     flow_path_ink: tuple = (0.99, 0.99, 0.39, 0.48)         #: rgba color for flow_path/drag&drop item placeholder
@@ -805,6 +946,40 @@ class KivyMainApp(MainAppBase):
             return Factory.get(class_name)
         except (FactoryException, AttributeError):
             return None
+
+    def ensure_top_most_z_index(self, widget: Any):
+        """ ensure visibility of the passed widget to be the top most in the z index/order
+
+        :param widget:          widget to check and possibly correct to be the top most one.
+        """
+        if self.framework_win.children[0] != widget:            # if other dropdown/popup opened after help layout
+            self.framework_win.remove_widget(widget)            # then correct z index/order to show help text in front
+            self.framework_win.add_widget(widget)
+
+    def help_activation_toggle(self, layout_class: Type, activator: Optional[Widget] = None):   # pragma: no cover
+        """ button press event handler for to switch help flow mode between active and inactive.
+
+        :param layout_class:    widget/layout class for to display help text including an execution/processing button.
+        :param activator:       widget for to de-/active help flow mode (only optional if self.help_activator is set).
+        """
+        if activator:
+            self.help_activator = activator
+        else:
+            activator = self.help_activator
+
+        activate = self.help_layout is None
+        hlw = None
+        if activate:
+            hlw = layout_class(widget=activator,
+                               ps_hints=layout_ps_hints(*activator.to_window(*activator.pos), *activator.size,
+                                                        self.framework_win.width, self.framework_win.height))
+            self.framework_win.add_widget(hlw)
+        else:
+            self.framework_win.remove_widget(self.help_layout)
+
+        self.change_observable('help_layout', hlw)
+        if hlw:
+            self.help_display('', dict(), activator)    # show initial help text (after self.help_layout got set)
 
     def load_sounds(self):
         """ override for to pre-load audio sounds from app folder snd into sound file cache. """
@@ -943,7 +1118,7 @@ class KivyMainApp(MainAppBase):
         self.dpo(f"KivyAppBase.show_popup {popup_class} {popup_attributes}")
 
         # framework_win has absolute screen coordinates and lacks x, y properties, therefore use app.root as def parent
-        parent = popup_attributes.pop('parent', self.framework_app.root)
+        parent = popup_attributes.pop('parent', self.framework_root)
         popup_instance = popup_class(**popup_attributes)
         if self.prevent_keyboard_covering(popup_instance.y):
             container = getattr(popup_instance, '_container', None)
