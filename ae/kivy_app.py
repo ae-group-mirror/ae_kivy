@@ -49,7 +49,7 @@ is highly appreciated.
 import os
 from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
-from plyer import storagepath, vibrator                                             # type: ignore
+from plyer import vibrator                                                          # type: ignore
 
 import kivy                                                                         # type: ignore
 from kivy.app import App                                                            # type: ignore
@@ -70,9 +70,11 @@ from kivy.uix.scrollview import ScrollView                                      
 from kivy.uix.popup import Popup                                                    # type: ignore
 from kivy.uix.widget import Widget                                                  # type: ignore
 
-from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED, sys_platform         # type: ignore
+from ae.system import sys_platform                                                  # type: ignore
+from ae.paths import app_docs_path                                                  # type: ignore
 from ae.files import FilesRegister, CachedFile                                      # type: ignore
 from ae.i18n import default_language, get_f_string, get_text                        # type: ignore
+from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED                       # type: ignore
 
 # id_of_flow not used here - added for easier import in app project
 from ae.gui_app import (                                                            # type: ignore
@@ -83,7 +85,7 @@ from ae.gui_app import (                                                        
 from ae.gui_help import layout_ps_hints, HelpAppBase                                # type: ignore
 
 
-__version__ = '0.0.31'
+__version__ = '0.0.32'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -113,7 +115,7 @@ WIDGETS = '''\
 
 #: import DEBUG_LEVELS ae.core.DEBUG_LEVELS
 #: import DEF_LANGUAGE ae.i18n.DEF_LANGUAGE
-#: import installed_languages ae.i18n.installed_languages
+#: import INSTALLED_LANGUAGES ae.i18n.INSTALLED_LANGUAGES
 
 #: import MIN_FONT_SIZE ae.gui_app.MIN_FONT_SIZE
 #: import MAX_FONT_SIZE ae.gui_app.MAX_FONT_SIZE
@@ -138,7 +140,7 @@ WIDGETS = '''\
     ae_icon_name: 'help_icon' if app.help_layout else 'app_icon'
     size_hint_x: None
     width: self.height
-    source: app.main_app.img_file(self.ae_icon_name)
+    source: app.main_app.img_file(self.ae_icon_name, app.ae_states['font_size'], app.ae_states['light_theme'])
 
 
 <HelpLayout>:
@@ -151,7 +153,7 @@ WIDGETS = '''\
     canvas.before:
         Color:
             rgba: Window.clearcolor[:3] + (0.96, )
-        Rectangle:
+        RoundedRectangle:
             pos: root.pos
             size: root.size
     canvas.after:
@@ -159,7 +161,7 @@ WIDGETS = '''\
             rgba: app.font_color
         Line:
             width: dp(3)
-            rectangle: root.x + dp(1), root.y + dp(1), root.width - dp(2), root.height - dp(2)
+            rounded_rectangle: root.x + dp(1), root.y + dp(1), root.width - dp(2), root.height - dp(2), dp(12)
         Triangle:
             points:
                 anchor_points(app.main_app.font_size * 0.69, root.ps_hints['anchor_x'], root.ps_hints['anchor_y'], \
@@ -168,7 +170,7 @@ WIDGETS = '''\
             rgba: Window.clearcolor
         Line:
             width: dp(1)
-            rectangle: root.x + dp(1), root.y + dp(1), root.width - dp(2), root.height - dp(2)
+            rounded_rectangle: root.x + dp(1), root.y + dp(1), root.width - dp(2), root.height - dp(2), dp(12)
     Label:
         id: help_label
         text: root.help_text
@@ -230,10 +232,10 @@ WIDGETS = '''\
                               app.ae_states['font_size'], app.ae_states['light_theme'])
     canvas.after:
         Color:
-            rgba: app.font_color[:3] + (0.36 if self.help_lock else 0, )
+            rgba: app.font_color[:3] + (0.27 if self.help_lock else 0, )
         Ellipse:
-            pos: self.pos
-            size: self.size
+            pos: self.x + dp(3), self.y + dp(3)
+            size: self.width - dp(6), self.height - dp(6)
         Color:
             rgba: app.font_color[:3] + (0.54 if self.help_lock else 0, )
         Line:
@@ -302,15 +304,15 @@ WIDGETS = '''\
     #    cursor_image: app.main_app.img_file('vibrate', app.ae_states['font_size'], app.ae_states['light_theme'])
     BoxLayout:
         size_hint_y: None
-        height: app.ae_states['font_size'] * 1.5 if installed_languages else 0
-        opacity: 1 if installed_languages else 0
+        height: app.ae_states['font_size'] * 1.5 if INSTALLED_LANGUAGES else 0
+        opacity: 1 if INSTALLED_LANGUAGES else 0
         OptionalButton:
             ae_flow_id: id_of_flow('change', 'lang_code', self.text)
             ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
             square_fill_color:
                 app.ae_states['selected_item_ink'] if app.main_app.lang_code in ('', self.text) else Window.clearcolor
             text: DEF_LANGUAGE
-            visible: DEF_LANGUAGE not in installed_languages
+            visible: DEF_LANGUAGE not in INSTALLED_LANGUAGES
         LangCodeButton:
             lang_idx: 0
         LangCodeButton:
@@ -390,10 +392,10 @@ WIDGETS = '''\
             size: self.size
     canvas.after:
         Color:
-            rgba: app.font_color[:3] + (0.36 if self.help_lock else 0, )
+            rgba: app.font_color[:3] + (0.27 if self.help_lock else 0, )
         Ellipse:
-            pos: self.pos
-            size: self.size
+            pos: self.x + dp(3), self.y + dp(3)
+            size: self.width - dp(6), self.height - dp(6)
         Color:
             rgba: app.font_color[:3] + (0.54 if self.help_lock else 0, )
         Line:
@@ -468,8 +470,8 @@ WIDGETS = '''\
     ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
     square_fill_color: app.ae_states['selected_item_ink'] if app.main_app.lang_code == self.text else Window.clearcolor
     size_hint_x: 1 if self.visible else None
-    text: installed_languages[min(self.lang_idx, len(installed_languages) - 1)]
-    visible: len(installed_languages) > self.lang_idx
+    text: INSTALLED_LANGUAGES[min(self.lang_idx, len(INSTALLED_LANGUAGES) - 1)]
+    visible: len(INSTALLED_LANGUAGES) > self.lang_idx
 
 
 <DebugLevelButton@OptionalButton>:
@@ -903,7 +905,7 @@ class KivyMainApp(HelpAppBase):
         :param framework_app_class:     class to create app instance (optionally extended by app project).
         :return:                        callable for to start and stop/exit the GUI event loop.
         """
-        self.documents_root_path = os.path.join(storagepath.get_documents_dir(), self.app_name)
+        self.documents_root_path = app_docs_path()
 
         Builder.load_string(WIDGETS)
 
