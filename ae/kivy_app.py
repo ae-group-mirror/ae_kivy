@@ -85,7 +85,7 @@ from ae.gui_app import (                                                        
 from ae.gui_help import layout_ps_hints, HelpAppBase                                # type: ignore
 
 
-__version__ = '0.0.32'
+__version__ = '0.0.33'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -985,7 +985,7 @@ class KivyMainApp(HelpAppBase):
 
     def load_sounds(self):
         """ override for to pre-load audio sounds from app folder snd into sound file cache. """
-        self.sound_files = FilesRegister('snd', file_class=CachedFile,
+        self.sound_files = FilesRegister('snd/**', file_class=CachedFile,
                                          object_loader=lambda f: SoundLoader.load(f.path))
 
     def mix_background_ink(self):
