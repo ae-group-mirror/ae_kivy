@@ -23,9 +23,9 @@ to create a Python application based on the
   :ref:`application logging` and :ref:`application debugging`.
 
 
-The main app class :class:`KivyMainApp` is also encapsulating the
+This namespace portion is also encapsulating the
 :class:`Kivy app class <kivy.app.App>` within the :class:`FrameworkApp`.
-An instance of the Kivy app class can be directly accessed from
+The Kivy app class instance can be directly accessed from
 the main app class instance via the
 :attr:`~KivyMainApp.framework_app` attribute.
 
@@ -46,6 +46,7 @@ Any help for to fix the problems with the used gitlab CI image
 is highly appreciated.
 
 """
+from functools import partial
 import os
 from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
@@ -58,15 +59,13 @@ from kivy.core.audio import SoundLoader                                         
 from kivy.core.window import Window                                                 # type: ignore
 from kivy.factory import Factory, FactoryException                                  # type: ignore
 from kivy.input import MotionEvent                                                  # type: ignore
-from kivy.lang import Builder, Observable                                           # type: ignore
+from kivy.lang import Builder, Observable, global_idmap                             # type: ignore
 # pylint: disable=no-name-in-module
 from kivy.properties import (                                                       # type: ignore
     BooleanProperty, DictProperty, ListProperty, ObjectProperty, StringProperty)
 from kivy.uix.behaviors import ButtonBehavior                                       # type: ignore
 from kivy.uix.dropdown import DropDown                                              # type: ignore
-from kivy.uix.image import Image                                                    # type: ignore
 from kivy.uix.label import Label                                                    # type: ignore
-from kivy.uix.scrollview import ScrollView                                          # type: ignore
 from kivy.uix.popup import Popup                                                    # type: ignore
 from kivy.uix.widget import Widget                                                  # type: ignore
 
@@ -83,9 +82,10 @@ from ae.gui_app import (                                                        
     id_of_flow
 )
 from ae.gui_help import layout_ps_hints, HelpAppBase                                # type: ignore
+from ae.kivy_help import HelpToggler                                                # type: ignore
 
 
-__version__ = '0.0.33'
+__version__ = '0.0.34'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -110,76 +110,36 @@ CRITICAL_VIBRATE_PATTERN = (0.00, 0.12, 0.12, 0.12, 0.12, 0.12,
 """ very long/~2.4s vibrate pattern for critical error notification (sending SOS to the mobile world;) """
 
 
-WIDGETS = '''\
+# helper widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size)
+Builder.load_string('''\
 #: import Window kivy.core.window.Window
 
-#: import DEBUG_LEVELS ae.core.DEBUG_LEVELS
-#: import DEF_LANGUAGE ae.i18n.DEF_LANGUAGE
-#: import INSTALLED_LANGUAGES ae.i18n.INSTALLED_LANGUAGES
-
-#: import MIN_FONT_SIZE ae.gui_app.MIN_FONT_SIZE
-#: import MAX_FONT_SIZE ae.gui_app.MAX_FONT_SIZE
-#: import THEME_LIGHT_BACKGROUND_COLOR ae.gui_app.THEME_LIGHT_BACKGROUND_COLOR
-#: import THEME_LIGHT_FONT_COLOR ae.gui_app.THEME_LIGHT_FONT_COLOR
-#: import THEME_DARK_BACKGROUND_COLOR ae.gui_app.THEME_DARK_BACKGROUND_COLOR
-#: import THEME_DARK_FONT_COLOR ae.gui_app.THEME_DARK_FONT_COLOR
-
-#: import id_of_flow ae.gui_app.id_of_flow
+#: import flow_action ae.gui_app.flow_action
 #: import flow_key ae.gui_app.flow_key
 #: import flow_key_split ae.gui_app.flow_key_split
-
-#: import anchor_points ae.gui_help.anchor_points
-#: import layout_x ae.gui_help.layout_x
-#: import layout_y ae.gui_help.layout_y
-#: import layout_ps_hints ae.gui_help.layout_ps_hints
-
-#: import _ ae.kivy_app.get_txt
+#: import id_of_flow ae.gui_app.id_of_flow
+#: import replace_flow_action ae.gui_app.replace_flow_action
 
 
-<HelpToggler>:
-    ae_icon_name: 'help_icon' if app.help_layout else 'app_icon'
-    size_hint_x: None
-    width: self.height
-    source: app.main_app.img_file(self.ae_icon_name, app.ae_states['font_size'], app.ae_states['light_theme'])
-
-
-<HelpLayout>:
-    size_hint: None, None
-    ps_hints: layout_ps_hints(*root.widget.to_window(*root.widget.pos), *root.widget.size, Window.width, Window.height)
-    width: min(help_label.width, Window.width)
-    height: min(help_label.height, Window.height)
-    x: layout_x(root.ps_hints['anchor_x'], root.ps_hints['anchor_dir'], root.width, Window.width)
-    y: layout_y(root.ps_hints['anchor_y'], root.ps_hints['anchor_dir'], root.height, Window.height)
+<AppStateSlider@Slider+HelpBehaviour>:
+    ae_state_name: ''
+    value: app.ae_states.get(self.ae_state_name, 1.0)
+    on_value: app.main_app.help_app_state_change(self.ae_state_name, self.value)
+    min: 0.0
+    max: 1.0
+    step: 0.03
+    size_hint_y: None
+    height: app.ae_states['font_size'] * 1.5
+    cursor_size: app.ae_states['font_size'] * 1.5, app.ae_states['font_size'] * 1.5
+    padding: app.ae_states['font_size'] * 2.4
+    value_track: True
+    value_track_color: app.font_color
     canvas.before:
         Color:
-            rgba: Window.clearcolor[:3] + (0.96, )
-        RoundedRectangle:
-            pos: root.pos
-            size: root.size
-    canvas.after:
-        Color:
-            rgba: app.font_color
-        Line:
-            width: dp(3)
-            rounded_rectangle: root.x + dp(1), root.y + dp(1), root.width - dp(2), root.height - dp(2), dp(12)
-        Triangle:
-            points:
-                anchor_points(app.main_app.font_size * 0.69, root.ps_hints['anchor_x'], root.ps_hints['anchor_y'], \
-                root.ps_hints['anchor_dir'])
-        Color:
             rgba: Window.clearcolor
-        Line:
-            width: dp(1)
-            rounded_rectangle: root.x + dp(1), root.y + dp(1), root.width - dp(2), root.height - dp(2), dp(12)
-    Label:
-        id: help_label
-        text: root.help_text
-        color: app.font_color[:3] + (0.96, )
-        font_size: app.main_app.font_size * 0.81
-        markup: True
-        padding: dp(12), dp(9)
-        size_hint: None, None
-        size: self.texture_size
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
 
 
 <ThemeButton>:
@@ -221,26 +181,15 @@ WIDGETS = '''\
     background_color: Window.clearcolor
 
 
-<FlowButton@ThemeButton>:
+<FlowButton@ThemeButton+HelpBehaviour>:
     ae_flow_id: ''
     ae_clicked_kwargs: dict(popup_kwargs=dict(parent=self))
     ae_icon_name: ""
     on_release: app.main_app.change_flow(self.ae_flow_id, **self.ae_clicked_kwargs)
-    help_lock: app.help_layout is not None and app.help_id != app.main_app.help_flow_id(self.ae_flow_id)
+    #ae_help_lock: app.ae_help_layout is not None and app.ae_help_id != app.main_app.help_flow_id(self.ae_flow_id)
     source:
         app.main_app.img_file(self.ae_icon_name or flow_key_split(self.ae_flow_id)[0], \
                               app.ae_states['font_size'], app.ae_states['light_theme'])
-    canvas.after:
-        Color:
-            rgba: app.font_color[:3] + (0.27 if self.help_lock else 0, )
-        Ellipse:
-            pos: self.x + dp(3), self.y + dp(3)
-            size: self.width - dp(6), self.height - dp(6)
-        Color:
-            rgba: app.font_color[:3] + (0.54 if self.help_lock else 0, )
-        Line:
-            width: dp(3)
-            rounded_rectangle: self.x + dp(3), self.y + dp(3), self.width - dp(6), self.height - dp(6), sp(15)
 
 
 <OptionalButton@FlowButton>:
@@ -274,226 +223,6 @@ WIDGETS = '''\
     title_size: app.main_app.font_size
 
 
-<UserPreferencesButton@FlowButton>:
-    ae_flow_id: id_of_flow('open', 'user_preferences')
-    circle_fill_color: app.mixed_back_ink
-
-
-<UserPreferencesOpenPopup@FlowDropDown>:
-    canvas.before:
-        Color:
-            rgba: app.mixed_back_ink
-        RoundedRectangle:
-            pos: self.pos
-            size: self.size
-    ChangeColorButton:
-        color_name: 'flow_id_ink'
-    ChangeColorButton:
-        color_name: 'flow_path_ink'
-    ChangeColorButton:
-        color_name: 'selected_item_ink'
-    ChangeColorButton:
-        color_name: 'unselected_item_ink'
-    FontSizeButton:
-        # pass
-    UserPrefSlider:
-        ae_state_name: 'sound_volume'
-        cursor_image: 'atlas://data/images/defaulttheme/audio-volume-high'
-    # UserPrefSlider:    current kivy module vibrator.py does not support amplitudes arg of android api
-    #    ae_state_name: 'vibrate_amplitude'
-    #    cursor_image: app.main_app.img_file('vibrate', app.ae_states['font_size'], app.ae_states['light_theme'])
-    BoxLayout:
-        size_hint_y: None
-        height: app.ae_states['font_size'] * 1.5 if INSTALLED_LANGUAGES else 0
-        opacity: 1 if INSTALLED_LANGUAGES else 0
-        OptionalButton:
-            ae_flow_id: id_of_flow('change', 'lang_code', self.text)
-            ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
-            square_fill_color:
-                app.ae_states['selected_item_ink'] if app.main_app.lang_code in ('', self.text) else Window.clearcolor
-            text: DEF_LANGUAGE
-            visible: DEF_LANGUAGE not in INSTALLED_LANGUAGES
-        LangCodeButton:
-            lang_idx: 0
-        LangCodeButton:
-            lang_idx: 1
-        LangCodeButton:
-            lang_idx: 2
-        LangCodeButton:
-            lang_idx: 3
-    BoxLayout:
-        size_hint_y: None
-        height: app.ae_states['font_size'] * 1.5
-        FlowButton:
-            ae_flow_id: id_of_flow('change', 'light_theme')
-            ae_clicked_kwargs: dict(light_theme=False)
-            text: _("dark")
-            color: THEME_DARK_FONT_COLOR or self.color
-            square_fill_color: THEME_DARK_BACKGROUND_COLOR or self.square_fill_color
-        FlowButton:
-            ae_flow_id: id_of_flow('change', 'light_theme')
-            ae_clicked_kwargs: dict(light_theme=True)
-            text: _("light")
-            color: THEME_LIGHT_FONT_COLOR or self.color
-            square_fill_color: THEME_LIGHT_BACKGROUND_COLOR or self.square_fill_color
-    BoxLayout:
-        size_hint_y: None
-        height: app.ae_states['font_size'] * 1.5 if app.main_app.debug else 0
-        opacity: 1 if app.main_app.debug else 0
-        DebugLevelButton:
-            level_idx: 0
-        DebugLevelButton:
-            level_idx: 1
-        DebugLevelButton:
-            level_idx: 2
-        DebugLevelButton:
-            level_idx: 3
-    BoxLayout:
-        size_hint_y: None
-        height: app.ae_states['font_size'] * 1.5 if app.main_app.debug else 0
-        opacity: 1 if app.main_app.debug else 0
-        KbdInputModeButton:
-            text: 'below_target'
-        KbdInputModeButton:
-            text: 'pan'
-        KbdInputModeButton:
-            text: 'scale'
-        KbdInputModeButton:
-            text: 'resize'
-        KbdInputModeButton:
-            text: ''
-    OptionalButton:
-        square_fill_color: Window.clearcolor
-        size_hint_x: 1
-        text: 'kivy settings'
-        visible: app.main_app.debug
-        on_release: app.open_settings()
-
-
-<UserPrefSlider@Slider>:
-    ae_state_name: ''
-    help_lock: app.help_layout is not None and app.help_id != app.main_app.help_app_state_id(self.ae_state_name)
-    value: app.ae_states.get(self.ae_state_name, 1.0)
-    on_value: app.main_app.help_app_state_change(self.ae_state_name, self.value)
-    min: 0.0
-    max: 1.0
-    step: 0.03
-    size_hint_y: None
-    height: app.ae_states['font_size'] * 1.5
-    cursor_size: app.ae_states['font_size'] * 1.5, app.ae_states['font_size'] * 1.5
-    padding: app.ae_states['font_size'] * 2.4
-    value_track: True
-    value_track_color: app.font_color
-    canvas.before:
-        Color:
-            rgba: Window.clearcolor
-        RoundedRectangle:
-            pos: self.pos
-            size: self.size
-    canvas.after:
-        Color:
-            rgba: app.font_color[:3] + (0.27 if self.help_lock else 0, )
-        Ellipse:
-            pos: self.x + dp(3), self.y + dp(3)
-            size: self.width - dp(6), self.height - dp(6)
-        Color:
-            rgba: app.font_color[:3] + (0.54 if self.help_lock else 0, )
-        Line:
-            width: sp(3)
-            rounded_rectangle: self.x + dp(3), self.y + dp(3), self.width - dp(6), self.height - dp(6), sp(15)
-
-
-<FontSizeButton@FlowButton>:
-    ae_flow_id: id_of_flow('edit', 'font_size')
-    ae_clicked_kwargs: dict(popup_kwargs=dict(parent_popup_to_close=self.parent.parent, parent=self))
-    square_fill_color: Window.clearcolor
-
-
-<FontSizeEditPopup>:
-    on_select:
-        app.main_app.change_flow(id_of_flow('change', 'font_size'), \
-        font_size=args[1], popups_to_close=(self.parent_popup_to_close, ))
-    FontSizeSelectButton:
-        font_size: MIN_FONT_SIZE
-    FontSizeSelectButton:
-        font_size: MIN_FONT_SIZE + (MAX_FONT_SIZE - MIN_FONT_SIZE) * 1 / 6
-    FontSizeSelectButton:
-        font_size: MIN_FONT_SIZE + (MAX_FONT_SIZE - MIN_FONT_SIZE) * 2 / 6
-    FontSizeSelectButton:
-        font_size: (MIN_FONT_SIZE + MAX_FONT_SIZE) / 2
-    FontSizeSelectButton:
-        font_size: MIN_FONT_SIZE + (MAX_FONT_SIZE - MIN_FONT_SIZE) * 4 / 6
-    FontSizeSelectButton:
-        font_size: MIN_FONT_SIZE + (MAX_FONT_SIZE - MIN_FONT_SIZE) * 5 / 6
-    FontSizeSelectButton:
-        font_size: MAX_FONT_SIZE
-
-
-<FontSizeSelectButton@Button>:
-    # text: f'Aa Bb Zz {round(self.font_size)}'  F-STRING displaying always 15 as font size
-    text: 'Aa Bb Zz {}'.format(round(self.font_size))
-    on_release: self.parent.parent.select(self.font_size)
-    size_hint_y: None
-    size: self.texture_size
-    color: app.font_color
-    background_normal: ''
-    background_color:
-        app.ae_states['selected_item_ink'] if app.main_app.font_size == self.font_size else Window.clearcolor
-
-
-<ChangeColorButton@FlowButton>:
-    color_name: 'flow_id_ink'
-    ae_flow_id: id_of_flow('open', 'color_picker', self.color_name)
-    ae_clicked_kwargs: dict(popup_kwargs=dict(parent=self))
-    square_fill_color: Window.clearcolor
-    circle_fill_color: app.ae_states[self.color_name]
-    text: self.color_name
-
-
-<ColorPickerOpenPopup@FlowDropDown>:
-    ColorPicker:
-        color: app.ae_states[root.attach_to.color_name] if root.attach_to else (0, 0, 0, 0)
-        on_color: root.attach_to and app.main_app.change_app_state(root.attach_to.color_name, tuple(args[1]))
-        size_hint_y: None
-        height: self.width
-        canvas.before:
-            Color:
-                rgba: Window.clearcolor
-            RoundedRectangle:
-                pos: self.pos
-                size: self.size
-
-
-<LangCodeButton@OptionalButton>:
-    lang_idx: 0
-    ae_flow_id: id_of_flow('change', 'lang_code', self.text)
-    ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
-    square_fill_color: app.ae_states['selected_item_ink'] if app.main_app.lang_code == self.text else Window.clearcolor
-    size_hint_x: 1 if self.visible else None
-    text: INSTALLED_LANGUAGES[min(self.lang_idx, len(INSTALLED_LANGUAGES) - 1)]
-    visible: len(INSTALLED_LANGUAGES) > self.lang_idx
-
-
-<DebugLevelButton@OptionalButton>:
-    level_idx: 0
-    ae_flow_id: id_of_flow('change', 'debug_level', self.text)
-    ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
-    square_fill_color:
-        app.ae_states['selected_item_ink'] if app.main_app.debug_level == self.level_idx else Window.clearcolor
-    size_hint_x: 1 if self.visible else None
-    text: DEBUG_LEVELS[min(self.level_idx, len(DEBUG_LEVELS) - 1)]
-    visible: app.main_app.debug and self.level_idx < len(DEBUG_LEVELS)
-
-
-<KbdInputModeButton@OptionalButton>:
-    ae_flow_id: id_of_flow('change', 'kbd_input_mode', self.text)
-    ae_clicked_kwargs: dict(popups_to_close=(self.parent.parent.parent, ))
-    square_fill_color:
-        app.ae_states['selected_item_ink'] if app.main_app.kbd_input_mode == self.text else Window.clearcolor
-    size_hint_x: 1 if self.visible else None
-    visible: app.main_app.debug
-
-
 <MessageShowPopup>:
     size_hint: 0.9, None
     height: min(Window.height, msg_txt_box.height + self.title_size * 1.8)
@@ -517,52 +246,60 @@ WIDGETS = '''\
                 background_color: 0, 0, 0, 0
                 on_release: root.dismiss()
 
-'''
-""" helper widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size) """
+''')
+
+
+def init_child_data_widget(widget, ancestor, kwargs):       # pragma: no cover
+    """ support ae_child_data_maps in your widget for to dynamic creation of children.
+
+    :param widget:          widget that supports the `ae_child_data_maps` attribute.
+    :param ancestor:        ancestor of :paramref:`~init_child_data_widget.widget`.
+    :param kwargs:          kwargs of the __init_ method of :paramref:`~init_child_data_widget.widget`.
+    """
+    widget.fbind('on_ae_child_data_maps', partial(refresh_child_data_widgets, widget))
+    widget.ae_child_data_maps = kwargs.pop('ae_child_data_maps', ())
+    ancestor.__init__(**kwargs)
+    refresh_child_data_widgets(widget)
+
+
+def refresh_child_data_widgets(widget, *_args):         # pragma: no cover
+    """ recreate dynamic children of the passed widget.
+
+    :param widget:          widget that supports the `ae_child_data_maps` attribute.
+    :param _args:           extra args (if this function get called as event handler), which are not needed.
+    """
+    if widget.ae_child_data_maps:
+        if widget.children:
+            try:
+                widget.clear_widgets()
+            except AttributeError as ex:
+                print("suppressed attribute error:", ex)
+        for child_data in widget.ae_child_data_maps:
+            cls = child_data['cls']
+            if isinstance(cls, str):
+                cls = Factory.get(cls)
+            cls_kwargs = child_data.get('kwargs', dict())
+            child = cls(**cls_kwargs)
+            child.child_index = len(widget.children)
+            attributes = child_data.get('attributes', dict())
+            for attr_name, attr_value in attributes.items():
+                setattr(child, attr_name, attr_value)
+            widget.add_widget(child)
 
 
 # class declarations for docs and for to allow initialization of attributes via __init__ kwargs (e.g. ae_closed_kwargs).
 
-class HelpToggler(Image):       # pragma: no cover
-    """ widget for to activate and deactivate the help mode. """
-    def on_touch_down(self, touch: MotionEvent) -> bool:
-        """ touch down event handler for to toggle help flow mode while preventing dismiss of open dropdowns/popups.
-
-        :param touch:           touch event.
-        :return:                True if touch happened on this button.
-        """
-        if self.collide_point(*touch.pos):
-            app = App.get_running_app()
-            app.main_app.help_activation_toggle(HelpLayout, activator=self)
-            return True
-        return False
-
-
-class HelpLayout(ScrollView):       # pragma: no cover
-    """ semi-transparent and click-through container for to display help texts. """
-    widget = ObjectProperty()
-    ps_hints = ObjectProperty()
-    help_text = StringProperty()
-
-    def _update_effect_bounds(self, *args):
-        """ override to prevent recursion error in ScrollView.
-
-        kivy bug workaround (fixed in kivy master via https://github.com/kivy/kivy/pull/6985 on 15-Jul-2020).
-        solution from https://www.gitmemory.com/issue/kivy/kivy/5638/529400808
-        """
-
-    def on_touch_down(self, touch: MotionEvent) -> bool:
-        """ check for additional events added by this class.
-
-        :param touch:   motion/touch event data.
-        :return:        True if event got processed/used.
-        """
-        return False        # let user click through this transparent help text widget
-
 
 class FlowDropDown(DropDown):       # pragma: no cover
     """ drop down widget used for user selections from a list of items (represented by the children-widgets). """
-    ae_closed_kwargs = DictProperty()   #: kwargs passed to all close action flow change event handlers
+    ae_closed_kwargs = DictProperty()       #: kwargs passed to all close action flow change event handlers
+    ae_child_data_maps = ListProperty()     #: list of dicts for to instantiate the children of this widget
+
+    # noinspection PyMissingConstructor
+    # pylint: disable=super-init-not-called
+    def __init__(self, **kwargs):
+        # noinspection PyTypeChecker
+        init_child_data_widget(self, super(), kwargs)
 
     def dismiss(self, *args):
         """ override DropDown method for to prevent dismiss of any dropdown/popup while clicking on activator widget.
@@ -570,13 +307,20 @@ class FlowDropDown(DropDown):       # pragma: no cover
         :param args:        args to be passed to DropDown.dismiss().
         """
         app = App.get_running_app()
-        if app.help_layout is None or not isinstance(app.help_layout.widget, HelpToggler):
+        if app.ae_help_layout is None or not isinstance(app.ae_help_layout.widget, Factory.HelpToggler):
             super().dismiss(*args)
 
 
 class FlowPopup(Popup):         # pragma: no cover
     """ pop up widget used for dialogs and other top-most or modal windows. """
     ae_closed_kwargs = DictProperty()   #: kwargs passed to all close action flow change event handlers
+    ae_child_data_maps = ListProperty()     #: list of dicts for to instantiate the children of this widget
+
+    # noinspection PyMissingConstructor
+    # pylint: disable=super-init-not-called
+    def __init__(self, **kwargs):
+        # noinspection PyTypeChecker
+        init_child_data_widget(self, super(), kwargs)
 
     def dismiss(self, *args, **kwargs):
         """ override ModalView method for to prevent dismiss of any dropdown/popup while clicking on activator widget.
@@ -585,25 +329,20 @@ class FlowPopup(Popup):         # pragma: no cover
         :param kwargs:      kwargs to be passed to ModalView.dismiss().
         """
         app = App.get_running_app()
-        if app.help_layout is None or not isinstance(app.help_layout.widget, HelpToggler):
+        if app.ae_help_layout is None or not isinstance(app.ae_help_layout.widget, HelpToggler):
             super().dismiss(*args, **kwargs)
-
-
-class FontSizeEditPopup(FlowDropDown):
-    """ drop down to select font size """
-    parent_popup_to_close = ObjectProperty()
 
 
 class FrameworkApp(App):
     """ kivy framework app class proxy redirecting events and callbacks to the main app class instance. """
 
+    ae_help_id = StringProperty()                           #: flow id of the currently explained flow button
+    ae_help_layout = ObjectProperty(allownone=True)         #: layout widget if help flow mode is active else None
+    ae_states = DictProperty()                              #: duplicate of MainAppBase app state for events/binds
+
     landscape = BooleanProperty()                           #: True if app win width is bigger than the app win height
     font_color = ObjectProperty(THEME_DARK_FONT_COLOR)      #: rgba color of the font used for labels/buttons/...
     mixed_back_ink = ListProperty((.69, .69, .69, 1.))      #: background color mixed from available back inks
-    help_id = StringProperty()                              #: flow id of the currently explained flow button
-    help_layout = ObjectProperty(allownone=True)            #: layout widget if help flow mode is active else None
-
-    ae_states = DictProperty()                              #: duplicate of MainAppBase app state for events/binds
 
     def __init__(self, main_app: 'KivyMainApp', **kwargs):
         """ init kivy app """
@@ -725,10 +464,11 @@ class ThemeButton(ButtonBehavior, Label):   # pragma: no cover
 
     """
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        # register before call of super().__init__() for to prevent errors, e.g. "AttributeError: long_press"
         self.register_event_type('on_double_press')     # pylint: disable=maybe-no-member
         self.register_event_type('on_triple_press')     # pylint: disable=maybe-no-member
         self.register_event_type('on_long_press')       # pylint: disable=maybe-no-member
+        super().__init__(**kwargs)
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
         """ check for additional events added by this class.
@@ -828,7 +568,8 @@ class _GetTextBinder(Observable):
         :return:                unique id of this binding.
         """
         if name == "_":
-            self.observers.append((func, args, kwargs))
+            # noinspection PyUnresolvedReferences
+            self.observers.append((func.__call__, args, kwargs))    # type: ignore  # __call__ to prevent weakly-ref-err
             # Observable.bound_uid - initialized in _event.pyx/Observable.cinit() - is not available in python:
             # uid = self.bound_uid      # also not available via getattr(self, 'bound_uid')
             # self.bound_uid += 1
@@ -848,7 +589,8 @@ class _GetTextBinder(Observable):
         :param kwargs:          kwargs to be passed to the observer.
         """
         if name == "_":
-            key = (func, args, kwargs)
+            # noinspection PyUnresolvedReferences
+            key = (func.__call__, args, kwargs)         # type: ignore  # __call__ to prevent ReferenceError: weakly-ref
             if key in self.observers:
                 self.observers.remove(key)
         else:
@@ -861,10 +603,15 @@ class _GetTextBinder(Observable):
         """
         default_language(lang_code)
 
-        for func, args, _kwargs in self.observers:
-            func(args[0], None, None)
-
         app = App.get_running_app()
+
+        for func, args, _kwargs in self.observers:
+            app.main_app.vpo(f"_GetTextBinder.switch_lang({lang_code}) calling observer {str(args[0])[:45]}")
+            try:
+                func(args[0], None, None)
+            except ReferenceError as ex:  # pragma: no cover # ReferenceError: weakly-referenced object no longer exists
+                app.main_app.dpo(f"_GetTextBinder.switch_lang({lang_code}) exception {ex}")
+
         app.title = get_txt(app.main_app.app_title)
 
     def __call__(self, text: str, count: Optional[int] = None, language: str = '', **kwargs) -> str:
@@ -881,6 +628,7 @@ class _GetTextBinder(Observable):
 
 # Sphinx make html is failing if the comment underneath is included (by changing '# ' into '#: ')
 get_txt = _GetTextBinder()  # global i18n translation callable and language switcher, rename to `_` in kv file imports
+global_idmap['_'] = get_txt
 
 
 class KivyMainApp(HelpAppBase):
@@ -906,8 +654,6 @@ class KivyMainApp(HelpAppBase):
         :return:                        callable for to start and stop/exit the GUI event loop.
         """
         self.documents_root_path = app_docs_path()
-
-        Builder.load_string(WIDGETS)
 
         win_rect = self.win_rectangle
         if win_rect:
@@ -962,14 +708,14 @@ class KivyMainApp(HelpAppBase):
         """ button press event handler for to switch help flow mode between active and inactive.
 
         :param layout_class:    widget/layout class for to display help text including an execution/processing button.
-        :param activator:       widget for to de-/active help flow mode (only optional if self.help_activator is set).
+        :param activator:       widget for to de-/active help mode (only optional if self.ae_help_activator is set).
         """
         if activator:
-            self.help_activator = activator
+            self.ae_help_activator = activator
         else:
-            activator = self.help_activator
+            activator = self.ae_help_activator
 
-        activate = self.help_layout is None
+        activate = self.ae_help_layout is None
         hlw = None
         if activate:
             hlw = layout_class(widget=activator,
@@ -977,11 +723,11 @@ class KivyMainApp(HelpAppBase):
                                                         self.framework_win.width, self.framework_win.height))
             self.framework_win.add_widget(hlw)
         else:
-            self.framework_win.remove_widget(self.help_layout)
+            self.framework_win.remove_widget(self.ae_help_layout)
 
-        self.change_observable('help_layout', hlw)
+        self.change_observable('ae_help_layout', hlw)
         if hlw:
-            self.help_display('', dict(), activator)    # show initial help text (after self.help_layout got set)
+            self.help_display('', dict(), activator)    # show initial help text (after self.ae_help_layout got set)
 
     def load_sounds(self):
         """ override for to pre-load audio sounds from app folder snd into sound file cache. """
