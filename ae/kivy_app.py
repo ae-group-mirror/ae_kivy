@@ -8,7 +8,7 @@ and :class:`KivyMainApp`) and some useful constants.
 The class :class:`KivyMainApp` is implementing a main app
 class that is reducing the amount of code needed for
 to create a Python application based on the
-:ref:`kivy framework<kivy.org>`.
+`kivy framework <kivy.org>`_.
 
 :class:`KivyMainApp` is based on the following classes:
 
@@ -85,7 +85,7 @@ from ae.gui_help import layout_ps_hints, HelpAppBase                            
 from ae.kivy_help import HelpToggler                                                # type: ignore
 
 
-__version__ = '0.0.34'
+__version__ = '0.0.35'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
@@ -443,9 +443,9 @@ class FrameworkApp(App):
 
 
 class MessageShowPopup(FlowPopup):
-    """ display_error() popup. """
-    title = StringProperty(get_text("Error"))
-    message = StringProperty()
+    """ flow popup for to display info or error messages. """
+    title = StringProperty(get_text("Error"))       #: popup window title
+    message = StringProperty()                      #: popup window label text (message to display)
 
 
 class ThemeButton(ButtonBehavior, Label):   # pragma: no cover
