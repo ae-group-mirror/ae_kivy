@@ -85,7 +85,7 @@ from ae.gui_help import layout_ps_hints, HelpAppBase                            
 from ae.kivy_help import HelpToggler                                                # type: ignore
 
 
-__version__ = '0.0.35'
+__version__ = '0.0.36'
 
 
 kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
