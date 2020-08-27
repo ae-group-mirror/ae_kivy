@@ -65,8 +65,8 @@ More info on the features and usage of this portion are available at
 [ReadTheDocs](https://ae.readthedocs.io/en/latest/_autosummary/ae.kivy_app.html#module-ae.kivy_app
 "ae_kivy_app documentation").
 
-<!-- Common files version 0.0.47 deployed  version 0.0.15 (with 0.0.47)
+<!-- Common files version 0.0.60 deployed version 0.1.36 (with 0.0.60)
      to https://gitlab.com/ae-group as ae_kivy_app module as well as
      to https://ae-group.gitlab.io with CI check results as well as
-     to https://pypi.org/project as ae-kivy-app package.
+     to https://pypi.org/project/ae-kivy-app as namespace portion ae-kivy-app.
 -->
