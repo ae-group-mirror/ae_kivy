@@ -53,6 +53,7 @@ from typing import Any, Callable, List, Optional, Tuple, Type, Union
 from plyer import vibrator                                                          # type: ignore
 
 import kivy                                                                         # type: ignore
+from kivy.animation import Animation                                                # type: ignore
 from kivy.app import App                                                            # type: ignore
 from kivy.clock import Clock                                                        # type: ignore
 from kivy.core.audio import SoundLoader                                             # type: ignore
@@ -64,9 +65,11 @@ from kivy.lang import Builder, Observable, global_idmap                         
 from kivy.properties import (                                                       # type: ignore
     BooleanProperty, DictProperty, ListProperty, ObjectProperty, StringProperty)
 from kivy.uix.behaviors import ButtonBehavior                                       # type: ignore
+from kivy.uix.boxlayout import BoxLayout                                            # type: ignore
 from kivy.uix.dropdown import DropDown                                              # type: ignore
 from kivy.uix.label import Label                                                    # type: ignore
 from kivy.uix.popup import Popup                                                    # type: ignore
+from kivy.uix.slider import Slider                                                  # type: ignore
 from kivy.uix.widget import Widget                                                  # type: ignore
 
 from ae.system import sys_platform                                                  # type: ignore
@@ -82,13 +85,15 @@ from ae.gui_app import (                                                        
     id_of_flow
 )
 from ae.gui_help import layout_ps_hints, HelpAppBase                                # type: ignore
-from ae.kivy_help import HelpToggler                                                # type: ignore
+from ae.kivy_help import HelpBehaviour, HelpLayout, HelpToggler                     # type: ignore
 
 
-__version__ = '0.1.36'
+__version__ = '0.1.37'
 
 
-kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for Window.softinput_mode 'below_target'
+#kivy.require('2.0.0')
+# 1.9.1 is needed for Window.softinput_mode 'below_target'
+# 2.0.0 is needed for Animation Sequence (>= 2.0.0rc2) and ScrollView recursion (> 2.0.0rc3) bug fixes
 
 # if the entry field is on top of the screen then it will be disappear with below_target mode
 # and in the default mode ('') the keyboard will cover the entry field if it is in the lower part of the screen
@@ -97,6 +102,15 @@ kivy.require('1.9.1')  # currently using 1.11.1 but at least 1.9.1 is needed for
 #    Window.softinput_mode = 'below_target'   # ensure android keyboard is not covering Popup/text input if at bottom
 
 MAIN_KV_FILE_NAME = 'main.kv'   #: default file name of the main kv file
+
+""" sine 3 x deeper repeating animation, used e.g. for to animate ae.kivy_help.HelpLayout
+Kivy version 2.0 needed; Animation Sequence bugs fixed in kivy master with the PR #5926, merged 7-May-2020.
+"""
+ANI_SINE_DEEPER_REPEAT3 = \
+    Animation(ani_value=0.99, t='in_out_sine', d=0.6) + Animation(ani_value=0.87, t='in_out_sine', d=0.9) + \
+    Animation(ani_value=0.96, t='in_out_sine', d=1.5) + Animation(ani_value=0.81, t='in_out_sine', d=0.9) + \
+    Animation(ani_value=0.90, t='in_out_sine', d=0.6) + Animation(ani_value=0.54, t='in_out_sine', d=0.3)
+ANI_SINE_DEEPER_REPEAT3.repeat = True
 
 LOVE_VIBRATE_PATTERN = (0.0, 0.12, 0.12, 0.21, 0.03, 0.12, 0.12, 0.12)
 """ short/~1.2s vibrate pattern for fun/love notification. """
@@ -121,7 +135,8 @@ Builder.load_string('''\
 #: import replace_flow_action ae.gui_app.replace_flow_action
 
 
-<AppStateSlider@Slider+HelpBehaviour>:
+#<AppStateSlider@Slider+HelpBehaviour>:
+<AppStateSlider>:
     ae_state_name: ''
     value: app.ae_states.get(self.ae_state_name, 1.0)
     on_value: app.main_app.help_app_state_change(self.ae_state_name, self.value)
@@ -181,7 +196,7 @@ Builder.load_string('''\
     background_color: Window.clearcolor
 
 
-<FlowButton@ThemeButton+HelpBehaviour>:
+<FlowButton>:
     ae_flow_id: ''
     ae_clicked_kwargs: dict(popup_kwargs=dict(parent=self))
     ae_icon_name: ""
@@ -201,7 +216,7 @@ Builder.load_string('''\
     opacity: 1 if self.visible else 0
 
 
-# DropDown flow gets handled identical like for a Popup
+# DropDown flow gets handled similar to a Popup
 <FlowDropDown>:
     ae_closed_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.ae_closed_kwargs)
@@ -253,7 +268,7 @@ def init_child_data_widget(widget, ancestor, kwargs):       # pragma: no cover
     """ support ae_child_data_maps in your widget for to dynamic creation of children.
 
     :param widget:          widget that supports the `ae_child_data_maps` attribute.
-    :param ancestor:        ancestor of :paramref:`~init_child_data_widget.widget`.
+    :param ancestor:        ancestor widget of :paramref:`~init_child_data_widget.widget`.
     :param kwargs:          kwargs of the __init_ method of :paramref:`~init_child_data_widget.widget`.
     """
     widget.fbind('on_ae_child_data_maps', partial(refresh_child_data_widgets, widget))
@@ -262,35 +277,145 @@ def init_child_data_widget(widget, ancestor, kwargs):       # pragma: no cover
     refresh_child_data_widgets(widget)
 
 
-def refresh_child_data_widgets(widget, *_args):         # pragma: no cover
+def refresh_child_data_widgets(widget, *_args):                         # pragma: no cover
     """ recreate dynamic children of the passed widget.
 
     :param widget:          widget that supports the `ae_child_data_maps` attribute.
-    :param _args:           extra args (if this function get called as event handler), which are not needed.
+    :param _args:           not needed extra args (if this function get called as event handler).
     """
-    if widget.ae_child_data_maps:
-        if widget.children:
-            try:
-                widget.clear_widgets()
-            except AttributeError as ex:
-                print("suppressed attribute error:", ex)
-        for child_data in widget.ae_child_data_maps:
-            cls = child_data['cls']
-            if isinstance(cls, str):
-                cls = Factory.get(cls)
-            cls_kwargs = child_data.get('kwargs', dict())
-            child = cls(**cls_kwargs)
-            child.child_index = len(widget.children)
-            attributes = child_data.get('attributes', dict())
-            for attr_name, attr_value in attributes.items():
-                setattr(child, attr_name, attr_value)
-            widget.add_widget(child)
+    if not widget.ae_child_data_maps:
+        return
+
+    content_layout_added = False
+    children_container = getattr(widget, 'content', widget)     # for Popups use content attribute to add children
+    if not children_container:
+        children_container = BoxLayout(orientation='vertical')  # add default content to Popup
+        content_layout_added = True
+    elif children_container.children:
+        try:
+            children_container.clear_widgets()
+        except AttributeError as ex:
+            App.get_running_app().main_app.dpo(
+                f"ae.kivy_app.refresh_child_data_widgets({widget}): suppressed attribute error:{ex}")
+
+    for child_data in widget.ae_child_data_maps:
+        cls = child_data['cls']
+        if isinstance(cls, str):
+            cls = Factory.get(cls)
+        cls_kwargs = child_data.get('kwargs', dict())
+        child = cls(**cls_kwargs)
+        child.child_index = len(children_container.children)
+        attributes = child_data.get('attributes', dict())
+        for attr_name, attr_value in attributes.items():
+            setattr(child, attr_name, attr_value)
+        children_container.add_widget(child)
+
+    if content_layout_added:
+        widget.content = children_container
 
 
 # class declarations for docs and for to allow initialization of attributes via __init__ kwargs (e.g. ae_closed_kwargs).
 
 
-class FlowDropDown(DropDown):       # pragma: no cover
+class AppStateSlider(Slider, HelpBehaviour):
+    """ slider widget with help text for to change app state value. """
+    ae_state_name = StringProperty()
+
+
+class ThemeButton(ButtonBehavior, Label):                                               # pragma: no cover
+    """ theme-able button base class with additional events for double/triple/long touches.
+
+    :Events:
+        `on_double_press`:
+            Fired with the touch down MotionEvent instance arg when a button get pressed twice within short time.
+        `on_triple_press`:
+            Fired with the touch down MotionEvent instance arg when a button get pressed three times within short time.
+        `on_long_press`:
+            Fired with the touch down MotionEvent instance arg when a button get pressed more than 2.4 seconds.
+
+    .. note::
+        unit tests are still missing for this widget.
+
+    """
+    def __init__(self, **kwargs):
+        # register before call of super().__init__() for to prevent errors, e.g. "AttributeError: long_press"
+        self.register_event_type('on_double_press')     # pylint: disable=maybe-no-member
+        self.register_event_type('on_triple_press')     # pylint: disable=maybe-no-member
+        self.register_event_type('on_long_press')       # pylint: disable=maybe-no-member
+        super().__init__(**kwargs)
+
+    def on_touch_down(self, touch: MotionEvent) -> bool:
+        """ check for additional events added by this class.
+
+        :param touch:   motion/touch event data.
+        :return:        True if event got processed/used.
+        """
+        if not self.disabled and self.collide_point(touch.x, touch.y):
+            is_triple = touch.is_triple_tap
+            if is_triple or touch.is_double_tap:
+                # pylint: disable=maybe-no-member
+                self.dispatch('on_triple_press' if is_triple else 'on_double_press', touch)
+                touch.ungrab(self)      # prevent dispatch of on_press
+                return True
+            # pylint: disable=maybe-no-member
+            touch.ud['long_touch_handler'] = long_touch_handler = lambda dt: self.dispatch('on_long_press', touch)
+            Clock.schedule_once(long_touch_handler, 2.4)
+        return super().on_touch_down(touch)
+
+    @staticmethod
+    def _cancel_long_touch_clock(touch):
+        long_touch_handler = touch.ud.pop('long_touch_handler', None)
+        if long_touch_handler:
+            Clock.unschedule(long_touch_handler)    # alternatively: long_touch_handler.cancel()
+
+    def on_touch_move(self, touch: MotionEvent) -> bool:
+        """ disable long touch on mouse/finger moves.
+
+        :param touch:   motion/touch event data.
+        :return:        True if event got processed/used.
+        """
+        # alternative method to calculate touch.pos distances is (from tripletap.py):
+        # Vector.distance(Vector(ref.sx, ref.sy), Vector(touch.osx, touch.osy)) > 0.009
+        if abs(touch.ox - touch.x) > 9 and abs(touch.oy - touch.y) > 9 and self.collide_point(touch.x, touch.y):
+            self._cancel_long_touch_clock(touch)
+        return super().on_touch_move(touch)
+
+    def on_touch_up(self, touch: MotionEvent) -> bool:
+        """ disable long touch on mouse/finger up.
+
+        :param touch:   motion/touch event data.
+        :return:        True if event got processed/used.
+        """
+        if touch.grab_current is self:
+            self._cancel_long_touch_clock(touch)
+        return super().on_touch_up(touch)
+
+    def on_double_press(self, touch: MotionEvent):
+        """ double click default handler
+
+        :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
+        """
+
+    def on_triple_press(self, touch: MotionEvent):
+        """ triple click default handler
+
+        :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
+        """
+
+    def on_long_press(self, touch: MotionEvent):
+        """ long press default handler
+
+        :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
+        """
+        touch.ungrab(self)      # prevent dispatch of on_release
+
+
+class FlowButton(ThemeButton, HelpBehaviour):
+    """ has to be declared after the declaration of the ThemeButton widget class """
+    ae_flow_id = StringProperty()
+
+
+class FlowDropDown(DropDown):                                                               # pragma: no cover
     """ drop down widget used for user selections from a list of items (represented by the children-widgets). """
     ae_closed_kwargs = DictProperty()       #: kwargs passed to all close action flow change event handlers
     ae_child_data_maps = ListProperty()     #: list of dicts for to instantiate the children of this widget
@@ -307,13 +432,23 @@ class FlowDropDown(DropDown):       # pragma: no cover
         :param args:        args to be passed to DropDown.dismiss().
         """
         app = App.get_running_app()
-        if app.ae_help_layout is None or not isinstance(app.ae_help_layout.widget, Factory.HelpToggler):
+        if app.ae_help_layout is None or not isinstance(app.ae_help_layout.widget, HelpToggler):
             super().dismiss(*args)
 
+    def on_touch_down(self, touch: MotionEvent) -> bool:
+        """ prevent processing by this drop down on touch on help activator widget.
 
-class FlowPopup(Popup):         # pragma: no cover
+        :param touch:   motion/touch event data.
+        :return:        True if event got processed/used.
+        """
+        if App.get_running_app().main_app.ae_help_activator.collide_point(*touch.pos):
+            return False        # allow help activator button to process this touch down event
+        return super().on_touch_down(touch)
+
+
+class FlowPopup(Popup):                                                             # pragma: no cover
     """ pop up widget used for dialogs and other top-most or modal windows. """
-    ae_closed_kwargs = DictProperty()   #: kwargs passed to all close action flow change event handlers
+    ae_closed_kwargs = DictProperty()       #: kwargs passed to all close action flow change event handlers
     ae_child_data_maps = ListProperty()     #: list of dicts for to instantiate the children of this widget
 
     # noinspection PyMissingConstructor
@@ -329,8 +464,18 @@ class FlowPopup(Popup):         # pragma: no cover
         :param kwargs:      kwargs to be passed to ModalView.dismiss().
         """
         app = App.get_running_app()
-        if app.ae_help_layout is None or not isinstance(app.ae_help_layout.widget, HelpToggler):
+        if app.get_running_app().ae_help_layout is None or not isinstance(app.ae_help_layout.widget, HelpToggler):
             super().dismiss(*args, **kwargs)
+
+    def on_touch_down(self, touch: MotionEvent) -> bool:
+        """ prevent processing by this popup on touch on help activator widget.
+
+        :param touch:   motion/touch event data.
+        :return:        True if event got processed/used.
+        """
+        if App.get_running_app().main_app.ae_help_activator.collide_point(*touch.pos):
+            return False        # allow help activator button to process this touch down event
+        return super().on_touch_down(touch)
 
 
 class FrameworkApp(App):
@@ -446,94 +591,6 @@ class MessageShowPopup(FlowPopup):
     """ flow popup for to display info or error messages. """
     title = StringProperty(get_text("Error"))       #: popup window title
     message = StringProperty()                      #: popup window label text (message to display)
-
-
-class ThemeButton(ButtonBehavior, Label):   # pragma: no cover
-    """ theme-able button base class with additional events for double/triple/long touches.
-
-    :Events:
-        `on_double_press`:
-            Fired with the touch down MotionEvent instance arg when a button get pressed twice within short time.
-        `on_triple_press`:
-            Fired with the touch down MotionEvent instance arg when a button get pressed three times within short time.
-        `on_long_press`:
-            Fired with the touch down MotionEvent instance arg when a button get pressed more than 2.4 seconds.
-
-    .. note::
-        unit tests are still missing for this widget.
-
-    """
-    def __init__(self, **kwargs):
-        # register before call of super().__init__() for to prevent errors, e.g. "AttributeError: long_press"
-        self.register_event_type('on_double_press')     # pylint: disable=maybe-no-member
-        self.register_event_type('on_triple_press')     # pylint: disable=maybe-no-member
-        self.register_event_type('on_long_press')       # pylint: disable=maybe-no-member
-        super().__init__(**kwargs)
-
-    def on_touch_down(self, touch: MotionEvent) -> bool:
-        """ check for additional events added by this class.
-
-        :param touch:   motion/touch event data.
-        :return:        True if event got processed/used.
-        """
-        if not self.disabled and self.collide_point(touch.x, touch.y):
-            is_triple = touch.is_triple_tap
-            if is_triple or touch.is_double_tap:
-                # pylint: disable=maybe-no-member
-                self.dispatch('on_triple_press' if is_triple else 'on_double_press', touch)
-                touch.ungrab(self)      # prevent dispatch of on_press
-                return True
-            # pylint: disable=maybe-no-member
-            touch.ud['long_touch_handler'] = long_touch_handler = lambda dt: self.dispatch('on_long_press', touch)
-            Clock.schedule_once(long_touch_handler, 2.4)
-        return super().on_touch_down(touch)
-
-    @staticmethod
-    def _cancel_long_touch_clock(touch):
-        long_touch_handler = touch.ud.pop('long_touch_handler', None)
-        if long_touch_handler:
-            Clock.unschedule(long_touch_handler)    # alternatively: long_touch_handler.cancel()
-
-    def on_touch_move(self, touch: MotionEvent) -> bool:
-        """ disable long touch on mouse/finger moves.
-
-        :param touch:   motion/touch event data.
-        :return:        True if event got processed/used.
-        """
-        # alternative method to calculate touch.pos distances is (from tripletap.py):
-        # Vector.distance(Vector(ref.sx, ref.sy), Vector(touch.osx, touch.osy)) > 0.009
-        if abs(touch.ox - touch.x) > 9 and abs(touch.oy - touch.y) > 9 and self.collide_point(touch.x, touch.y):
-            self._cancel_long_touch_clock(touch)
-        return super().on_touch_move(touch)
-
-    def on_touch_up(self, touch: MotionEvent) -> bool:
-        """ disable long touch on mouse/finger up.
-
-        :param touch:   motion/touch event data.
-        :return:        True if event got processed/used.
-        """
-        if touch.grab_current is self:
-            self._cancel_long_touch_clock(touch)
-        return super().on_touch_up(touch)
-
-    def on_double_press(self, touch: MotionEvent):
-        """ double click default handler
-
-        :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
-        """
-
-    def on_triple_press(self, touch: MotionEvent):
-        """ triple click default handler
-
-        :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
-        """
-
-    def on_long_press(self, touch: MotionEvent):
-        """ long press default handler
-
-        :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
-        """
-        touch.ungrab(self)      # prevent dispatch of on_release
 
 
 class _GetTextBinder(Observable):
@@ -704,30 +761,28 @@ class KivyMainApp(HelpAppBase):
             self.framework_win.remove_widget(widget)            # then correct z index/order to show help text in front
             self.framework_win.add_widget(widget)
 
-    def help_activation_toggle(self, layout_class: Type, activator: Optional[Widget] = None):   # pragma: no cover
+    def help_activation_toggle(self):                                           # pragma: no cover
         """ button press event handler for to switch help flow mode between active and inactive.
-
-        :param layout_class:    widget/layout class for to display help text including an execution/processing button.
-        :param activator:       widget for to de-/active help mode (only optional if self.ae_help_activator is set).
         """
-        if activator:
-            self.ae_help_activator = activator
-        else:
-            activator = self.ae_help_activator
-
+        activator = self.ae_help_activator
         activate = self.ae_help_layout is None
         hlw = None
         if activate:
-            hlw = layout_class(widget=activator,
-                               ps_hints=layout_ps_hints(*activator.to_window(*activator.pos), *activator.size,
-                                                        self.framework_win.width, self.framework_win.height))
+            hlw = HelpLayout(widget=activator,
+                             ps_hints=layout_ps_hints(*activator.to_window(*activator.pos), *activator.size,
+                                                      self.framework_win.width, self.framework_win.height))
             self.framework_win.add_widget(hlw)
         else:
+            ANI_SINE_DEEPER_REPEAT3.stop(self.ae_help_layout)
+            ANI_SINE_DEEPER_REPEAT3.stop(activator)
             self.framework_win.remove_widget(self.ae_help_layout)
 
         self.change_observable('ae_help_layout', hlw)
+
         if hlw:
             self.help_display('', dict(), activator)    # show initial help text (after self.ae_help_layout got set)
+            ANI_SINE_DEEPER_REPEAT3.start(hlw)
+            ANI_SINE_DEEPER_REPEAT3.start(activator)
 
     def load_sounds(self):
         """ override for to pre-load audio sounds from app folder snd into sound file cache. """
