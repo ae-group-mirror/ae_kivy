@@ -91,7 +91,7 @@ from ae.kivy_help import HelpBehaviour, HelpLayout, HelpToggler                 
 __version__ = '0.1.37'
 
 
-# kivy.require('2.0.0')
+kivy.require('2.0.0')
 # 1.9.1 is needed for Window.softinput_mode 'below_target'
 # 2.0.0 is needed for Animation Sequence (>= 2.0.0rc2) and ScrollView recursion (> 2.0.0rc3) bug fixes
 

@@ -1,4 +1,4 @@
-kivy
+kivy==2.0.0rc3
 plyer
 ae_gui_help
 ae_kivy_help
