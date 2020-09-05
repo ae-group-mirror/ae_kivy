@@ -204,7 +204,7 @@ class TestCallbacks:
     def test_on_stop_with_stop_touch_app(self, restore_app_env):
         app = KivyAppTest()
         assert not app.on_stop_called
-        Clock.schedule_once(lambda dt: stopTouchApp(), 0)
+        Clock.schedule_once(lambda dt: stopTouchApp())
         app.run_app()
         assert app.on_stop_called
 
@@ -623,9 +623,8 @@ class TestEvents:
 called_bound = False
 
 
-def bound(*args, **kwargs):
-    """ bound func for TestI18N """
-    print(args, kwargs)
+def bound(*_args, **_kwargs):
+    """ bound test func """
     global called_bound
     called_bound = True
 
@@ -655,21 +654,24 @@ class TestI18N:
 
     def test_switch_lang(self):
         old_lang = default_language()
-        get_txt.switch_lang('xx_XX')
-        assert default_language() == 'xx_XX'
+        get_txt.switch_lang('xx')
+        assert default_language() == 'xx'
         default_language(old_lang)
 
     def test_translate(self):
         assert get_txt("text to translate") == "text to translate"
 
+    def test_translate_with_count(self):
+        assert get_txt("text with {count} to translate", count=69) == "text with 69 to translate"
+
     def test_update(self):
         get_txt.fbind('_', bound, ('arg0', ))
         assert not called_bound
-        get_txt.switch_lang('yy_YY')
+        get_txt.switch_lang('yy')
         assert called_bound
 
     def test_on_lang_code_change(self, restore_app_env):
         app = KivyAppTest()
 
-        app.on_lang_code_change('zz_ZZ', dict())
-        assert default_language() == 'zz_ZZ'
+        app.on_lang_code_change('zz', dict())
+        assert default_language() == 'zz'

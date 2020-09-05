@@ -1,94 +1,101 @@
 """
-main application class for GUIApp-conform Kivy app
-==================================================
+main application classes and widgets for GUIApp-conform Kivy apps
+=================================================================
 
-This ae portion is providing two classes (:class:`FrameworkApp`
-and :class:`KivyMainApp`) and some useful constants.
+This ae portion is providing two application classes (:class:`FrameworkApp` and :class:`KivyMainApp`),
+various widget classes and some useful constants.
 
-The class :class:`KivyMainApp` is implementing a main app
-class that is reducing the amount of code needed for
-to create a Python application based on the
-`kivy framework <kivy.org>`_.
+
+kivy app classes
+----------------
+
+The class :class:`KivyMainApp` is implementing a main app class that is reducing the amount of code needed for
+to create a Python application based on the `kivy framework <kivy.org>`_.
 
 :class:`KivyMainApp` is based on the following classes:
 
-* the abstract base class :class:`~ae.gui_app.MainAppBase`
-  which adds the concepts of :ref:`application status`
-  (including :ref:`app-state-variables` and :ref:`app-state-constants`),
-  :ref:`application flow` and :ref:`application events`.
-* the class :class:`~ae.console.ConsoleApp` is adding
-  :ref:`config-files`, :ref:`config-variables`
+* the abstract base class :class:`~ae.gui_app.MainAppBase` which adds the concepts of :ref:`application status`
+  (including :ref:`app-state-variables` and :ref:`app-state-constants`), :ref:`application flow` and
+  :ref:`application events`.
+* the class :class:`~ae.console.ConsoleApp` is adding :ref:`config-files`, :ref:`config-variables`
   and :ref:`config-options`.
-* the class :class:`~ae.core.AppBase` is adding
-  :ref:`application logging` and :ref:`application debugging`.
+* the class :class:`~ae.core.AppBase` is adding :ref:`application logging` and :ref:`application debugging`.
 
 
-This namespace portion is also encapsulating the
-:class:`Kivy app class <kivy.app.App>` within the :class:`FrameworkApp`.
-The Kivy app class instance can be directly accessed from
-the main app class instance via the
+This namespace portion is also encapsulating the :class:`Kivy app class <kivy.app.App>` within the :class:`FrameworkApp`
+class. This Kivy app class instance can be directly accessed from the main app class instance via the
 :attr:`~KivyMainApp.framework_app` attribute.
+
+
+kivy widget classes
+-------------------
+
+* :class:`AppStateSlider`: :class:`~kivy.slider.Slider` for to change the value of :ref:`app-state-variables`.
+* :class:`FlowButton`: :class:`~kivy.behaviours.ButtonBehaviour` for to change the application flow.
+* :class:`FlowDropDown`: :class:`~kivy.dropdown.DropDown` for to process application flow.
+* :class:`FlowInput`: dynamic kivy widget based on :class:`~kivy.textinput.TextInput` with application flow support.
+* :class:`FlowPopup`: :class:`~kivy.popup.Popup` for to process application flow.
+* :class:`FlowToggler`: :class:`~kivy.behaviours.ToggleButtonBehaviour` for to change the application flow.
+* :class:`ImageLabel`: dynamic kivy widget extending :class:`~kivy.label.Label` widget with an image.
+* :class:`ImageButton`: button widget with an image.
+* :class:`MessageShowPopup`: simple message box widget.
+* :class:`OptionalButton`: dynamic kivy widget based on :class:`FlowButton` which can optionally be displayed or hidden.
 
 
 unit tests
 ----------
 
-For to run the unit tests of this ae portion you need a system
-with a graphic system supporting at least V 2.0 of OpenGL and the
-kivy framework installed.
+For to run the unit tests of this ae portion you need a system with a graphic system supporting at least V 2.0 of OpenGL
+and the kivy framework installed.
 
 .. note::
-    unit tests does have 100 % coverage but are currently not passing
-    the gitlab CI tests because we failing in setup a proper running
-    window system on the python image that all ae portions are using.
+    unit tests does have 100 % coverage but are currently not passing the gitlab CI tests because we failing in setup
+    a proper running window system on the python image that all ae portions are using.
 
-Any help for to fix the problems with the used gitlab CI image
-is highly appreciated.
-
+Any help for to fix the problems with the used gitlab CI image would be highly appreciated.
 """
 from functools import partial
 import os
-from typing import Any, Callable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
-from plyer import vibrator                                                          # type: ignore
+from plyer import vibrator                                                                  # type: ignore
 
-import kivy                                                                         # type: ignore
-from kivy.animation import Animation                                                # type: ignore
-from kivy.app import App                                                            # type: ignore
-from kivy.clock import Clock                                                        # type: ignore
-from kivy.core.audio import SoundLoader                                             # type: ignore
-from kivy.core.window import Window                                                 # type: ignore
-from kivy.factory import Factory, FactoryException                                  # type: ignore
-from kivy.input import MotionEvent                                                  # type: ignore
-from kivy.lang import Builder, Observable, global_idmap                             # type: ignore
+import kivy                                                                                 # type: ignore
+from kivy.animation import Animation                                                        # type: ignore
+from kivy.app import App                                                                    # type: ignore
+from kivy.clock import Clock                                                                # type: ignore
+from kivy.core.audio import SoundLoader                                                     # type: ignore
+from kivy.core.window import Window                                                         # type: ignore
+from kivy.factory import Factory, FactoryException                                          # type: ignore
+from kivy.input import MotionEvent                                                          # type: ignore
+from kivy.lang import Builder, Observable, global_idmap                                     # type: ignore
 # pylint: disable=no-name-in-module
-from kivy.properties import (                                                       # type: ignore
+from kivy.properties import (                                                               # type: ignore
     BooleanProperty, DictProperty, ListProperty, ObjectProperty, StringProperty)
-from kivy.uix.behaviors import ButtonBehavior                                       # type: ignore
-from kivy.uix.boxlayout import BoxLayout                                            # type: ignore
-from kivy.uix.dropdown import DropDown                                              # type: ignore
-from kivy.uix.label import Label                                                    # type: ignore
-from kivy.uix.popup import Popup                                                    # type: ignore
-from kivy.uix.slider import Slider                                                  # type: ignore
-from kivy.uix.widget import Widget                                                  # type: ignore
+from kivy.uix.behaviors import ButtonBehavior, ToggleButtonBehavior                         # type: ignore
+from kivy.uix.boxlayout import BoxLayout                                                    # type: ignore
+from kivy.uix.dropdown import DropDown                                                      # type: ignore
+from kivy.uix.popup import Popup                                                            # type: ignore
+from kivy.uix.slider import Slider                                                          # type: ignore
+from kivy.uix.widget import Widget                                                          # type: ignore
 
-from ae.system import sys_platform                                                  # type: ignore
-from ae.paths import app_docs_path                                                  # type: ignore
-from ae.files import FilesRegister, CachedFile                                      # type: ignore
-from ae.i18n import default_language, get_f_string, get_text                        # type: ignore
-from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED                       # type: ignore
+from ae.system import sys_platform                                                          # type: ignore
+from ae.paths import app_docs_path                                                          # type: ignore
+from ae.files import FilesRegister, CachedFile                                              # type: ignore
+from ae.i18n import default_language, get_f_string, get_text                                # type: ignore
+from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED                               # type: ignore
 
 # id_of_flow not used here - added for easier import in app project
-from ae.gui_app import (                                                            # type: ignore
+from ae.gui_app import (                                                                    # type: ignore
     APP_STATE_SECTION_NAME,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
     id_of_flow
 )
-from ae.gui_help import layout_ps_hints, HelpAppBase                                # type: ignore
-from ae.kivy_help import HelpBehaviour, HelpLayout, HelpToggler                     # type: ignore
+from ae.gui_help import layout_ps_hints, HelpAppBase                                        # type: ignore
+from ae.kivy_help import HelpBehaviour, HelpLayout, HelpToggler                             # type: ignore
 
 
-__version__ = '0.1.37'
+__version__ = '0.1.38'
 
 
 kivy.require('2.0.0')
@@ -134,12 +141,16 @@ Builder.load_string('''\
 #: import id_of_flow ae.gui_app.id_of_flow
 #: import replace_flow_action ae.gui_app.replace_flow_action
 
+#: import HELP_ID_PREFIX_FLOW ae.gui_help.HELP_ID_PREFIX_FLOW
+#: import HELP_ID_PREFIX_STATE ae.gui_help.HELP_ID_PREFIX_STATE
 
-#<AppStateSlider@Slider+HelpBehaviour>:
+
 <AppStateSlider>:
     ae_state_name: ''
+    ae_help_id: HELP_ID_PREFIX_STATE + self.ae_state_name
+    ae_help_vars: dict(state_name=self.ae_state_name, state_value=self.value, self=self)
     value: app.ae_states.get(self.ae_state_name, 1.0)
-    on_value: app.main_app.help_app_state_change(self.ae_state_name, self.value)
+    on_value: app.main_app.change_app_state(self.ae_state_name, self.value)
     min: 0.0
     max: 1.0
     step: 0.03
@@ -157,12 +168,12 @@ Builder.load_string('''\
             size: self.size
 
 
-<ThemeButton>:
+<ImageLabel@Label>:
     circle_fill_color: 0, 0, 0, 0
     square_fill_color: 0, 0, 0, 0
     fill_pos: self.fill_pos or self.pos
     fill_size: self.fill_size or self.size
-    source: themeButtonImage.source
+    source: themeLabelImage.source
     size_hint: 1, None
     size_hint_min_x: self.height
     height: app.ae_states['font_size'] * 1.5
@@ -180,7 +191,7 @@ Builder.load_string('''\
             pos: self.fill_pos or self.pos
             size: self.fill_size or self.size
     Image:
-        id: themeButtonImage
+        id: themeLabelImage
         source: root.source
         allow_stretch: True
         keep_ratio: False
@@ -189,7 +200,10 @@ Builder.load_string('''\
         size: self.parent.fill_size or self.parent.size
 
 
-<ThemeInput@TextInput>:
+<FlowInput@HelpBehaviour+TextInput>:
+    ae_flow_id: ''
+    ae_help_id: HELP_ID_PREFIX_FLOW + self.ae_flow_id
+    ae_help_vars: dict(new_flow_id=self.ae_flow_id, initial_text=self.text, self=self)
     font_size: app.ae_states['font_size']
     cursor_color: app.font_color
     foreground_color: app.font_color
@@ -198,10 +212,11 @@ Builder.load_string('''\
 
 <FlowButton>:
     ae_flow_id: ''
+    ae_help_id: HELP_ID_PREFIX_FLOW + self.ae_flow_id
+    ae_help_vars: dict(new_flow_id=self.ae_flow_id, self=self)
     ae_clicked_kwargs: dict(popup_kwargs=dict(parent=self))
     ae_icon_name: ""
     on_release: app.main_app.change_flow(self.ae_flow_id, **self.ae_clicked_kwargs)
-    #ae_help_lock: app.ae_help_layout is not None and app.ae_help_id != app.main_app.help_flow_id(self.ae_flow_id)
     source:
         app.main_app.img_file(self.ae_icon_name or flow_key_split(self.ae_flow_id)[0], \
                               app.ae_states['font_size'], app.ae_states['light_theme'])
@@ -237,6 +252,17 @@ Builder.load_string('''\
     title_align: 'center'
     title_size: app.main_app.font_size
 
+
+<FlowToggler>:
+    ae_flow_id: ''
+    ae_help_id: HELP_ID_PREFIX_FLOW + self.ae_flow_id
+    ae_help_vars: dict(new_flow_id=self.ae_flow_id, self=self)
+    ae_clicked_kwargs: dict(popup_kwargs=dict(parent=self))
+    ae_icon_name: ""
+    on_release: app.main_app.change_flow(self.ae_flow_id, **self.ae_clicked_kwargs)
+    source:
+        app.main_app.img_file(self.ae_icon_name or flow_key_split(self.ae_flow_id)[0], \
+                              app.ae_states['font_size'], app.ae_states['light_theme'])
 
 <MessageShowPopup>:
     size_hint: 0.9, None
@@ -317,12 +343,12 @@ def refresh_child_data_widgets(widget, *_args):                         # pragma
 # class declarations for docs and for to allow initialization of attributes via __init__ kwargs (e.g. ae_closed_kwargs).
 
 
-class AppStateSlider(Slider, HelpBehaviour):
+class AppStateSlider(HelpBehaviour, Slider):
     """ slider widget with help text for to change app state value. """
     ae_state_name = StringProperty()
 
 
-class ThemeButton(ButtonBehavior, Label):                                               # pragma: no cover
+class ImageButton(ButtonBehavior, Factory.ImageLabel):                                               # pragma: no cover
     """ theme-able button base class with additional events for double/triple/long touches.
 
     :Events:
@@ -410,8 +436,8 @@ class ThemeButton(ButtonBehavior, Label):                                       
         touch.ungrab(self)      # prevent dispatch of on_release
 
 
-class FlowButton(ThemeButton, HelpBehaviour):
-    """ has to be declared after the declaration of the ThemeButton widget class """
+class FlowButton(HelpBehaviour, ImageButton):
+    """ has to be declared after the declaration of the ImageButton widget class """
     ae_flow_id = StringProperty()
 
 
@@ -432,16 +458,16 @@ class FlowDropDown(DropDown):                                                   
         :param args:        args to be passed to DropDown.dismiss().
         """
         app = App.get_running_app()
-        if app.ae_help_layout is None or not isinstance(app.ae_help_layout.widget, HelpToggler):
+        if app.help_layout is None or not isinstance(app.help_layout.target, HelpToggler):
             super().dismiss(*args)
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
-        """ prevent processing by this drop down on touch on help activator widget.
+        """ prevent the processing of a touch on the help activator widget by this drop down.
 
         :param touch:   motion/touch event data.
         :return:        True if event got processed/used.
         """
-        if App.get_running_app().main_app.ae_help_activator.collide_point(*touch.pos):
+        if App.get_running_app().main_app.help_activator.collide_point(*touch.pos):
             return False        # allow help activator button to process this touch down event
         return super().on_touch_down(touch)
 
@@ -464,26 +490,31 @@ class FlowPopup(Popup):                                                         
         :param kwargs:      kwargs to be passed to ModalView.dismiss().
         """
         app = App.get_running_app()
-        if app.get_running_app().ae_help_layout is None or not isinstance(app.ae_help_layout.widget, HelpToggler):
+        if app.get_running_app().help_layout is None or not isinstance(app.help_layout.target, HelpToggler):
             super().dismiss(*args, **kwargs)
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
-        """ prevent processing by this popup on touch on help activator widget.
+        """ prevent the processing of a touch on the help activator widget by this popup.
 
         :param touch:   motion/touch event data.
         :return:        True if event got processed/used.
         """
-        if App.get_running_app().main_app.ae_help_activator.collide_point(*touch.pos):
+        if App.get_running_app().main_app.help_activator.collide_point(*touch.pos):
             return False        # allow help activator button to process this touch down event
         return super().on_touch_down(touch)
+
+
+class FlowToggler(HelpBehaviour, ToggleButtonBehavior, Factory.ImageLabel):
+    """ toggle button changing flow id. """
+    ae_flow_id = StringProperty()
 
 
 class FrameworkApp(App):
     """ kivy framework app class proxy redirecting events and callbacks to the main app class instance. """
 
-    ae_help_id = StringProperty()                           #: flow id of the currently explained flow button
-    ae_help_layout = ObjectProperty(allownone=True)         #: layout widget if help flow mode is active else None
     ae_states = DictProperty()                              #: duplicate of MainAppBase app state for events/binds
+    displayed_help_id = StringProperty()                    #: help id of the currently explained/help-target widget
+    help_layout = ObjectProperty(allownone=True)            #: layout widget if help mode is active else None
 
     landscape = BooleanProperty()                           #: True if app win width is bigger than the app win height
     font_color = ObjectProperty(THEME_DARK_FONT_COLOR)      #: rgba color of the font used for labels/buttons/...
@@ -671,21 +702,30 @@ class _GetTextBinder(Observable):
 
         app.title = get_txt(app.main_app.app_title)
 
-    def __call__(self, text: str, count: Optional[int] = None, language: str = '', **kwargs) -> str:
+    def __call__(self, text: str, count: Optional[int] = None, language: str = '',
+                 loc_vars: Optional[Dict[str, Any]] = None, **kwargs) -> str:
         """ translate text into the current-default or the passed language.
 
         :param text:            text to translate.
         :param count:           optional count for pluralization.
         :param language:        language code to translate the passed text to (def=current default language).
-        :param kwargs:          extra kwargs.
+        :param loc_vars:        local variables used in the conversion of the f-string expression to a string.
+                                The `count` item of this dict will be overwritten by the value of the
+                                :paramref:`~_GetTextBinder.__call__.count` parameter (if this argument got passed).
+        :param kwargs:          extra kwargs (e.g. :paramref:`~ae.i18n.get_f_string.glo_vars` or
+                                :paramref:`~ae.i18n.get_f_string.key_suffix` - see :func:`~ae.i18n.get_f_string`).
         :return:                translated text.
         """
-        return get_f_string(text, count=count, language=language, **kwargs)
+        if count is not None:
+            if loc_vars is None:
+                loc_vars = dict()
+            loc_vars['count'] = count
+        return get_f_string(text, language=language, loc_vars=loc_vars, **kwargs)
 
 
-# Sphinx make html is failing if the comment underneath is included (by changing '# ' into '#: ')
-get_txt = _GetTextBinder()  # global i18n translation callable and language switcher, rename to `_` in kv file imports
-global_idmap['_'] = get_txt
+# Sphinx make html fails if the comment underneath is included into autodoc/autosummary (by changing '# ' into '#: ')
+get_txt = _GetTextBinder()      # instantiate global i18n translation callable and language switcher
+global_idmap['_'] = get_txt     # bind as function/callable with the name `_` for to be used in kv files
 
 
 class KivyMainApp(HelpAppBase):
@@ -695,8 +735,8 @@ class KivyMainApp(HelpAppBase):
     selected_item_ink: tuple = (0.69, 1.0, 0.39, 0.18)      #: rgba color for list items (selected)
     unselected_item_ink: tuple = (0.39, 0.39, 0.39, 0.18)   #: rgba color for list items (unselected)
 
+    get_txt_ = get_txt                                      #: make i18n translations available via main app instance
     kbd_input_mode: str = 'pan'                             #: optional app state for to set Window[Base].softinput_mode
-
     documents_root_path: str = "."                          #: root file path for app documents, e.g. for import/export
 
     _debug_enable_clicks: int = 0
@@ -761,28 +801,40 @@ class KivyMainApp(HelpAppBase):
             self.framework_win.remove_widget(widget)            # then correct z index/order to show help text in front
             self.framework_win.add_widget(widget)
 
-    def help_activation_toggle(self):                                           # pragma: no cover
-        """ button press event handler for to switch help flow mode between active and inactive.
+    def help_activation_toggle(self):                                               # pragma: no cover
+        """ button press event handler for to switch help mode between active and inactive.
         """
-        activator = self.ae_help_activator
-        activate = self.ae_help_layout is None
+        activator = self.help_activator
+        activate = self.help_layout is None
         hlw = None
         if activate:
-            hlw = HelpLayout(widget=activator,
+            hlw = HelpLayout(target=activator,
                              ps_hints=layout_ps_hints(*activator.to_window(*activator.pos), *activator.size,
                                                       self.framework_win.width, self.framework_win.height))
             self.framework_win.add_widget(hlw)
         else:
-            ANI_SINE_DEEPER_REPEAT3.stop(self.ae_help_layout)
+            ANI_SINE_DEEPER_REPEAT3.stop(self.help_layout)
             ANI_SINE_DEEPER_REPEAT3.stop(activator)
-            self.framework_win.remove_widget(self.ae_help_layout)
+            self.framework_win.remove_widget(self.help_layout)
 
-        self.change_observable('ae_help_layout', hlw)
+        self.change_observable('help_layout', hlw)
 
         if hlw:
-            self.help_display('', dict(), activator)    # show initial help text (after self.ae_help_layout got set)
+            self.help_display('', dict())           # show initial help text (after self.help_layout got set)
             ANI_SINE_DEEPER_REPEAT3.start(hlw)
             ANI_SINE_DEEPER_REPEAT3.start(activator)
+
+    def on_help_displayed(self):                                                    # pragma: no cover
+        """ start timer for automatic reset or disable of the help mode.
+
+        The first plan to animate :attr:`~HelpAppBase.help_layout` widget instead of target to drift back
+        to :attr:`~HelpAppBase.help_activator` would need to temporarily deactivate the layout_x/y/pos_hints.
+        """
+        hlw = self.help_layout
+        hlw.cancel_ani_slide_back()
+
+        if self.displayed_help_id:
+            hlw.begin_ani_slide_back(self.help_activator.pos)
 
     def load_sounds(self):
         """ override for to pre-load audio sounds from app folder snd into sound file cache. """
