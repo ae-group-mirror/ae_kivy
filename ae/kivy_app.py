@@ -10,7 +10,7 @@ kivy app classes
 ----------------
 
 The class :class:`KivyMainApp` is implementing a main app class that is reducing the amount of code needed for
-to create a Python application based on the `kivy framework <kivy.org>`_.
+to create a Python application based on the `kivy framework <https://kivy.org>`_.
 
 :class:`KivyMainApp` is based on the following classes:
 
@@ -22,24 +22,25 @@ to create a Python application based on the `kivy framework <kivy.org>`_.
 * the class :class:`~ae.core.AppBase` is adding :ref:`application logging` and :ref:`application debugging`.
 
 
-This namespace portion is also encapsulating the :class:`Kivy app class <kivy.app.App>` within the :class:`FrameworkApp`
+This namespace portion is also encapsulating the :class:`Kivy App class <kivy.app.App>` within the :class:`FrameworkApp`
 class. This Kivy app class instance can be directly accessed from the main app class instance via the
-:attr:`~KivyMainApp.framework_app` attribute.
+:attr:`~ae.gui_app.MainAppBase.framework_app` attribute.
 
 
 kivy widget classes
 -------------------
 
-* :class:`AppStateSlider`: :class:`~kivy.slider.Slider` for to change the value of :ref:`app-state-variables`.
-* :class:`FlowButton`: :class:`~kivy.behaviours.ButtonBehaviour` for to change the application flow.
-* :class:`FlowDropDown`: :class:`~kivy.dropdown.DropDown` for to process application flow.
-* :class:`FlowInput`: dynamic kivy widget based on :class:`~kivy.textinput.TextInput` with application flow support.
-* :class:`FlowPopup`: :class:`~kivy.popup.Popup` for to process application flow.
-* :class:`FlowToggler`: :class:`~kivy.behaviours.ToggleButtonBehaviour` for to change the application flow.
-* :class:`ImageLabel`: dynamic kivy widget extending :class:`~kivy.label.Label` widget with an image.
-* :class:`ImageButton`: button widget with an image.
+* :class:`AppStateSlider`: :class:`~kivy.uix.slider.Slider>` changing the value of :ref:`app-state-variables`.
+* :class:`FlowButton`: :class:`ImageButton` for to change the application flow.
+* :class:`FlowDropDown`: :class:`~kivy.uix.dropdown.DropDown` for to process application flow.
+* :class:`FlowInput`: dynamic kivy widget based on :class:`~kivy.uix.textinput.TextInput` with application flow support.
+* :class:`FlowPopup`: :class:`~kivy.uix.popup.Popup` for to process application flow.
+* :class:`FlowToggler`: toggle button based on :class:`ImageLabel` and :class:`~kivy.uix.behaviors.ToggleButtonBehavior`
+  for to change the application flow.
+* :class:`ImageLabel`: dynamic kivy widget extending the Kivy :class:`~kivy.uix.label.Label` widget with an image.
+* :class:`ImageButton`: button widget based on :class:`~kivy.uix.behaviors.ButtonBehavior` with an additional image.
 * :class:`MessageShowPopup`: simple message box widget.
-* :class:`OptionalButton`: dynamic kivy widget based on :class:`FlowButton` which can optionally be displayed or hidden.
+* :class:`OptionalButton`: dynamic kivy widget based on :class:`FlowButton` which can be dynamically hidden.
 
 
 unit tests
@@ -95,7 +96,7 @@ from ae.gui_help import layout_ps_hints, HelpAppBase                            
 from ae.kivy_help import HelpBehaviour, HelpLayout, HelpToggler                             # type: ignore
 
 
-__version__ = '0.1.38'
+__version__ = '0.1.39'
 
 
 kivy.require('2.0.0')
@@ -345,7 +346,7 @@ def refresh_child_data_widgets(widget, *_args):                         # pragma
 
 class AppStateSlider(HelpBehaviour, Slider):
     """ slider widget with help text for to change app state value. """
-    ae_state_name = StringProperty()
+    ae_state_name = StringProperty()    #: name of the app state to be changed by this slider value
 
 
 class ImageButton(ButtonBehavior, Factory.ImageLabel):                                               # pragma: no cover
@@ -438,7 +439,7 @@ class ImageButton(ButtonBehavior, Factory.ImageLabel):                          
 
 class FlowButton(HelpBehaviour, ImageButton):
     """ has to be declared after the declaration of the ImageButton widget class """
-    ae_flow_id = StringProperty()
+    ae_flow_id = StringProperty()           #: the new flow id that will be set when this button get pressed
 
 
 class FlowDropDown(DropDown):                                                               # pragma: no cover
@@ -506,7 +507,7 @@ class FlowPopup(Popup):                                                         
 
 class FlowToggler(HelpBehaviour, ToggleButtonBehavior, Factory.ImageLabel):
     """ toggle button changing flow id. """
-    ae_flow_id = StringProperty()
+    ae_flow_id = StringProperty()           #: the new flow id that will be set when this toggle button get released
 
 
 class FrameworkApp(App):
@@ -607,14 +608,14 @@ class FrameworkApp(App):
     def on_stop(self):
         """ quit app event automatically saving the app states.
 
-        Emits the `on_kivy_app_stop` event whereas the method :meth:`MainAppBase.stop_app`
+        Emits the `on_kivy_app_stop` event whereas the method :meth:`~ae.gui_app.MainAppBase.stop_app`
         emits the `on_app_stop` event.
         """
         self.main_app.save_app_states()
         self.main_app.call_method('on_kivy_app_stop')
 
     def win_pos_size_change(self, *_):
-        """ resize handler updates :attr:`~MainAppBase.win_rectangle` app state and :attr:`~FrameworkApp.landscape`. """
+        """ resize handler updates: :attr:`~ae.gui_app.MainAppBase.win_rectangle`, :attr:`~FrameworkApp.landscape`. """
         self.main_app.win_pos_size_change(Window.left, Window.top, Window.width, Window.height)
 
 
@@ -625,7 +626,7 @@ class MessageShowPopup(FlowPopup):
 
 
 class _GetTextBinder(Observable):
-    """ redirect ae.i18n.get_f_string to an instance of this class.
+    """ redirect :func:`ae.i18n.get_f_string` to an instance of this class.
 
     kivy currently only support a single one automatic binding in kv files for all function names ending with `_`
     (see `watched_keys` extension in kivy/lang/parser.py line 201; e.g. `f_` would get recognized by the lang_tr
@@ -638,6 +639,7 @@ class _GetTextBinder(Observable):
     messages of all active/visible kv rules on switch of the language at app run-time.
 
     inspired by (see also discussion at https://github.com/kivy/kivy/issues/1664):
+
     - https://github.com/tito/kivy-gettext-example
     - https://github.com/Kovak/kivy_i18n_test
     - https://git.bluedynamics.net/phil/woodmaster-trainer/-/blob/master/src/ui/kivy/i18n.py
@@ -724,8 +726,9 @@ class _GetTextBinder(Observable):
 
 
 # Sphinx make html fails if the comment underneath is included into autodoc/autosummary (by changing '# ' into '#: ')
-get_txt = _GetTextBinder()      # instantiate global i18n translation callable and language switcher
-global_idmap['_'] = get_txt     # bind as function/callable with the name `_` for to be used in kv files
+get_txt = _GetTextBinder()      #: instantiate global i18n translation callable and language switcher
+get_txt.__qualname__ = 'GetTextBinder'      # hide sphinx build warning (build crashes if get_txt get documented)
+global_idmap['_'] = get_txt                 # bind as function/callable with the name `_` for to be used in kv files
 
 
 class KivyMainApp(HelpAppBase):
