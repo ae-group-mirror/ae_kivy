@@ -96,7 +96,7 @@ from ae.gui_help import layout_ps_hints, HelpAppBase                            
 from ae.kivy_help import HelpBehaviour, HelpLayout, HelpToggler                             # type: ignore
 
 
-__version__ = '0.1.39'
+__version__ = '0.1.40'
 
 
 kivy.require('2.0.0')
@@ -267,7 +267,7 @@ Builder.load_string('''\
 
 <MessageShowPopup>:
     size_hint: 0.9, None
-    height: min(Window.height, msg_txt_box.height + self.title_size * 1.8)
+    height: min(Window.height, msg_txt_box.height + self.children[0].minimum_height)
     ScrollView:
         Label:
             canvas.before:
