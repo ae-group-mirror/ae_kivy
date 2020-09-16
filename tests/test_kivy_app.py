@@ -24,7 +24,7 @@ TST_VAR = 'win_rectangle'
 TST_VAL = (90, 60, 900, 600)
 
 TST_DICT = {TST_VAR: TST_VAL}
-def_ae_states = TST_DICT.copy()
+def_app_states = TST_DICT.copy()
 
 
 MAIN_KV_LAYOUT = '''
@@ -39,7 +39,7 @@ def ini_file(restore_app_env):
     fn = 'tests/tst.ini'
     with open(fn, 'w') as file_handle:
         file_handle.write(f"[{APP_STATE_SECTION_NAME}]\n")
-        file_handle.write("\n".join(k + " = " + repr(v) for k, v in def_ae_states.items()))
+        file_handle.write("\n".join(k + " = " + repr(v) for k, v in def_app_states.items()))
     yield fn
     if os.path.exists(fn):      # some exception/error-check tests need to delete the INI
         os.remove(fn)
@@ -143,7 +143,7 @@ skip_gitlab_ci = pytest.mark.skipif(SKIP_EXPRESSION, reason="headless gitlab CI 
 class TestCallbacks:
     def test_setup_app_states(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
-        assert getattr(app, TST_VAR) == def_ae_states[TST_VAR]
+        assert getattr(app, TST_VAR) == def_app_states[TST_VAR]
 
     def test_retrieve_app_states(self, restore_app_env):
         app = KivyMainApp()
@@ -160,7 +160,7 @@ class TestCallbacks:
         Clock.schedule_once(app.framework_app.stop)
         app.run_app()
         assert app.on_run_called
-        # assert app.framework_app.ae_states == def_ae_states
+        # assert app.framework_app.app_states == def_app_states
 
     def test_start(self, restore_app_env):
         app = KivyAppTest()
@@ -223,7 +223,7 @@ class TestAppState:
 
         app.load_app_states()
         assert getattr(app, TST_VAR) == TST_VAL
-        fas = app.framework_app.ae_states
+        fas = app.framework_app.app_states
         assert all(k in fas and v == fas[k] for k, v in TST_DICT.items())
         fas = app.retrieve_app_states()
         assert all(k in fas and v == fas[k] for k, v in TST_DICT.items())
@@ -234,7 +234,7 @@ class TestAppState:
         assert getattr(app, TST_VAR) == TST_VAL
         app.setup_app_states(TST_DICT)
         assert getattr(app, TST_VAR) == TST_VAL
-        assert app.win_rectangle == def_ae_states[TST_VAR]
+        assert app.win_rectangle == def_app_states[TST_VAR]
 
     def test_change_app_state(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
@@ -248,7 +248,7 @@ class TestAppState:
         app.change_app_state(TST_VAR, chg_val)
 
         assert getattr(app, TST_VAR) == chg_val
-        fas = app.framework_app.ae_states
+        fas = app.framework_app.app_states
         assert all(k in fas and v == fas[k] for k, v in chg_dict.items())
         fas = app.retrieve_app_states()
         assert all(k in fas and v == fas[k] for k, v in chg_dict.items())

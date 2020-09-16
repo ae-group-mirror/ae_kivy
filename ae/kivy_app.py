@@ -96,7 +96,7 @@ from ae.gui_help import layout_ps_hints, HelpAppBase                            
 from ae.kivy_help import HelpBehaviour, HelpLayout, HelpToggler                             # type: ignore
 
 
-__version__ = '0.1.40'
+__version__ = '0.1.41'
 
 
 kivy.require('2.0.0')
@@ -147,18 +147,18 @@ Builder.load_string('''\
 
 
 <AppStateSlider>:
-    ae_state_name: ''
-    ae_help_id: HELP_ID_PREFIX_STATE + self.ae_state_name
-    ae_help_vars: dict(state_name=self.ae_state_name, state_value=self.value, self=self)
-    value: app.ae_states.get(self.ae_state_name, 1.0)
-    on_value: app.main_app.change_app_state(self.ae_state_name, self.value)
+    app_state_name: ''
+    help_id: HELP_ID_PREFIX_STATE + self.app_state_name
+    help_vars: dict(state_name=self.app_state_name, state_value=self.value, self=self)
+    value: app.app_states.get(self.app_state_name, 1.0)
+    on_value: app.main_app.change_app_state(self.app_state_name, self.value)
     min: 0.0
     max: 1.0
     step: 0.03
     size_hint_y: None
-    height: app.ae_states['font_size'] * 1.5
-    cursor_size: app.ae_states['font_size'] * 1.5, app.ae_states['font_size'] * 1.5
-    padding: app.ae_states['font_size'] * 2.4
+    height: app.app_states['font_size'] * 1.5
+    cursor_size: app.app_states['font_size'] * 1.5, app.app_states['font_size'] * 1.5
+    padding: app.app_states['font_size'] * 2.4
     value_track: True
     value_track_color: app.font_color
     canvas.before:
@@ -177,8 +177,8 @@ Builder.load_string('''\
     source: themeLabelImage.source
     size_hint: 1, None
     size_hint_min_x: self.height
-    height: app.ae_states['font_size'] * 1.5
-    font_size: app.ae_states['font_size']
+    height: app.app_states['font_size'] * 1.5
+    font_size: app.app_states['font_size']
     color: app.font_color
     canvas.before:
         Color:
@@ -202,25 +202,26 @@ Builder.load_string('''\
 
 
 <FlowInput@HelpBehaviour+TextInput>:
-    ae_flow_id: ''
-    ae_help_id: HELP_ID_PREFIX_FLOW + self.ae_flow_id
-    ae_help_vars: dict(new_flow_id=self.ae_flow_id, initial_text=self.text, self=self)
-    font_size: app.ae_states['font_size']
+    tap_flow_id: ''
+    help_id: HELP_ID_PREFIX_FLOW + self.tap_flow_id
+    help_vars: dict(new_flow_id=self.tap_flow_id, initial_text=self.text, self=self)
+    font_size: app.app_states['font_size']
     cursor_color: app.font_color
     foreground_color: app.font_color
     background_color: Window.clearcolor
+    use_bubble: True
 
 
 <FlowButton>:
-    ae_flow_id: ''
-    ae_help_id: HELP_ID_PREFIX_FLOW + self.ae_flow_id
-    ae_help_vars: dict(new_flow_id=self.ae_flow_id, self=self)
-    ae_clicked_kwargs: dict(popup_kwargs=dict(parent=self))
-    ae_icon_name: ""
-    on_release: app.main_app.change_flow(self.ae_flow_id, **self.ae_clicked_kwargs)
+    tap_flow_id: ''
+    tap_kwargs: dict(popup_kwargs=dict(parent=self))
+    help_id: HELP_ID_PREFIX_FLOW + self.tap_flow_id
+    help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
+    icon_name: ""
+    on_release: app.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
     source:
-        app.main_app.img_file(self.ae_icon_name or flow_key_split(self.ae_flow_id)[0], \
-                              app.ae_states['font_size'], app.ae_states['light_theme'])
+        app.main_app.img_file(self.icon_name or flow_key_split(self.tap_flow_id)[0], \
+                              app.app_states['font_size'], app.app_states['light_theme'])
 
 
 <OptionalButton@FlowButton>:
@@ -234,10 +235,10 @@ Builder.load_string('''\
 
 # DropDown flow gets handled similar to a Popup
 <FlowDropDown>:
-    ae_closed_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
-    on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.ae_closed_kwargs)
+    close_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
+    on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
     auto_width: False
-    width: min(Window.width - sp(90), sp(960))
+    width: min(Window.width - sp(96), sp(960))
     canvas.after:
         Color:
             rgba: app.font_color
@@ -247,27 +248,27 @@ Builder.load_string('''\
 
 
 <FlowPopup>:
-    ae_closed_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
-    on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.ae_closed_kwargs)
+    close_kwargs: dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(-2) in ('', 'enter') else dict()
+    on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
     separator_color: app.font_color
     title_align: 'center'
     title_size: app.main_app.font_size
 
 
 <FlowToggler>:
-    ae_flow_id: ''
-    ae_help_id: HELP_ID_PREFIX_FLOW + self.ae_flow_id
-    ae_help_vars: dict(new_flow_id=self.ae_flow_id, self=self)
-    ae_clicked_kwargs: dict(popup_kwargs=dict(parent=self))
-    ae_icon_name: ""
-    on_release: app.main_app.change_flow(self.ae_flow_id, **self.ae_clicked_kwargs)
+    tap_flow_id: ''
+    tap_kwargs: dict(popup_kwargs=dict(parent=self))
+    help_id: HELP_ID_PREFIX_FLOW + self.tap_flow_id
+    help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
+    icon_name: ""
+    on_release: app.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
     source:
-        app.main_app.img_file(self.ae_icon_name or flow_key_split(self.ae_flow_id)[0], \
-                              app.ae_states['font_size'], app.ae_states['light_theme'])
+        app.main_app.img_file(self.icon_name or flow_key_split(self.tap_flow_id)[0], \
+                              app.app_states['font_size'], app.app_states['light_theme'])
 
 <MessageShowPopup>:
     size_hint: 0.9, None
-    height: min(Window.height, msg_txt_box.height + self.children[0].minimum_height)
+    height: min(Window.height - sp(96), msg_txt_box.height + self.children[0].minimum_height)
     ScrollView:
         Label:
             canvas.before:
@@ -292,14 +293,14 @@ Builder.load_string('''\
 
 
 def init_child_data_widget(widget, ancestor, kwargs):       # pragma: no cover
-    """ support ae_child_data_maps in your widget for to dynamic creation of children.
+    """ support child_data_maps in your widget for to dynamic creation of children.
 
-    :param widget:          widget that supports the `ae_child_data_maps` attribute.
+    :param widget:          widget that supports the `child_data_maps` attribute.
     :param ancestor:        ancestor widget of :paramref:`~init_child_data_widget.widget`.
     :param kwargs:          kwargs of the __init_ method of :paramref:`~init_child_data_widget.widget`.
     """
-    widget.fbind('on_ae_child_data_maps', partial(refresh_child_data_widgets, widget))
-    widget.ae_child_data_maps = kwargs.pop('ae_child_data_maps', ())
+    widget.fbind('on_child_data_maps', partial(refresh_child_data_widgets, widget))
+    widget.child_data_maps = kwargs.pop('child_data_maps', ())
     ancestor.__init__(**kwargs)
     refresh_child_data_widgets(widget)
 
@@ -307,10 +308,10 @@ def init_child_data_widget(widget, ancestor, kwargs):       # pragma: no cover
 def refresh_child_data_widgets(widget, *_args):                         # pragma: no cover
     """ recreate dynamic children of the passed widget.
 
-    :param widget:          widget that supports the `ae_child_data_maps` attribute.
+    :param widget:          widget that supports the `child_data_maps` attribute.
     :param _args:           not needed extra args (if this function get called as event handler).
     """
-    if not widget.ae_child_data_maps:
+    if not widget.child_data_maps:
         return
 
     content_layout_added = False
@@ -325,7 +326,7 @@ def refresh_child_data_widgets(widget, *_args):                         # pragma
             App.get_running_app().main_app.dpo(
                 f"ae.kivy_app.refresh_child_data_widgets({widget}): suppressed attribute error:{ex}")
 
-    for child_data in widget.ae_child_data_maps:
+    for child_data in widget.child_data_maps:
         cls = child_data['cls']
         if isinstance(cls, str):
             cls = Factory.get(cls)
@@ -341,34 +342,34 @@ def refresh_child_data_widgets(widget, *_args):                         # pragma
         widget.content = children_container
 
 
-# class declarations for docs and for to allow initialization of attributes via __init__ kwargs (e.g. ae_closed_kwargs).
+# class declarations for docs and for to allow initialization of attributes via __init__ kwargs (e.g. close_kwargs).
 
 
 class AppStateSlider(HelpBehaviour, Slider):
     """ slider widget with help text for to change app state value. """
-    ae_state_name = StringProperty()    #: name of the app state to be changed by this slider value
+    app_state_name = StringProperty()   #: name of the app state to be changed by this slider value
 
 
 class ImageButton(ButtonBehavior, Factory.ImageLabel):                                               # pragma: no cover
     """ theme-able button base class with additional events for double/triple/long touches.
 
     :Events:
-        `on_double_press`:
-            Fired with the touch down MotionEvent instance arg when a button get pressed twice within short time.
-        `on_triple_press`:
-            Fired with the touch down MotionEvent instance arg when a button get pressed three times within short time.
-        `on_long_press`:
-            Fired with the touch down MotionEvent instance arg when a button get pressed more than 2.4 seconds.
+        `on_double_tap`:
+            Fired with the touch down MotionEvent instance arg when a button get tapped twice within short time.
+        `on_triple_tap`:
+            Fired with the touch down MotionEvent instance arg when a button get tapped three times within short time.
+        `on_long_tap`:
+            Fired with the touch down MotionEvent instance arg when a button get tapped more than 2.4 seconds.
 
     .. note::
         unit tests are still missing for this widget.
 
     """
     def __init__(self, **kwargs):
-        # register before call of super().__init__() for to prevent errors, e.g. "AttributeError: long_press"
-        self.register_event_type('on_double_press')     # pylint: disable=maybe-no-member
-        self.register_event_type('on_triple_press')     # pylint: disable=maybe-no-member
-        self.register_event_type('on_long_press')       # pylint: disable=maybe-no-member
+        # register before call of super().__init__() for to prevent errors, e.g. "AttributeError: long_tap"
+        self.register_event_type('on_double_tap')   # pylint: disable=maybe-no-member
+        self.register_event_type('on_triple_tap')   # pylint: disable=maybe-no-member
+        self.register_event_type('on_long_tap')     # pylint: disable=maybe-no-member
         super().__init__(**kwargs)
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
@@ -381,11 +382,11 @@ class ImageButton(ButtonBehavior, Factory.ImageLabel):                          
             is_triple = touch.is_triple_tap
             if is_triple or touch.is_double_tap:
                 # pylint: disable=maybe-no-member
-                self.dispatch('on_triple_press' if is_triple else 'on_double_press', touch)
+                self.dispatch('on_triple_tap' if is_triple else 'on_double_tap', touch)
                 touch.ungrab(self)      # prevent dispatch of on_press
                 return True
             # pylint: disable=maybe-no-member
-            touch.ud['long_touch_handler'] = long_touch_handler = lambda dt: self.dispatch('on_long_press', touch)
+            touch.ud['long_touch_handler'] = long_touch_handler = lambda dt: self.dispatch('on_long_tap', touch)
             Clock.schedule_once(long_touch_handler, 2.4)
         return super().on_touch_down(touch)
 
@@ -417,20 +418,20 @@ class ImageButton(ButtonBehavior, Factory.ImageLabel):                          
             self._cancel_long_touch_clock(touch)
         return super().on_touch_up(touch)
 
-    def on_double_press(self, touch: MotionEvent):
-        """ double click default handler
+    def on_double_tap(self, touch: MotionEvent):
+        """ double tap/click default handler.
 
         :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
         """
 
-    def on_triple_press(self, touch: MotionEvent):
-        """ triple click default handler
+    def on_triple_tap(self, touch: MotionEvent):
+        """ triple tap/click default handler.
 
         :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
         """
 
-    def on_long_press(self, touch: MotionEvent):
-        """ long press default handler
+    def on_long_tap(self, touch: MotionEvent):
+        """ long tap/click default handler.
 
         :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
         """
@@ -439,13 +440,13 @@ class ImageButton(ButtonBehavior, Factory.ImageLabel):                          
 
 class FlowButton(HelpBehaviour, ImageButton):
     """ has to be declared after the declaration of the ImageButton widget class """
-    ae_flow_id = StringProperty()           #: the new flow id that will be set when this button get pressed
+    tap_flow_id = StringProperty()          #: the new flow id that will be set when this button get tapped
 
 
 class FlowDropDown(DropDown):                                                               # pragma: no cover
     """ drop down widget used for user selections from a list of items (represented by the children-widgets). """
-    ae_closed_kwargs = DictProperty()       #: kwargs passed to all close action flow change event handlers
-    ae_child_data_maps = ListProperty()     #: list of dicts for to instantiate the children of this widget
+    close_kwargs = DictProperty()           #: kwargs passed to all close action flow change event handlers
+    child_data_maps = ListProperty()        #: list of dicts for to instantiate the children of this widget
 
     # noinspection PyMissingConstructor
     # pylint: disable=super-init-not-called
@@ -475,8 +476,8 @@ class FlowDropDown(DropDown):                                                   
 
 class FlowPopup(Popup):                                                             # pragma: no cover
     """ pop up widget used for dialogs and other top-most or modal windows. """
-    ae_closed_kwargs = DictProperty()       #: kwargs passed to all close action flow change event handlers
-    ae_child_data_maps = ListProperty()     #: list of dicts for to instantiate the children of this widget
+    close_kwargs = DictProperty()           #: kwargs passed to all close action flow change event handlers
+    child_data_maps = ListProperty()        #: list of dicts for to instantiate the children of this widget
 
     # noinspection PyMissingConstructor
     # pylint: disable=super-init-not-called
@@ -507,13 +508,13 @@ class FlowPopup(Popup):                                                         
 
 class FlowToggler(HelpBehaviour, ToggleButtonBehavior, Factory.ImageLabel):
     """ toggle button changing flow id. """
-    ae_flow_id = StringProperty()           #: the new flow id that will be set when this toggle button get released
+    tap_flow_id = StringProperty()          #: the new flow id that will be set when this toggle button get released
 
 
 class FrameworkApp(App):
     """ kivy framework app class proxy redirecting events and callbacks to the main app class instance. """
 
-    ae_states = DictProperty()                              #: duplicate of MainAppBase app state for events/binds
+    app_states = DictProperty()                             #: duplicate of MainAppBase app state for events/binds
     displayed_help_id = StringProperty()                    #: help id of the currently explained/help-target widget
     help_layout = ObjectProperty(allownone=True)            #: layout widget if help mode is active else None
 
@@ -805,7 +806,7 @@ class KivyMainApp(HelpAppBase):
             self.framework_win.add_widget(widget)
 
     def help_activation_toggle(self):                                               # pragma: no cover
-        """ button press event handler for to switch help mode between active and inactive.
+        """ button tapped event handler for to switch help mode between active and inactive.
         """
         activator = self.help_activator
         activate = self.help_layout is None
@@ -914,7 +915,7 @@ class KivyMainApp(HelpAppBase):
                 sound_obj = file.loaded_object
                 sound_obj.pitch = file.properties.get('pitch', 1.0)
                 sound_obj.volume = (
-                    file.properties.get('volume', 1.0) * self.framework_app.ae_states.get('sound_volume', 1.))
+                    file.properties.get('volume', 1.0) * self.framework_app.app_states.get('sound_volume', 1.))
                 sound_obj.play()
             except Exception as ex:
                 self.po(f"KivyMainApp.play_sound exception {ex}")
