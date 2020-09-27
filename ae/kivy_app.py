@@ -96,7 +96,7 @@ from ae.kivy_dyn_chi import DynamicChildrenBehavior                             
 from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                              # type: ignore
 
 
-__version__ = '0.1.42'
+__version__ = '0.1.43'
 
 
 kivy.require('2.0.0')
@@ -220,7 +220,6 @@ Builder.load_string('''\
 
 <FlowButton>:
     tap_flow_id: ''
-    tap_kwargs: dict(popup_kwargs=dict(parent=self))
     help_id: HELP_ID_PREFIX_FLOW + self.tap_flow_id
     help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
     icon_name: ""
@@ -283,7 +282,6 @@ Builder.load_string('''\
 
 <FlowToggler>:
     tap_flow_id: ''
-    tap_kwargs: dict(popup_kwargs=dict(parent=self))
     help_id: HELP_ID_PREFIX_FLOW + self.tap_flow_id
     help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
     icon_name: ""
@@ -310,6 +308,25 @@ Builder.load_string('''\
                 on_release: root.dismiss()
 
 ''')
+
+
+def ensure_tap_kwargs_refs(init_kwargs: Dict[str, Any], widget: Widget):
+    """ ensure that the passed widget.__init__ kwargs dict contains a reference to itself within kwargs['tap_kwargs'].
+
+    :param init_kwargs:         kwargs of the widgets __init__ method.
+    """
+    if 'tap_kwargs' not in init_kwargs:
+        init_kwargs['tap_kwargs'] = dict()
+    tap_kwargs = init_kwargs['tap_kwargs']
+
+    if 'tap_widget' not in tap_kwargs:
+        tap_kwargs['tap_widget'] = widget
+
+    if 'popup_kwargs' not in tap_kwargs:
+        tap_kwargs['popup_kwargs'] = dict()
+    popup_kwargs = tap_kwargs['popup_kwargs']
+    if 'parent' not in popup_kwargs:
+        popup_kwargs['parent'] = widget
 
 
 class AppStateSlider(HelpBehavior, Slider):
@@ -425,9 +442,14 @@ class ImageButton(ButtonBehavior, Factory.ImageLabel):                          
         self.dispatch('on_alt_tap', touch)
 
 
-class FlowButton(HelpBehavior, ImageButton):
+class FlowButton(HelpBehavior, ImageButton):                                            # pragma: no cover
     """ has to be declared after the declaration of the ImageButton widget class """
     tap_flow_id = StringProperty()          #: the new flow id that will be set when this button get tapped
+    tap_kwargs = DictProperty()             #: kwargs dict passed to event handler (change_flow) when button get tapped
+
+    def __init__(self, **kwargs):
+        ensure_tap_kwargs_refs(kwargs, self)
+        super().__init__(**kwargs)
 
 
 class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, DropDown):            # pragma: no cover
@@ -479,9 +501,14 @@ class FlowPopup(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, Pop
         return super().on_touch_down(touch)
 
 
-class FlowToggler(HelpBehavior, ToggleButtonBehavior, Factory.ImageLabel):
+class FlowToggler(HelpBehavior, ToggleButtonBehavior, Factory.ImageLabel):                          # pragma: no cover
     """ toggle button changing flow id. """
     tap_flow_id = StringProperty()          #: the new flow id that will be set when this toggle button get released
+    tap_kwargs = DictProperty()             #: kwargs dict passed to event handler (change_flow) when button get tapped
+
+    def __init__(self, **kwargs):
+        ensure_tap_kwargs_refs(kwargs, self)
+        super().__init__(**kwargs)
 
 
 class FrameworkApp(App):

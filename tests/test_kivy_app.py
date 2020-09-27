@@ -17,7 +17,7 @@ from ae.i18n import default_language
 from ae.gui_app import APP_STATE_SECTION_NAME, id_of_flow, flow_key, replace_flow_action, MainAppBase
 from ae.kivy_app import (
     MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN,
-    KivyMainApp, FrameworkApp, get_txt)
+    KivyMainApp, FrameworkApp, ensure_tap_kwargs_refs, get_txt)
 
 
 TST_VAR = 'win_rectangle'
@@ -133,6 +133,21 @@ def test_kv_default_file_name():
 
 def test_main_app_class_abstracts():
     assert hasattr(MainAppBase, 'init_app')
+
+
+def test_ensure_tap_kwargs_refs():
+    kwargs = dict()
+    wid = object()
+
+    ensure_tap_kwargs_refs(kwargs, wid)
+    assert 'tap_kwargs' in kwargs
+
+    assert 'tap_widget' in kwargs['tap_kwargs']
+    assert kwargs['tap_kwargs']['tap_widget'] is wid
+
+    assert 'popup_kwargs' in kwargs['tap_kwargs']
+    assert 'parent' in kwargs['tap_kwargs']['popup_kwargs']
+    assert kwargs['tap_kwargs']['popup_kwargs']['parent'] is wid
 
 
 SKIP_EXPRESSION = "'CI_PROJECT_ID' in os.environ"
