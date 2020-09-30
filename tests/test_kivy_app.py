@@ -1,5 +1,6 @@
 """ test ae.kivy_app portion. """
 import os
+from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -138,7 +139,7 @@ def test_main_app_class_abstracts():
 
 def test_ensure_tap_kwargs_refs():
     kwargs = dict()
-    wid = Widget()
+    wid = cast(Widget, object())  # create real Widget instance fails at gitlab-CI with "Unable to get a Window, abort."
 
     ensure_tap_kwargs_refs(kwargs, wid)
     assert 'tap_kwargs' in kwargs
