@@ -21,7 +21,6 @@ to create a Python application based on the `kivy framework <https://kivy.org>`_
   and :ref:`config-options`.
 * the class :class:`~ae.core.AppBase` is adding :ref:`application logging` and :ref:`application debugging`.
 
-
 This namespace portion is also encapsulating the :class:`Kivy App class <kivy.app.App>` within the :class:`FrameworkApp`
 class. This Kivy app class instance can be directly accessed from the main app class instance via the
 :attr:`~ae.gui_app.MainAppBase.framework_app` attribute.
@@ -46,8 +45,7 @@ kivy widget classes
 unit tests
 ----------
 
-For to run the unit tests of this ae portion you need a system with a graphic system supporting at least V 2.0 of OpenGL
-and the kivy framework installed.
+unit tests need at least V 2.0 of OpenGL and the kivy framework installed.
 
 .. note::
     unit tests does have 100 % coverage but are currently not passing the gitlab CI tests because we failing in setup
@@ -96,7 +94,7 @@ from ae.kivy_dyn_chi import DynamicChildrenBehavior                             
 from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                              # type: ignore
 
 
-__version__ = '0.1.43'
+__version__ = '0.1.44'
 
 
 kivy.require('2.0.0')
@@ -142,13 +140,9 @@ Builder.load_string('''\
 #: import id_of_flow ae.gui_app.id_of_flow
 #: import replace_flow_action ae.gui_app.replace_flow_action
 
-#: import HELP_ID_PREFIX_FLOW ae.gui_help.HELP_ID_PREFIX_FLOW
-#: import HELP_ID_PREFIX_STATE ae.gui_help.HELP_ID_PREFIX_STATE
-
-
 <AppStateSlider>:
     app_state_name: ''
-    help_id: HELP_ID_PREFIX_STATE + self.app_state_name
+    help_id: app.main_app.help_app_state_id(self.app_state_name)
     help_vars: dict(state_name=self.app_state_name, state_value=self.value, self=self)
     value: app.app_states.get(self.app_state_name, 1.0)
     on_value: app.main_app.change_app_state(self.app_state_name, self.value)
@@ -167,7 +161,6 @@ Builder.load_string('''\
         RoundedRectangle:
             pos: self.pos
             size: self.size
-
 
 <ImageLabel@Label>:
     circle_fill_color: 0, 0, 0, 0
@@ -206,10 +199,9 @@ Builder.load_string('''\
         pos: self.parent.image_pos or self.parent.fill_pos or self.parent.pos
         size: self.parent.image_size or self.parent.fill_size or self.parent.size
 
-
 <FlowInput@HelpBehavior+TextInput>:
     tap_flow_id: ''
-    help_id: HELP_ID_PREFIX_FLOW + self.tap_flow_id
+    help_id: app.main_app.help_flow_id(self.tap_flow_id)
     help_vars: dict(new_flow_id=self.tap_flow_id, initial_text=self.text, self=self)
     font_size: app.app_states['font_size']
     cursor_color: app.font_color
@@ -217,17 +209,15 @@ Builder.load_string('''\
     background_color: Window.clearcolor
     use_bubble: True
 
-
 <FlowButton>:
     tap_flow_id: ''
-    help_id: HELP_ID_PREFIX_FLOW + self.tap_flow_id
+    help_id: app.main_app.help_flow_id(self.tap_flow_id)
     help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
     icon_name: ""
     on_release: app.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
     source:
         app.main_app.img_file(self.icon_name or flow_key_split(self.tap_flow_id)[0], \
                               app.app_states['font_size'], app.app_states['light_theme'])
-
 
 <OptionalButton@FlowButton>:
     visible: False
@@ -237,9 +227,7 @@ Builder.load_string('''\
     disabled: not self.visible
     opacity: 1 if self.visible else 0
 
-
-# DropDown flow gets handled similar to a Popup
-<FlowDropDown>:
+<FlowDropDown>:             # DropDown flow gets handled similar to a Popup
     close_kwargs:
         dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else dict()
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
@@ -258,7 +246,6 @@ Builder.load_string('''\
             width: sp(1.8)
             rounded_rectangle: self.x, self.y, self.width, self.height, sp(9)
 
-
 <FlowPopup>:
     close_kwargs:
         dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else dict()
@@ -267,11 +254,8 @@ Builder.load_string('''\
     separator_color: app.font_color
     background: ""
     background_color: Window.clearcolor
-    #overlay_color: Window.clearcolor
     title_align: 'center'
     title_size: app.main_app.font_size
-    size_hint_y: None
-    height: min(Window.height - sp(96), self.children[0].minimum_height + self._container.minimum_height)
     canvas.before:
         Color:
             rgba: Window.clearcolor
@@ -279,10 +263,9 @@ Builder.load_string('''\
             pos: self.pos
             size: self.size
 
-
 <FlowToggler>:
     tap_flow_id: ''
-    help_id: HELP_ID_PREFIX_FLOW + self.tap_flow_id
+    help_id: app.main_app.help_flow_id(self.tap_flow_id)
     help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
     icon_name: ""
     on_release: app.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
@@ -306,27 +289,35 @@ Builder.load_string('''\
                 size: msg_txt_box.size
                 background_color: 0, 0, 0, 0
                 on_release: root.dismiss()
-
 ''')
 
 
-def ensure_tap_kwargs_refs(init_kwargs: Dict[str, Any], widget: Widget):
+def ensure_tap_kwargs_refs(init_kwargs: Dict[str, Any], tap_widget: Widget):
     """ ensure that the passed widget.__init__ kwargs dict contains a reference to itself within kwargs['tap_kwargs'].
 
     :param init_kwargs:         kwargs of the widgets __init__ method.
+    :param tap_widget:          reference to the tap widget.
+
+    This alternative version is only 10 % faster but much more confusing than the current implementation::
+
+        if 'tap_kwargs' not in init_kwargs:
+            init_kwargs['tap_kwargs'] = dict()
+        tap_kwargs = init_kwargs['tap_kwargs']
+
+        if 'tap_widget' not in tap_kwargs:
+            tap_kwargs['tap_widget'] = tap_widget
+
+        if 'popup_kwargs' not in tap_kwargs:
+            tap_kwargs['popup_kwargs'] = dict()
+        popup_kwargs = tap_kwargs['popup_kwargs']
+        if 'parent' not in popup_kwargs:
+            popup_kwargs['parent'] = tap_widget
+
     """
-    if 'tap_kwargs' not in init_kwargs:
-        init_kwargs['tap_kwargs'] = dict()
-    tap_kwargs = init_kwargs['tap_kwargs']
-
-    if 'tap_widget' not in tap_kwargs:
-        tap_kwargs['tap_widget'] = widget
-
-    if 'popup_kwargs' not in tap_kwargs:
-        tap_kwargs['popup_kwargs'] = dict()
-    popup_kwargs = tap_kwargs['popup_kwargs']
-    if 'parent' not in popup_kwargs:
-        popup_kwargs['parent'] = widget
+    init_kwargs['tap_kwargs'] = tap_kwargs = init_kwargs.get('tap_kwargs', dict())
+    tap_kwargs['tap_widget'] = tap_kwargs.get('tap_widget', tap_widget)
+    tap_kwargs['popup_kwargs'] = popup_kwargs = tap_kwargs.get('popup_kwargs', dict())
+    popup_kwargs['parent'] = popup_kwargs.get('parent', tap_widget)
 
 
 class AppStateSlider(HelpBehavior, Slider):
@@ -444,8 +435,8 @@ class ImageButton(ButtonBehavior, Factory.ImageLabel):                          
 
 class FlowButton(HelpBehavior, ImageButton):                                            # pragma: no cover
     """ has to be declared after the declaration of the ImageButton widget class """
-    tap_flow_id = StringProperty()          #: the new flow id that will be set when this button get tapped
-    tap_kwargs = DictProperty()             #: kwargs dict passed to event handler (change_flow) when button get tapped
+    tap_flow_id = StringProperty()  #: the new flow id that will be set when this button get tapped
+    tap_kwargs = ObjectProperty()   #: kwargs dict passed to event handler (change_flow) when button get tapped
 
     def __init__(self, **kwargs):
         ensure_tap_kwargs_refs(kwargs, self)
@@ -454,7 +445,8 @@ class FlowButton(HelpBehavior, ImageButton):                                    
 
 class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, DropDown):            # pragma: no cover
     """ drop down widget used for user selections from a list of items (represented by the children-widgets). """
-    close_kwargs = DictProperty()           #: kwargs passed to all close action flow change event handlers
+    close_kwargs = DictProperty()               #: kwargs passed to all close action flow change event handlers
+    parent_popup_to_close = ObjectProperty()    #: tuple of popup widget instances to be closed if this drop down closes
 
     def dismiss(self, *args):
         """ override DropDown method for to prevent dismiss of any dropdown/popup while clicking on activator widget.
@@ -476,9 +468,14 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
         return super().on_touch_down(touch)
 
 
-class FlowPopup(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, Popup):                  # pragma: no cover
+class FlowPopup(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, Popup):                # pragma: no cover
     """ pop up widget used for dialogs and other top-most or modal windows. """
-    close_kwargs = DictProperty()           #: kwargs passed to all close action flow change event handlers
+    close_kwargs = DictProperty()               #: kwargs passed to all close action flow change event handlers
+    parent_popup_to_close = ObjectProperty()    #: tuple of popup widget instances to be closed if this popup closes
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        Window.bind(on_key_down=self.on_key_down)
 
     def dismiss(self, *args, **kwargs):
         """ override ModalView method for to prevent dismiss of any dropdown/popup while clicking on activator widget.
@@ -489,6 +486,13 @@ class FlowPopup(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, Pop
         app = App.get_running_app()
         if app.get_running_app().help_layout is None or not isinstance(app.help_layout.target, HelpToggler):
             super().dismiss(*args, **kwargs)
+
+    def on_key_down(self, _instance, key, _scancode, _codepoint, _modifiers):
+        """ close/dismiss this popup if back/Esc key get pressed - allowing stacking with DropDown/FlowDropDown. """
+        if key == 27 and self.get_parent_window():
+            self.dismiss()
+            return True
+        return False
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
         """ prevent the processing of a touch on the help activator widget by this popup.

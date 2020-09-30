@@ -11,6 +11,7 @@ from kivy.clock import Clock
 from kivy.lang import Builder, Observable
 from kivy.properties import BooleanProperty
 from kivy.uix.popup import Popup
+from kivy.uix.widget import Widget
 
 from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED
 from ae.i18n import default_language
@@ -137,7 +138,7 @@ def test_main_app_class_abstracts():
 
 def test_ensure_tap_kwargs_refs():
     kwargs = dict()
-    wid = object()
+    wid = Widget()
 
     ensure_tap_kwargs_refs(kwargs, wid)
     assert 'tap_kwargs' in kwargs
