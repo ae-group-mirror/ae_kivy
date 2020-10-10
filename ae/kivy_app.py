@@ -42,6 +42,35 @@ kivy widget classes
 * :class:`OptionalButton`: dynamic kivy widget based on :class:`FlowButton` which can be dynamically hidden.
 
 
+text input widget
+^^^^^^^^^^^^^^^^^
+
+Until version 0.1.43 of this portion the background and text color switched with the light_theme app state.
+Now all colors left unchanged (before only the ones with <unchanged>):
+
+* background_color: Window.clearcolor            # default: 1, 1, 1, 1
+* cursor_color: app.font_color                   # default: 1, 0, 0, 1
+* disabled_foreground_color: <unchanged>         # default: 0, 0, 0, .5
+* foreground_color: app.font_color               # default: 0, 0, 0, 1
+* hint_text_color: <unchanged>                   # default: 0.5, 0.5, 0.5, 1.0
+* selection_color: <unchanged>                   # default: 0.1843, 0.6549, 0.8313, .5
+
+For to implement a nice dark background for the dark theme we would need also to change the images in the properties:
+background_active, background_disabled_normal and self.background_normal.
+
+TODO: replace/extend TextInputCutCopyPaste bubble widget of kivy.uix.textinput.TextInput with (1) theme colors and
+(2) additional buttons for to add(Ctrl+Insert)/delete(Ctrl+Delete) autocompletion text entry (for mobile platforms).
+Very ugly, but when FlowBubble gets implemented (inherited from kivy.uix.bubble.Bubble) then we could patch
+kivy.uix.textinput.TextInputCutCopyPaste like::
+
+    class TextInputCutCopyPaste(FlowBubble):
+        ...
+
+    from kivy.uix import textinput
+    textinput.TextInputCutCopyPaste = TextInputCutCopyPaste
+    from kivy.uix.textinput import TextInput
+
+
 unit tests
 ----------
 
@@ -67,6 +96,7 @@ from kivy.core.window import Window                                             
 from kivy.factory import Factory, FactoryException                                          # type: ignore
 from kivy.input import MotionEvent                                                          # type: ignore
 from kivy.lang import Builder, Observable, global_idmap                                     # type: ignore
+from kivy.metrics import sp                                                                 # type: ignore
 # pylint: disable=no-name-in-module
 from kivy.properties import (                                                               # type: ignore
     BooleanProperty, DictProperty, ListProperty, ObjectProperty, StringProperty)
@@ -74,6 +104,7 @@ from kivy.uix.behaviors import ButtonBehavior, ToggleButtonBehavior             
 from kivy.uix.dropdown import DropDown                                                      # type: ignore
 from kivy.uix.popup import Popup                                                            # type: ignore
 from kivy.uix.slider import Slider                                                          # type: ignore
+from kivy.uix.textinput import TextInput                                                    # type: ignore
 from kivy.uix.widget import Widget                                                          # type: ignore
 
 from ae.base import sys_platform                                                            # type: ignore
@@ -84,17 +115,18 @@ from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED                   
 
 # id_of_flow not used here - added for easier import in app project
 from ae.gui_app import (                                                                    # type: ignore
-    APP_STATE_SECTION_NAME,
+    AppStateType, APP_STATE_SECTION_NAME,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
-    id_of_flow
+    id_of_flow, replace_flow_action
 )
 from ae.gui_help import layout_ps_hints, HelpAppBase                                        # type: ignore
 from ae.kivy_auto_width import ContainerChildrenAutoWidthBehavior                           # type: ignore
 from ae.kivy_dyn_chi import DynamicChildrenBehavior                                         # type: ignore
 from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                              # type: ignore
+from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.44'
+__version__ = '0.1.45'
 
 
 kivy.require('2.0.0')
@@ -140,77 +172,73 @@ Builder.load_string('''\
 #: import id_of_flow ae.gui_app.id_of_flow
 #: import replace_flow_action ae.gui_app.replace_flow_action
 
+#: import relief_colors ae.kivy_relief_canvas.relief_colors
+
 <AppStateSlider>:
-    app_state_name: ''
     help_id: app.main_app.help_app_state_id(self.app_state_name)
     help_vars: dict(state_name=self.app_state_name, state_value=self.value, self=self)
-    value: app.app_states.get(self.app_state_name, 1.0)
-    on_value: app.main_app.change_app_state(self.app_state_name, self.value)
-    min: 0.0
-    max: 1.0
-    step: 0.03
+    value: app.app_states.get(self.app_state_name, (self.min + self.max) / 2) if self.app_state_name else self.value
+    on_value: app.main_app.change_app_state(self.app_state_name, args[1])
     size_hint_y: None
-    height: app.app_states['font_size'] * 1.5
-    cursor_size: app.app_states['font_size'] * 1.5, app.app_states['font_size'] * 1.5
-    padding: app.app_states['font_size'] * 2.4
+    height: int(app.main_app.font_size * 1.5)
+    cursor_size: int(app.main_app.font_size * 1.5), int(app.main_app.font_size * 1.5)
+    padding: int(min(app.main_app.font_size * 2.4, sp(18)))
     value_track: True
-    value_track_color: app.font_color
+    value_track_color: app.font_color[:3] + (0.39, )
     canvas.before:
         Color:
             rgba: Window.clearcolor
-        RoundedRectangle:
+        Rectangle:
             pos: self.pos
             size: self.size
 
-<ImageLabel@Label>:
-    circle_fill_color: 0, 0, 0, 0
-    circle_fill_pos: ()
-    circle_fill_size: ()
-    fill_pos: self.fill_pos or self.pos
-    fill_size: self.fill_size or self.size
+<ImageLabel@ReliefCanvas+Label>:
+    ellipse_fill_ink: 1.0, 1.0, 1.0, 0.0
+    ellipse_fill_pos: ()
+    ellipse_fill_size: ()
+    default_pos: self.default_pos or self.pos
+    default_size: self.default_size or self.size
     image_pos: ()
     image_size: ()
-    square_fill_color: 0, 0, 0, 0
+    square_fill_ink: 1.0, 1.0, 1.0, 0.0
     square_fill_pos: ()
     square_fill_size: ()
     source: themeLabelImage.source
     size_hint: 1, None
     size_hint_min_x: self.height
-    height: app.app_states['font_size'] * 1.5
+    height: int(app.app_states['font_size'] * 1.5)
     font_size: app.app_states['font_size']
     color: app.font_color
     canvas.before:
         Color:
-            rgba: self.square_fill_color
-        RoundedRectangle:
-            pos: self.square_fill_pos or self.fill_pos or self.pos
-            size: self.square_fill_size or self.fill_size or self.size
+            rgba: self.square_fill_ink
+        Rectangle:
+            pos: self.square_fill_pos or self.default_pos or self.pos
+            size: self.square_fill_size or self.default_size or self.size
         Color:
-            rgba: self.circle_fill_color
+            rgba: self.ellipse_fill_ink
         Ellipse:
-            pos: self.circle_fill_pos or self.fill_pos or self.pos
-            size: self.circle_fill_size or self.fill_size or self.size
+            pos: self.ellipse_fill_pos or self.default_pos or self.pos
+            size: self.ellipse_fill_size or self.default_size or self.size
     Image:
         id: themeLabelImage
         source: root.source
         allow_stretch: True
         keep_ratio: False
         opacity: 1 if self.source else 0
-        pos: self.parent.image_pos or self.parent.fill_pos or self.parent.pos
-        size: self.parent.image_size or self.parent.fill_size or self.parent.size
+        pos: self.parent.image_pos or self.parent.default_pos or self.parent.pos
+        size: self.parent.image_size or self.parent.default_size or self.parent.size
 
-<FlowInput@HelpBehavior+TextInput>:
-    tap_flow_id: ''
-    help_id: app.main_app.help_flow_id(self.tap_flow_id)
-    help_vars: dict(new_flow_id=self.tap_flow_id, initial_text=self.text, self=self)
+<FlowInput>:
+    help_id: app.main_app.help_flow_id(self.focus_flow_id)
+    help_vars: dict(new_flow_id=self.focus_flow_id, self=self)
     font_size: app.app_states['font_size']
-    cursor_color: app.font_color
-    foreground_color: app.font_color
-    background_color: Window.clearcolor
+    multiline: False
+    write_tab: False
     use_bubble: True
+    use_handles: True
 
 <FlowButton>:
-    tap_flow_id: ''
     help_id: app.main_app.help_flow_id(self.tap_flow_id)
     help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
     icon_name: ""
@@ -222,8 +250,8 @@ Builder.load_string('''\
 <OptionalButton@FlowButton>:
     visible: False
     size_hint: None, None
+    height: int(app.app_states['font_size'] * 1.5) if self.visible else 0
     width: self.height if self.visible else 0
-    height: self.height if self.visible else 0
     disabled: not self.visible
     opacity: 1 if self.visible else 0
 
@@ -275,7 +303,7 @@ Builder.load_string('''\
 
 <MessageShowPopup>:
     size_hint: 0.9, None
-    height: min(Window.height - sp(96), self.children[0].minimum_height + msg_txt_box.height)
+    height: int(min(Window.height - sp(96), self.children[0].minimum_height + msg_txt_box.height))
     ScrollView:
         Label:
             id: msg_txt_box
@@ -286,6 +314,7 @@ Builder.load_string('''\
             height: self.texture_size[1]
             color: app.font_color
             Button:     # invisible button for to close popup on message text click
+                pos: msg_txt_box.pos
                 size: msg_txt_box.size
                 background_color: 0, 0, 0, 0
                 on_release: root.dismiss()
@@ -443,7 +472,8 @@ class FlowButton(HelpBehavior, ImageButton):                                    
         super().__init__(**kwargs)
 
 
-class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, DropDown):            # pragma: no cover
+class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, ReliefCanvas,
+                   DropDown):                                                                         # pragma: no cover
     """ drop down widget used for user selections from a list of items (represented by the children-widgets). """
     close_kwargs = DictProperty()               #: kwargs passed to all close action flow change event handlers
     parent_popup_to_close = ObjectProperty()    #: tuple of popup widget instances to be closed if this drop down closes
@@ -468,7 +498,125 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
         return super().on_touch_down(touch)
 
 
-class FlowPopup(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, Popup):                # pragma: no cover
+class FlowInput(HelpBehavior, TextInput):                                                             # pragma: no cover
+    """ text input/edit widget with optional autocompletion. """
+    focus_flow_id = StringProperty()        #: flow id that will be set when this widget get focus
+    unfocus_flow_id = StringProperty()      #: flow id that will be set when this widget get focus
+
+    auto_complete_texts: List[str] = ListProperty()     #: list of autocompletion texts
+    auto_complete_selector_index_ink: Tuple[float, float, float, float] = ListProperty((0.69, 0.69, 0.69, 1))
+    """ color and alpha used for to highlight the currently selected text of all matching autocompletion texts """
+
+    _ac_dropdown: Any = None                            #: singleton FlowDropDown instance for all TextInput instances
+    _matching_ac_texts: List[str] = list()              #: one list instance for all TextInput instances is enough
+    _matching_ac_index: int = 0                         #: index of selected text in the drop down matching texts list
+
+    def __init__(self, **kwargs):
+        # changed to kivy properties so no need to pop them from kwargs:
+        # self.auto_complete_texts = kwargs.pop('auto_complete_texts', list())
+        # self.auto_complete_selector_index_ink = kwargs.pop('auto_complete_selector_index_ink', (0.69, 0.69, 0.69, 1))
+
+        super().__init__(**kwargs)
+
+        if not FlowInput._ac_dropdown:
+            FlowInput._ac_dropdown = FlowDropDown()     # widget instances cannot be created in class var declaration
+
+    def _change_selector_index(self, delta: int):
+        """ change/update/set the index of the matching texts in the opened autocompletion dropdown.
+
+        :param delta:           index delta value between old and new index (e.g. pass +1 to increment index).
+                                Set index to zero if the old/last index was on the last item in the matching list.
+        """
+        cnt = len(self._matching_ac_texts)
+        chi = list(reversed(self._ac_dropdown.container.children))
+        idx = self._matching_ac_index
+        chi[idx].square_fill_ink = Window.clearcolor
+        self._matching_ac_index = (idx + delta + cnt) % cnt
+        chi[self._matching_ac_index].square_fill_ink = self.auto_complete_selector_index_ink
+        self.suggestion_text = self._matching_ac_texts[self._matching_ac_index][len(self.text):]    # type: ignore #mypy
+
+    def _delete_ac_text(self):
+        ac_text = self._matching_ac_texts[self._matching_ac_index]
+        self.auto_complete_texts.remove(ac_text)
+        self.on_text(self, self.text)       # redraw autocompletion dropdown
+
+    def _extend_ac_texts(self):
+        self.auto_complete_texts.insert(0, self.text)
+
+    def keyboard_on_key_down(self, window: Any, keycode: Tuple[int, str], text: str, modifiers: List[str]) -> bool:
+        """ overwritten TextInput/FocusBehavior kbd event handler.
+
+        :param window:          keyboard window.
+        :param keycode:         pressed key as tuple of (numeric key code, key name string).
+        :param text:            pressed key value string.
+        :param modifiers:       list of modifier keys (pressed or locked).
+        :return:                True if key event get processed/used by this method.
+        """
+        key_name = keycode[1]
+        if self._ac_dropdown.attach_to:
+            if key_name in ('enter', 'right'):
+                self.suggestion_text = ""
+                self.text = self._matching_ac_texts[self._matching_ac_index]
+                self._ac_dropdown.dismiss()
+                return True
+
+            if key_name == 'down':
+                self._change_selector_index(1)
+            elif key_name == 'up':
+                self._change_selector_index(-1)
+            elif key_name == 'delete' and 'ctrl' in modifiers:
+                self._delete_ac_text()
+
+        if key_name == 'insert' and 'ctrl' in modifiers:
+            self._extend_ac_texts()
+
+        return super().keyboard_on_key_down(window, keycode, text, modifiers)
+
+    def on_focus(self, _self, focus: bool):
+        """ change flow on text input change of focus.
+
+        :param _self:
+        :param focus:           True if this text input got focus, False on unfocus.
+        """
+        if focus:
+            flow_id = self.focus_flow_id or id_of_flow('edit')
+        else:
+            flow_id = self.unfocus_flow_id or id_of_flow('close')
+        App.get_running_app().main_app.change_flow(flow_id)
+
+    def on_text(self, _self, text: str):
+        """ TextInput.text change event handler.
+
+        :param _self:           unneeded duplicate reference to TextInput/self.
+        :param text:            new/current text property value.
+        """
+        if text:
+            matching = [txt for txt in self.auto_complete_texts if txt[:-1].startswith(text)]
+        else:
+            matching = list()
+        self._matching_ac_texts[:] = matching
+        self._matching_ac_index = 0
+
+        if matching:
+            cdm = list()
+            for txt in matching:
+                cdm.append(dict(cls='FlowButton', kwargs=dict(text=txt, on_release=self._select_ac_text)))
+            self._ac_dropdown.child_data_maps[:] = cdm
+            if not self._ac_dropdown.attach_to:
+                App.get_running_app().main_app.change_flow(replace_flow_action(self.focus_flow_id, 'suggest'))
+                self._ac_dropdown.open(self)
+            self._change_selector_index(0)
+            self.suggestion_text = matching[self._matching_ac_index][len(self.text):]
+        elif self._ac_dropdown.attach_to:
+            self._ac_dropdown.dismiss()
+
+    def _select_ac_text(self, selector: Widget):
+        """ put selected autocompletion text into text input and close _ac_dropdown """
+        self.text = selector.text
+        self._ac_dropdown.dismiss()
+
+
+class FlowPopup(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, ReliefCanvas, Popup):    # pragma: no cover
     """ pop up widget used for dialogs and other top-most or modal windows. """
     close_kwargs = DictProperty()               #: kwargs passed to all close action flow change event handlers
     parent_popup_to_close = ObjectProperty()    #: tuple of popup widget instances to be closed if this popup closes
@@ -555,7 +703,8 @@ class FrameworkApp(App):
         self.main_app.framework_root = root = Factory.Main()
         return root
 
-    def key_press_from_kivy(self, keyboard, key_code, _scan_code, key_text, modifiers) -> bool:
+    def key_press_from_kivy(self, keyboard: Any, key_code: int, _scan_code: int, key_text: Optional[str],
+                            modifiers: List[str]) -> bool:
         """ convert and redistribute key down/press events coming from Window.on_key_down.
 
         :param keyboard:        used keyboard.
@@ -760,25 +909,9 @@ class KivyMainApp(HelpAppBase):
         """
         self.documents_root_path = app_docs_path()
 
-        win_rect = self.win_rectangle
-        if win_rect:
-            Window.left, Window.top = win_rect[:2]
-            Window.size = win_rect[2:]
-
         self.framework_app = framework_app_class(self)
         if os.path.exists(MAIN_KV_FILE_NAME):
             self.framework_app.kv_file = MAIN_KV_FILE_NAME
-        self._update_observable_app_states(self.retrieve_app_states())  # copy app states to duplicate DictProperty
-
-        # setup loaded app states within the now available framework app and its widgets
-        get_txt.switch_lang(self.lang_code)
-        self.change_light_theme(self.light_theme)
-
-        # redirect back ink app state color changes to actualize mixed_back_ink
-        setattr(self, 'on_flow_id_ink', self.mix_background_ink)
-        setattr(self, 'on_flow_path_ink', self.mix_background_ink)
-        setattr(self, 'on_selected_item_ink', self.mix_background_ink)
-        setattr(self, 'on_unselected_item_ink', self.mix_background_ink)
 
         return self.framework_app.run, self.framework_app.stop
 
@@ -853,6 +986,25 @@ class KivyMainApp(HelpAppBase):
         """ remix background ink if one of the basic back colours change. """
         self.framework_app.mixed_back_ink = (sum(_) / len(_) for _ in zip(
             self.flow_id_ink, self.flow_path_ink, self.selected_item_ink, self.unselected_item_ink))
+
+    def on_app_init(self):
+        """ setup loaded app states within the now available framework app and its widgets. """
+        # redirect back ink app state color changes to actualize mixed_back_ink
+        setattr(self, 'on_flow_id_ink', self.mix_background_ink)
+        setattr(self, 'on_flow_path_ink', self.mix_background_ink)
+        setattr(self, 'on_selected_item_ink', self.mix_background_ink)
+        setattr(self, 'on_unselected_item_ink', self.mix_background_ink)
+
+    def on_app_start(self):                                                                     # pragma: no cover
+        """ app start event handler - used for to set the window pos and size. """
+        # super().on_app_start()      # call of ae.gui_app.MainAppBase.on_app_start() not needed
+        get_txt.switch_lang(self.lang_code)
+        self.change_light_theme(self.light_theme)
+
+        win_rect = self.win_rectangle
+        if win_rect:                                # is empty tuple at very first app start
+            Window.left, Window.top = win_rect[:2]
+            Window.size = win_rect[2:]
 
     def on_flow_widget_focused(self):
         """ set focus to the widget referenced by the current flow id. """
@@ -929,12 +1081,13 @@ class KivyMainApp(HelpAppBase):
     def play_vibrate(self, pattern: Tuple = (0.03, 0.3)):
         """ play vibrate pattern. """
         self.vpo(f"KivyMainApp.play_vibrate {pattern}")
-        try:        # added because is crashing with current plyer version (master should work)
-            vibrator.pattern(pattern)
-        # except jnius.jnius.JavaException as ex:
-        #    self.po(f"KivyMainApp.play_vibrate JavaException {ex}, update plyer to git/master")
-        except Exception as ex:
-            self.po(f"KivyMainApp.play_vibrate exception {ex}")
+        if self.framework_app.app_states.get('vibration_volume', 1.):   # no volume available, at least disable if 0.0
+            try:        # added because is crashing with current plyer version (master should work)
+                vibrator.pattern(pattern)
+            # except jnius.jnius.JavaException as ex:
+            #    self.po(f"KivyMainApp.play_vibrate JavaException {ex}, update plyer to git/master")
+            except Exception as ex:
+                self.po(f"KivyMainApp.play_vibrate exception {ex}")
 
     def prevent_keyboard_covering(self, input_box_bottom: float) -> bool:
         """ prevent that the virtual keyboard popping up on mobile platforms is covering the text input field.
@@ -950,6 +1103,16 @@ class KivyMainApp(HelpAppBase):
         Window.softinput_mode = self.kbd_input_mode if mode_changed else ''
 
         return mode_changed
+
+    def setup_app_states(self, app_state: AppStateType):
+        """ put app state variables into main app instance for to prepare framework app.run_app.
+
+        :param app_state:       dict of app states.
+        """
+        self.vpo(f"KivyMainApp.setup_app_states {app_state}")
+        if isinstance(app_state.get('font_size', None), str):
+            app_state['font_size'] = sp(app_state['font_size'])     # very first app start
+        super().setup_app_states(app_state)
 
     def show_message(self, message: str, title: str = "", is_error: bool = True):
         """ display (error) message popup to the user.

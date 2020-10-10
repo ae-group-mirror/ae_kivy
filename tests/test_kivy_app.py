@@ -158,7 +158,7 @@ skip_gitlab_ci = pytest.mark.skipif(SKIP_EXPRESSION, reason="headless gitlab CI 
 
 @skip_gitlab_ci
 class TestCallbacks:
-    def test_setup_app_states(self, ini_file, restore_app_env):
+    def test_default_app_states(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
         assert getattr(app, TST_VAR) == def_app_states[TST_VAR]
 
@@ -252,6 +252,8 @@ class TestAppState:
         app.setup_app_states(TST_DICT)
         assert getattr(app, TST_VAR) == TST_VAL
         assert app.win_rectangle == def_app_states[TST_VAR]
+        app.setup_app_states(dict(font_size='12'))
+        assert isinstance(app.font_size, (int, float))
 
     def test_change_app_state(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
@@ -300,7 +302,7 @@ class TestAppState:
 
     def test_set_font_size(self, ini_file, restore_app_env):
         app = KivyAppTest(additional_cfg_files=(ini_file,))
-        assert app.font_size == 30.0
+        assert app.font_size == 21.0
         assert not app.on_font_size_called
 
         font_size = 99.9
@@ -435,7 +437,7 @@ class TestFlow:
         app.change_flow(flow1)
         assert len(app.flow_path) == 1
         assert app.flow_path[0] == flow1
-        assert app.flow_id == id_of_flow('', '')
+        assert app.flow_id == id_of_flow('')
 
         flow2 = id_of_flow('leave', 'first_flow', 'tst_key')
         app.change_flow(flow2)
