@@ -126,7 +126,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.46'
+__version__ = '0.1.47'
 
 
 kivy.require('2.0.0')
@@ -947,10 +947,18 @@ class KivyMainApp(HelpAppBase):
         """
         activator = self.help_activator
         activate = self.help_layout is None
+        help_id = ''
+        help_vars = dict()
         hlw = None
         if activate:
-            hlw = HelpLayout(target=activator,
-                             ps_hints=layout_ps_hints(*activator.to_window(*activator.pos), *activator.size,
+            target = activator
+            if self.flow_id:
+                help_id = self.help_flow_id(self.flow_id)
+                target = self.help_widget(help_id, help_vars)
+                if target is activator:
+                    help_id = ''
+            hlw = HelpLayout(target=target,
+                             ps_hints=layout_ps_hints(*target.to_window(*target.pos), *target.size,
                                                       self.framework_win.width, self.framework_win.height))
             self.framework_win.add_widget(hlw)
         else:
@@ -960,22 +968,10 @@ class KivyMainApp(HelpAppBase):
 
         self.change_observable('help_layout', hlw)
 
-        if hlw:
-            self.help_display('', dict())           # show initial help text (after self.help_layout got set)
+        if activate:
+            self.help_display(help_id, help_vars)   # show found/initial help text (after self.help_layout got set)
             ANI_SINE_DEEPER_REPEAT3.start(hlw)
             ANI_SINE_DEEPER_REPEAT3.start(activator)
-
-    def on_help_displayed(self):                                                    # pragma: no cover
-        """ start timer for automatic reset or disable of the help mode.
-
-        The first plan to animate :attr:`~HelpAppBase.help_layout` widget instead of target to drift back
-        to :attr:`~HelpAppBase.help_activator` would need to temporarily deactivate the layout_x/y/pos_hints.
-        """
-        hlw = self.help_layout
-        hlw.cancel_ani_slide_back()
-
-        if self.displayed_help_id:
-            hlw.begin_ani_slide_back(self.help_activator.pos)
 
     def load_sounds(self):
         """ override for to pre-load audio sounds from app folder snd into sound file cache. """
@@ -1104,15 +1100,15 @@ class KivyMainApp(HelpAppBase):
 
         return mode_changed
 
-    def setup_app_states(self, app_state: AppStateType):
+    def setup_app_states(self, app_states: AppStateType):
         """ put app state variables into main app instance for to prepare framework app.run_app.
 
-        :param app_state:       dict of app states.
+        :param app_states:      dict of app states.
         """
-        self.vpo(f"KivyMainApp.setup_app_states {app_state}")
-        if isinstance(app_state.get('font_size', None), str):
-            app_state['font_size'] = sp(app_state['font_size'])     # very first app start
-        super().setup_app_states(app_state)
+        self.vpo(f"KivyMainApp.setup_app_states {app_states}")
+        if isinstance(app_states.get('font_size', None), str):
+            app_states['font_size'] = sp(app_states['font_size'])     # very first app start
+        super().setup_app_states(app_states)
 
     def show_message(self, message: str, title: str = "", is_error: bool = True):
         """ display (error) message popup to the user.
