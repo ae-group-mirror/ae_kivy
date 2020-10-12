@@ -126,7 +126,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.47'
+__version__ = '0.1.48'
 
 
 kivy.require('2.0.0')
@@ -1127,26 +1127,26 @@ class KivyMainApp(HelpAppBase):
 
         self.change_flow(id_of_flow('show', 'message'), popup_kwargs=popup_kwargs)
 
-    def show_popup(self, popup_class: Type[Union[Popup, DropDown]], **popup_attributes) -> Widget:
+    def show_popup(self, popup_class: Type[Union[Popup, DropDown]], **popup_kwargs) -> Widget:
         """ open Popup or DropDown using the `open` method. Overwriting the main app class method.
 
         :param popup_class:         class of the Popup or DropDown widget.
-        :param popup_attributes:    args for to be set as attributes of the popup class instance plus an optional
+        :param popup_kwargs:        args for to be set as attributes of the popup class instance plus an optional
                                     `parent` kwarg that will be passed as the popup parent widget arg
                                     to the popup.open method; if parent does not get passed then the root widget/layout
                                     of self.framework_app will passed into the popup.open method as the widget argument.
         :return:                    created and displayed/opened popup class instance.
         """
-        self.dpo(f"KivyMainApp.show_popup {popup_class} {popup_attributes}")
+        self.dpo(f"KivyMainApp.show_popup {popup_class} {popup_kwargs}")
 
         # framework_win has absolute screen coordinates and lacks x, y properties, therefore use app.root as def parent
-        parent = popup_attributes.pop('parent', self.framework_root)
-        popup_instance = popup_class(**popup_attributes)
+        parent = popup_kwargs.pop('parent', self.framework_root)
+        popup_instance = popup_class(**popup_kwargs)
         if self.prevent_keyboard_covering(popup_instance.y):
             container = getattr(popup_instance, '_container', None)
             if container:
                 container.clear_widgets()                       # clear container for Popup only
-            popup_instance = popup_class(**popup_attributes)    # new instance if kbd covering popup
+            popup_instance = popup_class(**popup_kwargs)        # new instance if kbd covering popup
 
         if not hasattr(popup_instance, 'close') and hasattr(popup_instance, 'dismiss'):
             popup_instance.close = popup_instance.dismiss       # create close() method alias for DropDown.dismiss()
