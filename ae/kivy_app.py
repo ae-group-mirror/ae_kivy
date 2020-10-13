@@ -126,7 +126,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.48'
+__version__ = '0.1.49'
 
 
 kivy.require('2.0.0')
@@ -951,12 +951,7 @@ class KivyMainApp(HelpAppBase):
         help_vars = dict()
         hlw = None
         if activate:
-            target = activator
-            if self.flow_id:
-                help_id = self.help_flow_id(self.flow_id)
-                target = self.help_widget(help_id, help_vars)
-                if target is activator:
-                    help_id = ''
+            target, help_id = self.help_target_and_id(help_vars)
             hlw = HelpLayout(target=target,
                              ps_hints=layout_ps_hints(*target.to_window(*target.pos), *target.size,
                                                       self.framework_win.width, self.framework_win.height))
@@ -1147,9 +1142,6 @@ class KivyMainApp(HelpAppBase):
             if container:
                 container.clear_widgets()                       # clear container for Popup only
             popup_instance = popup_class(**popup_kwargs)        # new instance if kbd covering popup
-
-        if not hasattr(popup_instance, 'close') and hasattr(popup_instance, 'dismiss'):
-            popup_instance.close = popup_instance.dismiss       # create close() method alias for DropDown.dismiss()
 
         popup_instance.open(parent)
 

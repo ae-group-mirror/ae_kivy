@@ -607,8 +607,6 @@ class TestEvents:
         app.show_popup(TestPopUp, parent=popup, test_attr=True)
         assert passed_pa == popup
 
-        assert hasattr(popup, 'close')
-
     @mock.patch('ae.kivy_app.sys_platform', return_value='android')
     def test_show_popup_like_android(self, restore_app_env):
         app = KivyAppTest()
@@ -635,8 +633,6 @@ class TestEvents:
         # noinspection PyTypeChecker
         app.show_popup(TestPopUp, parent=popup, test_attr=True)
         assert passed_pa == popup
-
-        assert hasattr(popup, 'close')
 
 
 called_bound = False
