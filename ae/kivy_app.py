@@ -58,17 +58,9 @@ Now all colors left unchanged (before only the ones with <unchanged>):
 For to implement a nice dark background for the dark theme we would need also to change the images in the properties:
 background_active, background_disabled_normal and self.background_normal.
 
-TODO: replace/extend TextInputCutCopyPaste bubble widget of kivy.uix.textinput.TextInput with (1) theme colors and
-(2) additional buttons for to add(Ctrl+Insert)/delete(Ctrl+Delete) autocompletion text entry (for mobile platforms).
-Very ugly, but when FlowBubble gets implemented (inherited from kivy.uix.bubble.Bubble) then we could patch
-kivy.uix.textinput.TextInputCutCopyPaste like::
-
-    class TextInputCutCopyPaste(FlowBubble):
-        ...
-
-    from kivy.uix import textinput
-    textinput.TextInputCutCopyPaste = TextInputCutCopyPaste
-    from kivy.uix.textinput import TextInput
+The bubble that is showing on long press of the TextInput widget (for to cut, copy, paste, ...) get monkey patched
+shortly/temporarily in the moment of the instantiation for to allow to translate the bubble menu options and for
+to add additional menu options for to memorize/forget auto-completion texts.
 
 
 unit tests
@@ -101,10 +93,13 @@ from kivy.metrics import sp                                                     
 from kivy.properties import (                                                               # type: ignore
     BooleanProperty, DictProperty, ListProperty, ObjectProperty, StringProperty)
 from kivy.uix.behaviors import ButtonBehavior, ToggleButtonBehavior                         # type: ignore
+from kivy.uix.bubble import BubbleButton                                                    # type: ignore
 from kivy.uix.dropdown import DropDown                                                      # type: ignore
 from kivy.uix.popup import Popup                                                            # type: ignore
 from kivy.uix.slider import Slider                                                          # type: ignore
-from kivy.uix.textinput import TextInput                                                    # type: ignore
+import kivy.uix.textinput                                                                   # type: ignore
+# noinspection PyProtectedMember
+from kivy.uix.textinput import TextInput, TextInputCutCopyPaste as _TextInputCutCopyPaste   # type: ignore
 from kivy.uix.widget import Widget                                                          # type: ignore
 
 from ae.base import sys_platform                                                            # type: ignore
@@ -126,7 +121,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.49'
+__version__ = '0.1.50'
 
 
 kivy.require('2.0.0')
@@ -498,6 +493,36 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
         return super().on_touch_down(touch)
 
 
+class ExtTextInputCutCopyPaste(_TextInputCutCopyPaste):                                     # pragma: no cover
+    """ overwrite kivy.uix.textinput.TextInputCutCopyPaste for to translate options and add autocompletion options. """
+    def __init__(self, **kwargs):
+        """ reset monkey patch of kivy.uix.textinput.TextInputCutCopyPaste done in FlowInput._show_cut_copy_paste().
+
+        reset has to be done here for to prevent endless recursion because python2 super(cls, instance) call results
+        in the same instance (instead of the overwritten instance) in the overwritten TextInputCutCopyPaste class.
+        """
+        kivy.uix.textinput.TextInputCutCopyPaste = _TextInputCutCopyPaste
+        super().__init__(**kwargs)
+
+    def on_parent(self, instance: Widget, value: Widget):
+        """ overwritten for to translate BubbleButton texts and for to add extra menus for to add/delete ac texts.
+
+        :param instance:        self.
+        :param value:           kivy main window.
+        """
+        super().on_parent(instance, value)
+        textinput = self.textinput
+        if textinput:
+            self.width = sp(297)
+            for child in self.content.children:
+                child.text = get_txt(child.text)
+            if not textinput.readonly:      # not possible: and textinput._ac_dropdown.attach_to:
+                # noinspection PyProtectedMember
+                self.add_widget(BubbleButton(text=get_txt("Memorize"), on_release=textinput._extend_ac_texts))
+                # noinspection PyProtectedMember
+                self.add_widget(BubbleButton(text=get_txt("Forget"), on_release=textinput._delete_ac_text))
+
+
 class FlowInput(HelpBehavior, TextInput):                                                             # pragma: no cover
     """ text input/edit widget with optional autocompletion. """
     focus_flow_id = StringProperty()        #: flow id that will be set when this widget get focus
@@ -535,13 +560,20 @@ class FlowInput(HelpBehavior, TextInput):                                       
         chi[self._matching_ac_index].square_fill_ink = self.auto_complete_selector_index_ink
         self.suggestion_text = self._matching_ac_texts[self._matching_ac_index][len(self.text):]    # type: ignore #mypy
 
-    def _delete_ac_text(self):
-        ac_text = self._matching_ac_texts[self._matching_ac_index]
-        self.auto_complete_texts.remove(ac_text)
-        self.on_text(self, self.text)       # redraw autocompletion dropdown
+    def _delete_ac_text(self, *_args):
+        if self._matching_ac_texts:   # prevent error if called from menu added by ExtTextInputCutCopyPaste.on_parent()
+            ac_text = self._matching_ac_texts[self._matching_ac_index]
+            self.auto_complete_texts.remove(ac_text)
+            self.on_text(self, self.text)       # redraw autocompletion dropdown
 
-    def _extend_ac_texts(self):
-        self.auto_complete_texts.insert(0, self.text)
+    def _extend_ac_texts(self, *_args):
+        if self.text:
+            self.auto_complete_texts.insert(0, self.text)
+
+    def _show_cut_copy_paste(self, *args, **kwargs):
+        kivy.uix.textinput.TextInputCutCopyPaste = ExtTextInputCutCopyPaste  # reset in ExtTextInputCutCopyPaste.__init_
+        super()._show_cut_copy_paste(*args, **kwargs)
+        kivy.uix.textinput.TextInputCutCopyPaste = _TextInputCutCopyPaste    # reset here too if already instantiated
 
     def keyboard_on_key_down(self, window: Any, keycode: Tuple[int, str], text: str, modifiers: List[str]) -> bool:
         """ overwritten TextInput/FocusBehavior kbd event handler.
