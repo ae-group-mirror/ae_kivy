@@ -29,6 +29,14 @@ class. This Kivy app class instance can be directly accessed from the main app c
 kivy widget classes
 -------------------
 
+The widgets provided by this portion are based on the kivy widgets and are respecting the :ref:`app-state-variables`
+specifying the desired app style (dark or light) and font size.
+
+Most of them also change automatically the :ref:`application-flow`.
+
+The following widgets provided by this portion will be registered in the kivy widget class maps by importing this module
+for to be available for your app:
+
 * :class:`AppStateSlider`: :class:`~kivy.uix.slider.Slider>` changing the value of :ref:`app-state-variables`.
 * :class:`FlowButton`: :class:`ImageButton` for to change the application flow.
 * :class:`FlowDropDown`: :class:`~kivy.uix.dropdown.DropDown` for to process application flow.
@@ -40,27 +48,6 @@ kivy widget classes
 * :class:`ImageButton`: button widget based on :class:`~kivy.uix.behaviors.ButtonBehavior` with an additional image.
 * :class:`MessageShowPopup`: simple message box widget.
 * :class:`OptionalButton`: dynamic kivy widget based on :class:`FlowButton` which can be dynamically hidden.
-
-
-text input widget
-^^^^^^^^^^^^^^^^^
-
-Until version 0.1.43 of this portion the background and text color switched with the light_theme app state.
-Now all colors left unchanged (before only the ones with <unchanged>):
-
-* background_color: Window.clearcolor            # default: 1, 1, 1, 1
-* cursor_color: app.font_color                   # default: 1, 0, 0, 1
-* disabled_foreground_color: <unchanged>         # default: 0, 0, 0, .5
-* foreground_color: app.font_color               # default: 0, 0, 0, 1
-* hint_text_color: <unchanged>                   # default: 0.5, 0.5, 0.5, 1.0
-* selection_color: <unchanged>                   # default: 0.1843, 0.6549, 0.8313, .5
-
-For to implement a nice dark background for the dark theme we would need also to change the images in the properties:
-background_active, background_disabled_normal and self.background_normal.
-
-The bubble that is showing on long press of the TextInput widget (for to cut, copy, paste, ...) get monkey patched
-shortly/temporarily in the moment of the instantiation for to allow to translate the bubble menu options and for
-to add additional menu options for to memorize/forget auto-completion texts.
 
 
 unit tests
@@ -121,7 +108,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.50'
+__version__ = '0.1.51'
 
 
 kivy.require('2.0.0')
@@ -322,7 +309,7 @@ def ensure_tap_kwargs_refs(init_kwargs: Dict[str, Any], tap_widget: Widget):
     :param init_kwargs:         kwargs of the widgets __init__ method.
     :param tap_widget:          reference to the tap widget.
 
-    This alternative version is only 10 % faster but much more confusing than the current implementation::
+    This alternative version is only 10 % faster but much less clean than the current implementation::
 
         if 'tap_kwargs' not in init_kwargs:
             init_kwargs['tap_kwargs'] = dict()
@@ -498,8 +485,9 @@ class ExtTextInputCutCopyPaste(_TextInputCutCopyPaste):                         
     def __init__(self, **kwargs):
         """ reset monkey patch of kivy.uix.textinput.TextInputCutCopyPaste done in FlowInput._show_cut_copy_paste().
 
-        reset has to be done here for to prevent endless recursion because python2 super(cls, instance) call results
-        in the same instance (instead of the overwritten instance) in the overwritten TextInputCutCopyPaste class.
+        reset has to be done before super() call below, for to prevent endless recursion because else the other
+        super(cls, instance) call (in python2 style within TextInputCutCopyPaste.__init__()) results
+        in the same instance (instead of the overwritten instance).
         """
         kivy.uix.textinput.TextInputCutCopyPaste = _TextInputCutCopyPaste
         super().__init__(**kwargs)
@@ -512,21 +500,55 @@ class ExtTextInputCutCopyPaste(_TextInputCutCopyPaste):                         
         """
         super().on_parent(instance, value)
         textinput = self.textinput
-        if textinput:
-            self.width = sp(297)
-            for child in self.content.children:
-                child.text = get_txt(child.text)
-            if not textinput.readonly:      # not possible: and textinput._ac_dropdown.attach_to:
-                # noinspection PyProtectedMember
-                self.add_widget(BubbleButton(text=get_txt("Memorize"), on_release=textinput._extend_ac_texts))
-                # noinspection PyProtectedMember
-                self.add_widget(BubbleButton(text=get_txt("Forget"), on_release=textinput._delete_ac_text))
+        if not textinput:
+            return
+
+        cont = self.content
+        font_size = App.get_running_app().main_app.font_size
+
+        for child in cont.children:
+            child.font_size = font_size
+            child.text = get_txt(child.text)
+
+        if not textinput.readonly:
+            # memorize/forget complete text to/from autocomplete because dropdown is not visible if this bubble is
+            self.add_widget(BubbleButton(text=get_txt("Memorize"), font_size=font_size,
+                                         on_release=textinput.extend_ac_with_text))
+            self.add_widget(BubbleButton(text=get_txt("Forget"), font_size=font_size,
+                                         on_release=textinput.delete_text_from_ac))
+
+        # estimate container size (exact calc not possible because button width / texture_size[0] is still 100 / 0)
+        width = cont.padding[0] + cont.padding[2] + len(cont.children) * (cont.spacing[0] + sp(126))
+        height = cont.padding[1] + cont.padding[3] + font_size * 1.5
+        self.size = width, height
 
 
 class FlowInput(HelpBehavior, TextInput):                                                             # pragma: no cover
-    """ text input/edit widget with optional autocompletion. """
+    """ text input/edit widget with optional autocompletion.
+
+    Until version 0.1.43 of this portion the background and text color of :class:`FlowInput` did automatically
+    get switched by a change of the light_theme app state. Now all colors left unchanged (before only the ones
+    with <unchanged>):
+
+    * background_color: Window.clearcolor            # default: 1, 1, 1, 1
+    * cursor_color: app.font_color                   # default: 1, 0, 0, 1
+    * disabled_foreground_color: <unchanged>         # default: 0, 0, 0, .5
+    * foreground_color: app.font_color               # default: 0, 0, 0, 1
+    * hint_text_color: <unchanged>                   # default: 0.5, 0.5, 0.5, 1.0
+    * selection_color: <unchanged>                   # default: 0.1843, 0.6549, 0.8313, .5
+
+    For to implement a dark background for the dark theme we would need also to change the images in the properties:
+    background_active, background_disabled_normal and self.background_normal.
+
+    Also the images/colors of the bubble that is showing e.g. on long press of the TextInput widget (cut/copy/paste/...)
+    kept unchanged - only the font_size get adapted and the bubble button texts get translated. For that the class
+    :class:`ExtTextInputCutCopyPaste` provided by this portion inherits from the original bubble class
+    :class:`~kivy.uix.textinput.TextInputCutCopyPaste`. Additionally the original bubble class gets monkey patched
+    shortly/temporarily in the moment of the instantiation for to translate the bubble menu options, change the font
+    sizes and add additional menu options for to memorize/forget auto-completion texts.
+    """
     focus_flow_id = StringProperty()        #: flow id that will be set when this widget get focus
-    unfocus_flow_id = StringProperty()      #: flow id that will be set when this widget get focus
+    unfocus_flow_id = StringProperty()      #: flow id that will be set when this widget lost focus
 
     auto_complete_texts: List[str] = ListProperty()     #: list of autocompletion texts
     auto_complete_selector_index_ink: Tuple[float, float, float, float] = ListProperty((0.69, 0.69, 0.69, 1))
@@ -560,20 +582,29 @@ class FlowInput(HelpBehavior, TextInput):                                       
         chi[self._matching_ac_index].square_fill_ink = self.auto_complete_selector_index_ink
         self.suggestion_text = self._matching_ac_texts[self._matching_ac_index][len(self.text):]    # type: ignore #mypy
 
-    def _delete_ac_text(self, *_args):
-        if self._matching_ac_texts:   # prevent error if called from menu added by ExtTextInputCutCopyPaste.on_parent()
+    def _delete_ac_text(self, ac_text: str = ""):
+        if not ac_text and self._matching_ac_texts:
             ac_text = self._matching_ac_texts[self._matching_ac_index]
+        if ac_text in self.auto_complete_texts:
             self.auto_complete_texts.remove(ac_text)
-            self.on_text(self, self.text)       # redraw autocompletion dropdown
+            self.on_text(self, self.text)       # type: ignore  # redraw autocompletion dropdown
 
-    def _extend_ac_texts(self, *_args):
+    def delete_text_from_ac(self, *_args):
+        """ check if current text is in autocompletion list and if yes then remove it.
+
+        called by FlowInput kbd event handler and from menu button added by ExtTextInputCutCopyPaste.on_parent().
+
+        :param _args:           unused event args.
+        """
+        self._delete_ac_text(self.text)
+
+    def extend_ac_with_text(self, *_args):
+        """ add non-empty text to autocompletion texts.
+
+        :param _args:           unused event args.
+        """
         if self.text:
             self.auto_complete_texts.insert(0, self.text)
-
-    def _show_cut_copy_paste(self, *args, **kwargs):
-        kivy.uix.textinput.TextInputCutCopyPaste = ExtTextInputCutCopyPaste  # reset in ExtTextInputCutCopyPaste.__init_
-        super()._show_cut_copy_paste(*args, **kwargs)
-        kivy.uix.textinput.TextInputCutCopyPaste = _TextInputCutCopyPaste    # reset here too if already instantiated
 
     def keyboard_on_key_down(self, window: Any, keycode: Tuple[int, str], text: str, modifiers: List[str]) -> bool:
         """ overwritten TextInput/FocusBehavior kbd event handler.
@@ -600,7 +631,7 @@ class FlowInput(HelpBehavior, TextInput):                                       
                 self._delete_ac_text()
 
         if key_name == 'insert' and 'ctrl' in modifiers:
-            self._extend_ac_texts()
+            self.extend_ac_with_text()
 
         return super().keyboard_on_key_down(window, keycode, text, modifiers)
 
@@ -646,6 +677,11 @@ class FlowInput(HelpBehavior, TextInput):                                       
         """ put selected autocompletion text into text input and close _ac_dropdown """
         self.text = selector.text
         self._ac_dropdown.dismiss()
+
+    def _show_cut_copy_paste(self, *args, **kwargs):
+        kivy.uix.textinput.TextInputCutCopyPaste = ExtTextInputCutCopyPaste  # reset in ExtTextInputCutCopyPaste.__init_
+        super()._show_cut_copy_paste(*args, **kwargs)
+        kivy.uix.textinput.TextInputCutCopyPaste = _TextInputCutCopyPaste    # reset here too if already instantiated
 
 
 class FlowPopup(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, ReliefCanvas, Popup):    # pragma: no cover
