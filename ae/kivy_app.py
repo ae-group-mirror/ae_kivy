@@ -1060,10 +1060,11 @@ class KivyMainApp(HelpAppBase):
         get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
 
-        win_rect = self.win_rectangle
-        if win_rect:                                # is empty tuple at very first app start
-            Window.left, Window.top = win_rect[:2]
-            Window.size = win_rect[2:]
+        if sys_platform() not in ('android', 'ios'):    # ignore last win pos on android/iOS, use always the full screen
+            win_rect = self.win_rectangle
+            if win_rect:                                # is empty tuple at very first app start
+                Window.left, Window.top = win_rect[:2]
+                Window.size = win_rect[2:]
 
     def on_flow_widget_focused(self):
         """ set focus to the widget referenced by the current flow id. """
