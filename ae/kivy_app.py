@@ -26,6 +26,20 @@ class. This Kivy app class instance can be directly accessed from the main app c
 :attr:`~ae.gui_app.MainAppBase.framework_app` attribute.
 
 
+kivy app class events
+^^^^^^^^^^^^^^^^^^^^^
+
+This portion is adding to the :ref:`application events` provided by :class:`~ae.gui_app.MainAppBase` the following
+events redirected from the Kivy :class:`~kivy.app.App` class (the original Kivy event/callback-method name is
+given in brackets):
+
+* on_kivy_app_build (build).
+* on_kivy_app_start (on_start)
+* on_app_pause (on_pause)
+* on_app_resume (on_resume)
+* on_kivy_app_stop (on_stop)
+
+
 kivy widget classes
 -------------------
 
@@ -108,7 +122,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.52'
+__version__ = '0.1.53'
 
 
 kivy.require('2.0.0')
@@ -762,6 +776,7 @@ class FrameworkApp(App):
 
         :return:                root widget (Main instance) of this app.
         """
+        self.main_app.call_method('on_kivy_app_build')
         Window.bind(on_resize=self.win_pos_size_change,
                     left=self.win_pos_size_change,
                     top=self.win_pos_size_change,
