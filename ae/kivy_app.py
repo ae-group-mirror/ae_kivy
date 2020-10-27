@@ -122,7 +122,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.53'
+__version__ = '0.1.54'
 
 
 kivy.require('2.0.0')
@@ -999,6 +999,16 @@ class KivyMainApp(HelpAppBase):
         return self.framework_app.run, self.framework_app.stop
 
     # overwritten and helper methods
+
+    def call_method_delayed(self, delay: float, method: str, *args, **kwargs):
+        """ in `delay` seconds call method with the passed args, catching and logging exceptions preventing app exit.
+
+        :param delay:       delay in seconds when to call the method specified by the `method` argument.
+        :param method:      name of the main app method to call.
+        :param args:        args passed to the main app method to be called.
+        :param kwargs:      kwargs passed to the main app method to be called.
+        """
+        Clock.schedule_once(lambda dt: self.call_method(method, *args, **kwargs), timeout=delay)
 
     def change_light_theme(self, light_theme: bool):
         """ change font and window clear/background colors to match 'light'/'black' themes.

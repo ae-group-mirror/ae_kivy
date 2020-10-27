@@ -313,6 +313,18 @@ class TestAppState:
 
 @skip_gitlab_ci
 class TestHelperMethods:
+    def test_call_method_delayed_invalid_method(self, restore_app_env):
+        app = KivyMainApp()
+        assert app.call_method_delayed(0.0, 'invalid_method_name') is None
+
+    def test_call_method_delayed_valid_method(self, ini_file, restore_app_env):
+        app = KivyAppTest(additional_cfg_files=(ini_file,))
+        assert not app.on_flow_id_called
+        app.call_method_delayed(0.0, 'on_flow_id')
+        assert not app.on_flow_id_called
+        Clock.tick()
+        assert app.on_flow_id_called
+
     def test_call_method_valid_method(self, ini_file, restore_app_env):
         app = KivyAppTest(additional_cfg_files=(ini_file,))
         assert not app.on_flow_id_called
@@ -326,8 +338,8 @@ class TestHelperMethods:
         app.run_app()
         assert app.on_run_called
 
-    def test_call_method_invalid_method(self, ini_file, restore_app_env):
-        app = KivyMainApp(additional_cfg_files=(ini_file,))
+    def test_call_method_invalid_method(self, restore_app_env):
+        app = KivyMainApp()
         assert app.call_method('invalid_method_name') is None
 
     def test_ensure_top_most_z_index(self, restore_app_env):
