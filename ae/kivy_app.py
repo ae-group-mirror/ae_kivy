@@ -122,7 +122,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.54'
+__version__ = '0.1.55'
 
 
 kivy.require('2.0.0')
@@ -205,6 +205,7 @@ Builder.load_string('''\
     height: int(app.app_states['font_size'] * 1.5)
     font_size: app.app_states['font_size']
     color: app.font_color
+    _touch_anim: 1.0
     canvas.before:
         Color:
             rgba: self.square_fill_ink
@@ -216,6 +217,22 @@ Builder.load_string('''\
         Ellipse:
             pos: self.ellipse_fill_pos or self.default_pos or self.pos
             size: self.ellipse_fill_size or self.default_size or self.size
+    canvas.after:
+        StencilPush
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        StencilUse
+        Color:
+            rgba: 0.99, 0.96, 0.09, 1.0 - self._touch_anim
+        Ellipse:
+            pos: self.center_x - self.width * self._touch_anim, self.center_y - self.height * self._touch_anim / 2
+            size: self.width * self._touch_anim * 2.1, self.height * self._touch_anim
+        StencilUnUse
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        StencilPop
     Image:
         id: themeLabelImage
         source: root.source
@@ -374,6 +391,7 @@ class ImageButton(ButtonBehavior, Factory.ImageLabel):                          
         self.register_event_type('on_long_tap')     # pylint: disable=maybe-no-member
         self.register_event_type('on_alt_tap')      # pylint: disable=maybe-no-member
         super().__init__(**kwargs)
+        self._touch_anim = 1.0
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
         """ check for additional events added by this class.
@@ -382,6 +400,8 @@ class ImageButton(ButtonBehavior, Factory.ImageLabel):                          
         :return:        True if event got processed/used.
         """
         if not self.disabled and self.collide_point(touch.x, touch.y):
+            self._touch_anim = 0.0
+            Animation(_touch_anim=1.0, t='out_sine', d=0.21).start(self)
             is_triple = touch.is_triple_tap
             if is_triple or touch.is_double_tap:
                 # pylint: disable=maybe-no-member
@@ -390,7 +410,7 @@ class ImageButton(ButtonBehavior, Factory.ImageLabel):                          
                 return True
             # pylint: disable=maybe-no-member
             touch.ud['long_touch_handler'] = long_touch_handler = lambda dt: self.dispatch('on_long_tap', touch)
-            Clock.schedule_once(long_touch_handler, 2.4)
+            Clock.schedule_once(long_touch_handler, 0.99)
         return super().on_touch_down(touch)         # does touch.grab(self)
 
     @staticmethod
@@ -743,6 +763,18 @@ class FlowToggler(HelpBehavior, ToggleButtonBehavior, Factory.ImageLabel):      
     def __init__(self, **kwargs):
         ensure_tap_kwargs_refs(kwargs, self)
         super().__init__(**kwargs)
+        self._touch_anim = 1.0
+
+    def on_touch_down(self, touch: MotionEvent) -> bool:
+        """ touch animation.
+
+        :param touch:   motion/touch event data.
+        :return:        True if event got processed/used.
+        """
+        if not self.disabled and self.collide_point(touch.x, touch.y):
+            self._touch_anim = 0.0
+            Animation(_touch_anim=1.0, t='out_sine', d=0.21).start(self)
+        return super().on_touch_down(touch)
 
 
 class FrameworkApp(App):
