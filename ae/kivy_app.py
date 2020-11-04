@@ -92,10 +92,11 @@ from kivy.lang import Builder, Observable, global_idmap                         
 from kivy.metrics import sp                                                                 # type: ignore
 # pylint: disable=no-name-in-module
 from kivy.properties import (                                                               # type: ignore
-    BooleanProperty, DictProperty, ListProperty, ObjectProperty, StringProperty)
+    BooleanProperty, DictProperty, ListProperty, NumericProperty, ObjectProperty, StringProperty)
 from kivy.uix.behaviors import ButtonBehavior, ToggleButtonBehavior                         # type: ignore
 from kivy.uix.bubble import BubbleButton                                                    # type: ignore
 from kivy.uix.dropdown import DropDown                                                      # type: ignore
+from kivy.uix.label import Label                                                            # type: ignore
 from kivy.uix.popup import Popup                                                            # type: ignore
 from kivy.uix.slider import Slider                                                          # type: ignore
 import kivy.uix.textinput                                                                   # type: ignore
@@ -122,7 +123,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.55'
+__version__ = '0.1.56'
 
 
 kivy.require('2.0.0')
@@ -188,7 +189,7 @@ Builder.load_string('''\
             pos: self.pos
             size: self.size
 
-<ImageLabel@ReliefCanvas+Label>:
+<ImageLabel>:
     ellipse_fill_ink: 1.0, 1.0, 1.0, 0.0
     ellipse_fill_pos: ()
     ellipse_fill_size: ()
@@ -205,7 +206,6 @@ Builder.load_string('''\
     height: int(app.app_states['font_size'] * 1.5)
     font_size: app.app_states['font_size']
     color: app.font_color
-    _touch_anim: 1.0
     canvas.before:
         Color:
             rgba: self.square_fill_ink
@@ -226,8 +226,10 @@ Builder.load_string('''\
         Color:
             rgba: 0.99, 0.96, 0.09, 1.0 - self._touch_anim
         Ellipse:
-            pos: self.center_x - self.width * self._touch_anim, self.center_y - self.height * self._touch_anim / 2
-            size: self.width * self._touch_anim * 2.1, self.height * self._touch_anim
+            pos:
+                round(self.center_x - self.width * self._touch_anim / 2.01), \
+                round(self.center_y - self.height * self._touch_anim / 2.01)
+            size: round(self.width * self._touch_anim), round(self.height * self._touch_anim)
         StencilUnUse
         Rectangle:
             pos: self.pos
@@ -367,7 +369,12 @@ class AppStateSlider(HelpBehavior, Slider):
     app_state_name = StringProperty()   #: name of the app state to be changed by this slider value
 
 
-class ImageButton(ButtonBehavior, Factory.ImageLabel):                                               # pragma: no cover
+class ImageLabel(ReliefCanvas, Label):
+    """ base label used for all labels and buttons. """
+    _touch_anim = NumericProperty(1.0)
+
+
+class ImageButton(ButtonBehavior, ImageLabel):                                               # pragma: no cover
     """ theme-able button base class with additional events for double/triple/long touches.
 
     :Events:
@@ -391,7 +398,6 @@ class ImageButton(ButtonBehavior, Factory.ImageLabel):                          
         self.register_event_type('on_long_tap')     # pylint: disable=maybe-no-member
         self.register_event_type('on_alt_tap')      # pylint: disable=maybe-no-member
         super().__init__(**kwargs)
-        self._touch_anim = 1.0
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
         """ check for additional events added by this class.
@@ -401,7 +407,7 @@ class ImageButton(ButtonBehavior, Factory.ImageLabel):                          
         """
         if not self.disabled and self.collide_point(touch.x, touch.y):
             self._touch_anim = 0.0
-            Animation(_touch_anim=1.0, t='out_sine', d=0.21).start(self)
+            Animation(_touch_anim=1.0, t='out_quad', d=0.39).start(self)
             is_triple = touch.is_triple_tap
             if is_triple or touch.is_double_tap:
                 # pylint: disable=maybe-no-member
@@ -755,7 +761,7 @@ class FlowPopup(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, Rel
         return super().on_touch_down(touch)
 
 
-class FlowToggler(HelpBehavior, ToggleButtonBehavior, Factory.ImageLabel):                          # pragma: no cover
+class FlowToggler(HelpBehavior, ToggleButtonBehavior, ImageLabel):                              # pragma: no cover
     """ toggle button changing flow id. """
     tap_flow_id = StringProperty()          #: the new flow id that will be set when this toggle button get released
     tap_kwargs = DictProperty()             #: kwargs dict passed to event handler (change_flow) when button get tapped
@@ -763,7 +769,6 @@ class FlowToggler(HelpBehavior, ToggleButtonBehavior, Factory.ImageLabel):      
     def __init__(self, **kwargs):
         ensure_tap_kwargs_refs(kwargs, self)
         super().__init__(**kwargs)
-        self._touch_anim = 1.0
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
         """ touch animation.
@@ -773,7 +778,7 @@ class FlowToggler(HelpBehavior, ToggleButtonBehavior, Factory.ImageLabel):      
         """
         if not self.disabled and self.collide_point(touch.x, touch.y):
             self._touch_anim = 0.0
-            Animation(_touch_anim=1.0, t='out_sine', d=0.21).start(self)
+            Animation(_touch_anim=1.0, t='out_quad', d=0.39).start(self)
         return super().on_touch_down(touch)
 
 
