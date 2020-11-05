@@ -1,14 +1,13 @@
 """ test ae.kivy_app portion. """
 import os
-from typing import cast
-from unittest.mock import MagicMock
-
 import pytest
 import shutil
-from unittest import mock
+from typing import cast
+from unittest.mock import MagicMock, patch
 
 from kivy.base import stopTouchApp
 from kivy.clock import Clock
+from kivy.core.window import Window
 from kivy.lang import Builder, Observable
 from kivy.properties import BooleanProperty
 from kivy.uix.popup import Popup
@@ -142,6 +141,23 @@ def test_ensure_tap_kwargs_refs_empty():
     wid = cast(Widget, object())  # create real Widget instance fails at gitlab-CI with "Unable to get a Window, abort."
 
     ensure_tap_kwargs_refs(kwargs, wid)
+    assert 'tap_kwargs' in kwargs
+
+    assert 'tap_widget' in kwargs['tap_kwargs']
+    assert kwargs['tap_kwargs']['tap_widget'] is wid
+
+    assert 'popup_kwargs' in kwargs['tap_kwargs']
+    assert 'parent' in kwargs['tap_kwargs']['popup_kwargs']
+    assert kwargs['tap_kwargs']['popup_kwargs']['parent'] is wid
+
+
+def test_ensure_tap_kwargs_refs_parent_from_tap_widget():
+    wid = cast(Widget, object())  # create real Widget instance fails at gitlab-CI with "Unable to get a Window, abort."
+    wid2 = cast(Widget, object())
+    assert wid != wid2
+    kwargs = dict(tap_kwargs=dict(tap_widget=wid))
+
+    ensure_tap_kwargs_refs(kwargs, wid2)
     assert 'tap_kwargs' in kwargs
 
     assert 'tap_widget' in kwargs['tap_kwargs']
@@ -438,6 +454,12 @@ class TestHelperMethods:
         app = KivyMainApp()
         assert app.play_vibrate(('invalid pattern', )) is None
 
+    def test_prevent_keyboard_covering(self, restore_app_env):
+        app = KivyMainApp()
+        with patch('ae.kivy_app.os_platform', 'android'):
+            assert not app.prevent_keyboard_covering(max(Window.keyboard_height + 1, 900))
+            assert app.prevent_keyboard_covering(-0.12)
+
 
 @skip_gitlab_ci
 class TestFlow:
@@ -636,7 +658,6 @@ class TestEvents:
         app.show_popup(TestPopUp, parent=popup, test_attr=True)
         assert passed_pa == popup
 
-    @mock.patch('ae.kivy_app.sys_platform', return_value='android')
     def test_show_popup_like_android(self, restore_app_env):
         app = KivyAppTest()
         called = False
@@ -653,15 +674,18 @@ class TestEvents:
                 called = True
                 passed_pa = parent
 
-        # noinspection PyTypeChecker
-        popup = app.show_popup(TestPopUp, test_attr=True)
-        assert called
-        assert hasattr(popup, 'test_attr')
-        assert popup.test_attr is True
+        with patch('ae.kivy_app.os_platform', return_value='android'):
+            with patch('ae.kivy_app.KivyMainApp.prevent_keyboard_covering', return_value=True):
 
-        # noinspection PyTypeChecker
-        app.show_popup(TestPopUp, parent=popup, test_attr=True)
-        assert passed_pa == popup
+                # noinspection PyTypeChecker
+                popup = app.show_popup(TestPopUp, test_attr=True)
+                assert called
+                assert hasattr(popup, 'test_attr')
+                assert popup.test_attr is True
+
+                # noinspection PyTypeChecker
+                app.show_popup(TestPopUp, parent=popup, test_attr=True)
+                assert passed_pa == popup
 
 
 called_bound = False

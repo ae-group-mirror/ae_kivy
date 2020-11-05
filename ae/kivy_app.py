@@ -104,7 +104,7 @@ import kivy.uix.textinput                                                       
 from kivy.uix.textinput import TextInput, TextInputCutCopyPaste as _TextInputCutCopyPaste   # type: ignore
 from kivy.uix.widget import Widget                                                          # type: ignore
 
-from ae.base import sys_platform                                                            # type: ignore
+from ae.base import os_platform                                                             # type: ignore
 from ae.paths import app_docs_path                                                          # type: ignore
 from ae.files import FilesRegister, CachedFile                                              # type: ignore
 from ae.i18n import default_language, get_f_string, get_text                                # type: ignore
@@ -123,7 +123,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.58'
+__version__ = '0.1.59'
 
 
 kivy.require('2.0.0')
@@ -1122,7 +1122,7 @@ class KivyMainApp(HelpAppBase):
         get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
 
-        if sys_platform() not in ('android', 'ios'):    # ignore last win pos on android/iOS, use always the full screen
+        if os_platform not in ('android', 'ios'):       # ignore last win pos on android/iOS, use always the full screen
             win_rect = self.win_rectangle
             if win_rect:                                # is empty tuple at very first app start
                 Window.left, Window.top = win_rect[:2]
@@ -1217,7 +1217,7 @@ class KivyMainApp(HelpAppBase):
         :param input_box_bottom:    y position of the bottom of the input field box.
         :return:                    True if keyboard is covering the passed y/bottom position, else False.
         """
-        if sys_platform() != 'android':
+        if os_platform != 'android':
             return False
 
         keyboard_height = Window.keyboard_height or Window.height / 2  # 'or'-fallback because SDL2 reports 0 kbd height
