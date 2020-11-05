@@ -123,7 +123,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.57'
+__version__ = '0.1.58'
 
 
 kivy.require('2.0.0')
@@ -355,11 +355,11 @@ def ensure_tap_kwargs_refs(init_kwargs: Dict[str, Any], tap_widget: Widget):
             tap_kwargs['popup_kwargs'] = dict()
         popup_kwargs = tap_kwargs['popup_kwargs']
         if 'parent' not in popup_kwargs:
-            popup_kwargs['parent'] = tap_widget
+            popup_kwargs['parent'] = tap_kwargs['tap_widget']
 
     """
     init_kwargs['tap_kwargs'] = tap_kwargs = init_kwargs.get('tap_kwargs', dict())
-    tap_kwargs['tap_widget'] = tap_kwargs.get('tap_widget', tap_widget)
+    tap_kwargs['tap_widget'] = tap_widget = tap_kwargs.get('tap_widget', tap_widget)
     tap_kwargs['popup_kwargs'] = popup_kwargs = tap_kwargs.get('popup_kwargs', dict())
     popup_kwargs['parent'] = popup_kwargs.get('parent', tap_widget)
 

@@ -137,11 +137,28 @@ def test_main_app_class_abstracts():
     assert hasattr(MainAppBase, 'init_app')
 
 
-def test_ensure_tap_kwargs_refs():
+def test_ensure_tap_kwargs_refs_empty():
     kwargs = dict()
     wid = cast(Widget, object())  # create real Widget instance fails at gitlab-CI with "Unable to get a Window, abort."
 
     ensure_tap_kwargs_refs(kwargs, wid)
+    assert 'tap_kwargs' in kwargs
+
+    assert 'tap_widget' in kwargs['tap_kwargs']
+    assert kwargs['tap_kwargs']['tap_widget'] is wid
+
+    assert 'popup_kwargs' in kwargs['tap_kwargs']
+    assert 'parent' in kwargs['tap_kwargs']['popup_kwargs']
+    assert kwargs['tap_kwargs']['popup_kwargs']['parent'] is wid
+
+
+def test_ensure_tap_kwargs_refs_full():
+    wid = cast(Widget, object())  # create real Widget instance fails at gitlab-CI with "Unable to get a Window, abort."
+    wid2 = cast(Widget, object())
+    assert wid != wid2
+    kwargs = dict(tap_kwargs=dict(tap_widget=wid, popup_kwargs=dict(parent=wid)))
+
+    ensure_tap_kwargs_refs(kwargs, wid2)
     assert 'tap_kwargs' in kwargs
 
     assert 'tap_widget' in kwargs['tap_kwargs']
