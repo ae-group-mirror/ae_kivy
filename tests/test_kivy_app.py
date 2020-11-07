@@ -454,12 +454,6 @@ class TestHelperMethods:
         app = KivyMainApp()
         assert app.play_vibrate(('invalid pattern', )) is None
 
-    def test_prevent_keyboard_covering(self, restore_app_env):
-        app = KivyMainApp()
-        with patch('ae.kivy_app.os_platform', 'android'):
-            assert not app.prevent_keyboard_covering(max(Window.keyboard_height + 1, 900))
-            assert app.prevent_keyboard_covering(-0.12)
-
 
 @skip_gitlab_ci
 class TestFlow:
@@ -580,8 +574,8 @@ class TestEvents:
         app.on_kbd_input_mode_change('', dict())
         assert app.kbd_input_mode == ''
 
-        app.on_kbd_input_mode_change('any', dict())
-        assert app.kbd_input_mode == 'any'
+        app.on_kbd_input_mode_change('below_target', dict())
+        assert app.kbd_input_mode == 'below_target'
 
         # app.kbd_input_mode = old_mode
         assert app.on_kbd_input_mode_change(old_mode, dict())
@@ -675,17 +669,15 @@ class TestEvents:
                 passed_pa = parent
 
         with patch('ae.kivy_app.os_platform', return_value='android'):
-            with patch('ae.kivy_app.KivyMainApp.prevent_keyboard_covering', return_value=True):
+            # noinspection PyTypeChecker
+            popup = app.show_popup(TestPopUp, test_attr=True)
+            assert called
+            assert hasattr(popup, 'test_attr')
+            assert popup.test_attr is True
 
-                # noinspection PyTypeChecker
-                popup = app.show_popup(TestPopUp, test_attr=True)
-                assert called
-                assert hasattr(popup, 'test_attr')
-                assert popup.test_attr is True
-
-                # noinspection PyTypeChecker
-                app.show_popup(TestPopUp, parent=popup, test_attr=True)
-                assert passed_pa == popup
+            # noinspection PyTypeChecker
+            app.show_popup(TestPopUp, parent=popup, test_attr=True)
+            assert passed_pa == popup
 
 
 called_bound = False

@@ -46,7 +46,7 @@ kivy widget classes
 The widgets provided by this portion are based on the kivy widgets and are respecting the :ref:`app-state-variables`
 specifying the desired app style (dark or light) and font size.
 
-Most of them also change automatically the :ref:`application-flow`.
+Most of them also change automatically the :ref:`application flow`.
 
 The following widgets provided by this portion will be registered in the kivy widget class maps by importing this module
 for to be available for your app:
@@ -123,18 +123,12 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.59'
+__version__ = '0.1.60'
 
 
 kivy.require('2.0.0')
 # 1.9.1 is needed for Window.softinput_mode 'below_target'
 # 2.0.0 is needed for Animation Sequence (>= 2.0.0rc2) and ScrollView recursion (> 2.0.0rc3) bug fixes
-
-# if the entry field is on top of the screen then it will be disappear with below_target mode
-# and in the default mode ('') the keyboard will cover the entry field if it is in the lower part of the screen
-# therefore commented out the following two code lines (and setting it now depending on the entry field y position)
-# if Window:                                  # is None on gitlab ci
-#    Window.softinput_mode = 'below_target'   # ensure android keyboard is not covering Popup/text input if at bottom
 
 MAIN_KV_FILE_NAME = 'main.kv'   #: default file name of the main kv file
 
@@ -371,7 +365,7 @@ class AppStateSlider(HelpBehavior, Slider):
 
 class ImageLabel(ReliefCanvas, Label):
     """ base label used for all labels and buttons. """
-    _touch_anim = NumericProperty(1.0)
+    _touch_anim = NumericProperty(1.0)  #: used for animation to display that the widget got touched
 
 
 class ImageButton(ButtonBehavior, ImageLabel):                                               # pragma: no cover
@@ -813,6 +807,7 @@ class FrameworkApp(App):
 
         :return:                root widget (Main instance) of this app.
         """
+        self.main_app.vpo("FrameworkApp.build")
         self.main_app.call_method('on_kivy_app_build')
         Window.bind(on_resize=self.win_pos_size_change,
                     left=self.win_pos_size_change,
@@ -853,6 +848,7 @@ class FrameworkApp(App):
 
         Emits the `on_kivy_app_start` event.
        """
+        self.main_app.vpo("FrameworkApp.on_start")
         self.main_app.framework_win = self.root.parent
         self.win_pos_size_change()  # init. app./self.landscape (on app startup and after build)
         self.main_app.call_method('on_kivy_app_start')
@@ -864,6 +860,7 @@ class FrameworkApp(App):
 
         :return:                True.
         """
+        self.main_app.vpo("FrameworkApp.on_pause")
         self.main_app.save_app_states()
         self.main_app.call_method('on_app_pause')
         return True
@@ -875,6 +872,7 @@ class FrameworkApp(App):
 
         :return:                True.
         """
+        self.main_app.vpo("FrameworkApp.on_resume")
         self.main_app.load_app_states()
         self.main_app.call_method('on_app_resume')
         return True
@@ -885,6 +883,7 @@ class FrameworkApp(App):
         Emits the `on_kivy_app_stop` event whereas the method :meth:`~ae.gui_app.MainAppBase.stop_app`
         emits the `on_app_stop` event.
         """
+        self.main_app.vpo("FrameworkApp.on_stop")
         self.main_app.save_app_states()
         self.main_app.call_method('on_kivy_app_stop')
 
@@ -1121,6 +1120,7 @@ class KivyMainApp(HelpAppBase):
         # super().on_app_start()      # call of ae.gui_app.MainAppBase.on_app_start() not needed
         get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
+        Window.softinput_mode = self.kbd_input_mode
 
         if os_platform not in ('android', 'ios'):       # ignore last win pos on android/iOS, use always the full screen
             win_rect = self.win_rectangle
@@ -1146,6 +1146,7 @@ class KivyMainApp(HelpAppBase):
         self.vpo(f"MainAppBase.on_kbd_input_mode_change to {mode}")
         self.change_app_state('kbd_input_mode', mode)
         self.set_var('kbd_input_mode', mode, section=APP_STATE_SECTION_NAME)  # add optional app state var to config
+        Window.softinput_mode = mode
         return True
 
     def on_lang_code(self):
@@ -1211,21 +1212,6 @@ class KivyMainApp(HelpAppBase):
             except Exception as ex:
                 self.po(f"KivyMainApp.play_vibrate exception {ex}")
 
-    def prevent_keyboard_covering(self, input_box_bottom: float) -> bool:
-        """ prevent that the virtual keyboard popping up on mobile platforms is covering the text input field.
-
-        :param input_box_bottom:    y position of the bottom of the input field box.
-        :return:                    True if keyboard is covering the passed y/bottom position, else False.
-        """
-        if os_platform != 'android':
-            return False
-
-        keyboard_height = Window.keyboard_height or Window.height / 2  # 'or'-fallback because SDL2 reports 0 kbd height
-        mode_changed = input_box_bottom < keyboard_height
-        Window.softinput_mode = self.kbd_input_mode if mode_changed else ''
-
-        return mode_changed
-
     def setup_app_states(self, app_states: AppStateType):
         """ put app state variables into main app instance for to prepare framework app.run_app.
 
@@ -1268,12 +1254,6 @@ class KivyMainApp(HelpAppBase):
         # framework_win has absolute screen coordinates and lacks x, y properties, therefore use app.root as def parent
         parent = popup_kwargs.pop('parent', self.framework_root)
         popup_instance = popup_class(**popup_kwargs)
-        if self.prevent_keyboard_covering(popup_instance.y):
-            container = getattr(popup_instance, '_container', None)
-            if container:
-                container.clear_widgets()                       # clear container for Popup only
-            popup_instance = popup_class(**popup_kwargs)        # new instance if kbd covering popup
-
         popup_instance.open(parent)
 
         return popup_instance
