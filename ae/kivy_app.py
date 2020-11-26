@@ -123,7 +123,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.60'
+__version__ = '0.1.61'
 
 
 kivy.require('2.0.0')
@@ -840,18 +840,33 @@ class FrameworkApp(App):
         """
         return self.main_app.call_method('on_key_release', keyboard.command_keys.get(key_code, str(key_code)))
 
-    def on_start(self):
-        """ kivy app start event, called after :meth:`MainAppBase.run_app` method and MainAppBase.on_app_start event.
+    def on_file_chooser_entry_added(self, view_entries: List[Widget]):                                # pragma: no cover
+        """ on_entry_added/on_subentry_to_entry event handler for to patch theme-related properties of FileChooser.
 
-        Kivy just created the main layout by calling its :meth:`~kivy.app.App.build` method and
-        attached it to the main window.
+        :param view_entries:    list of view entries for a node (icon or label) of the file chooser.
 
-        Emits the `on_kivy_app_start` event.
-       """
-        self.main_app.vpo("FrameworkApp.on_start")
-        self.main_app.framework_win = self.root.parent
-        self.win_pos_size_change()  # init. app./self.landscape (on app startup and after build)
-        self.main_app.call_method('on_kivy_app_start')
+        .. note::
+            This method get called for each node in the moment when a file entry widget (FileListEntry or FileIconEntry)
+            gets added to the file chooser (FileChooser widget).
+
+            Therefore the patches done here are not affected if the user preferences (e.g. the font size or light/dark
+            theme) get changed while a file chooser instance is displayed. In this case the user has to simply close
+            and reopen/re-instantiate the file chooser for to display the nodes with the just changed user preferences.
+        """
+        for entry in view_entries:
+            if '.FileListEntry ' in str(entry.proxy_ref):  # TypeError if using isinstance(entry, Factory.FileListEntry)
+                entry.color_selected = [.69, .69, .69, 1.] if self.app_states['light_theme'] else [.3, .3, .3, 1.]
+                # entry.children[0].children[1] is entry.ids.filename
+                entry = entry.children[0]       # children[0] is BoxLayout of FileListEntry
+                entry.children[1].color = self.font_color                           # children[1] is file name label
+                entry.children[1].font_size = min(entry.height * 0.90, self.app_states['font_size'])
+                entry.children[0].color = self.font_color                           # children[0] is file size label
+                entry.children[0].font_size = min(entry.height * 0.69, self.app_states['font_size'])
+            elif '.FileIconEntry ' in str(entry.proxy_ref):  # TypeError if using isinstance()
+                entry.children[1].color = self.font_color
+                entry.children[1].font_size = min(entry.children[1].height * 0.99, self.app_states['font_size'])
+                entry.children[0].color = self.font_color if self.app_states['light_theme'] else [.81, .81, .81, 1.]
+                entry.children[0].font_size = min(entry.children[0].height * 0.90, self.app_states['font_size'])
 
     def on_pause(self) -> bool:
         """ app pause event automatically saving the app states.
@@ -876,6 +891,19 @@ class FrameworkApp(App):
         self.main_app.load_app_states()
         self.main_app.call_method('on_app_resume')
         return True
+
+    def on_start(self):
+        """ kivy app start event, called after :meth:`MainAppBase.run_app` method and MainAppBase.on_app_start event.
+
+        Kivy just created the main layout by calling its :meth:`~kivy.app.App.build` method and
+        attached it to the main window.
+
+        Emits the `on_kivy_app_start` event.
+       """
+        self.main_app.vpo("FrameworkApp.on_start")
+        self.main_app.framework_win = self.root.parent
+        self.win_pos_size_change()  # init. app./self.landscape (on app startup and after build)
+        self.main_app.call_method('on_kivy_app_start')
 
     def on_stop(self):
         """ quit app event automatically saving the app states.
