@@ -123,7 +123,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.61'
+__version__ = '0.1.62'
 
 
 kivy.require('2.0.0')
@@ -305,7 +305,7 @@ Builder.load_string('''\
     help_id: app.main_app.help_flow_id(self.tap_flow_id)
     help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
     icon_name: ""
-    on_release: app.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
+    on_state: app.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
     source:
         app.main_app.img_file(self.icon_name or flow_key_split(self.tap_flow_id)[0], \
                               app.app_states['font_size'], app.app_states['light_theme'])
@@ -852,20 +852,26 @@ class FrameworkApp(App):
             Therefore the patches done here are not affected if the user preferences (e.g. the font size or light/dark
             theme) get changed while a file chooser instance is displayed. In this case the user has to simply close
             and reopen/re-instantiate the file chooser for to display the nodes with the just changed user preferences.
+
+            Theme adaption is still missing for the file chooser progress: all font sizes and colors of the currently
+            used :class:`~kivy.uix.filechooser.FileChooserProgress` are hard-coded, so a theme-aware progress class
+            has to be implemented (and assigned to the :attr:`~kivy.uix.filechooser.FileChooserController.progress_cls`
+            property).
+
         """
         for entry in view_entries:
-            if '.FileListEntry ' in str(entry.proxy_ref):  # TypeError if using isinstance(entry, Factory.FileListEntry)
-                entry.color_selected = [.69, .69, .69, 1.] if self.app_states['light_theme'] else [.3, .3, .3, 1.]
-                # entry.children[0].children[1] is entry.ids.filename
-                entry = entry.children[0]       # children[0] is BoxLayout of FileListEntry
-                entry.children[1].color = self.font_color                           # children[1] is file name label
-                entry.children[1].font_size = min(entry.height * 0.90, self.app_states['font_size'])
-                entry.children[0].color = self.font_color                           # children[0] is file size label
-                entry.children[0].font_size = min(entry.height * 0.69, self.app_states['font_size'])
-            elif '.FileIconEntry ' in str(entry.proxy_ref):  # TypeError if using isinstance()
+            if 'FileListEntry' in str(entry):               # isinstance(entry, Factory.FileListEntry) -> TypeError
+                box, entry = entry, entry.children[0]       # children[0] is BoxLayout of FileListEntry
+                # box.children[0].children[1] is box.ids.filename
+                box.color_selected = [0.69, 0.69, 0.69, 1.0] if self.app_states['light_theme'] else [0.3, 0.3, 0.3, 1.0]
+                entry.children[1].color = self.font_color   # children[1] is file name label
+                entry.children[1].font_size = min(box.height * 0.90, self.app_states['font_size'])
+                entry.children[0].color = self.font_color   # children[0] is file size label
+                entry.children[0].font_size = min(box.height * 0.69, self.app_states['font_size'])
+            elif 'FileIconEntry' in str(entry):             # TypeError if using isinstance()
                 entry.children[1].color = self.font_color
                 entry.children[1].font_size = min(entry.children[1].height * 0.99, self.app_states['font_size'])
-                entry.children[0].color = self.font_color if self.app_states['light_theme'] else [.81, .81, .81, 1.]
+                entry.children[0].color = self.font_color if self.app_states['light_theme'] else [0.81, 0.81, 0.81, 1.0]
                 entry.children[0].font_size = min(entry.children[0].height * 0.90, self.app_states['font_size'])
 
     def on_pause(self) -> bool:

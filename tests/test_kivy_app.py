@@ -7,7 +7,6 @@ from unittest.mock import MagicMock, patch
 
 from kivy.base import stopTouchApp
 from kivy.clock import Clock
-from kivy.core.window import Window
 from kivy.lang import Builder, Observable
 from kivy.properties import BooleanProperty
 from kivy.uix.popup import Popup
