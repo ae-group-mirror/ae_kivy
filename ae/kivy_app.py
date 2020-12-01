@@ -123,7 +123,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.62'
+__version__ = '0.1.63'
 
 
 kivy.require('2.0.0')
@@ -356,6 +356,24 @@ def ensure_tap_kwargs_refs(init_kwargs: Dict[str, Any], tap_widget: Widget):
     tap_kwargs['tap_widget'] = tap_widget = tap_kwargs.get('tap_widget', tap_widget)
     tap_kwargs['popup_kwargs'] = popup_kwargs = tap_kwargs.get('popup_kwargs', dict())
     popup_kwargs['parent'] = popup_kwargs.get('parent', tap_widget)
+
+
+def update_event_kwargs(widget: Widget, popup_kwargs: Optional[Dict[str, Any]] = None, **tap_kwargs) -> Dict[str, Any]:
+    """ update widget's tap_kwargs property and return the updated dictionary (for kv rule of tap_kwargs).
+
+    :param widget:              widget with tap_kwargs property to be updated.
+    :param popup_kwargs:        dict with items for to update popup_kwargs key of tap_kwargs
+    :param tap_kwargs:          additional tap_kwargs items to update.
+    :return:
+    """
+    handle = dict(tap_kwargs=widget.tap_kwargs)
+    ensure_tap_kwargs_refs(handle, widget)
+    new_kwargs = handle['tap_kwargs']
+    if popup_kwargs:
+        new_kwargs['popup_kwargs'].update(popup_kwargs)
+    if tap_kwargs:
+        new_kwargs.update(tap_kwargs)
+    return new_kwargs
 
 
 class AppStateSlider(HelpBehavior, Slider):
@@ -609,12 +627,13 @@ class FlowInput(HelpBehavior, TextInput):                                       
                                 Set index to zero if the old/last index was on the last item in the matching list.
         """
         cnt = len(self._matching_ac_texts)
-        chi = list(reversed(self._ac_dropdown.container.children))
-        idx = self._matching_ac_index
-        chi[idx].square_fill_ink = Window.clearcolor
-        self._matching_ac_index = (idx + delta + cnt) % cnt
-        chi[self._matching_ac_index].square_fill_ink = self.auto_complete_selector_index_ink
-        self.suggestion_text = self._matching_ac_texts[self._matching_ac_index][len(self.text):]    # type: ignore #mypy
+        if cnt:
+            chi = list(reversed(self._ac_dropdown.container.children))
+            idx = self._matching_ac_index
+            chi[idx].square_fill_ink = Window.clearcolor
+            self._matching_ac_index = (idx + delta + cnt) % cnt
+            chi[self._matching_ac_index].square_fill_ink = self.auto_complete_selector_index_ink
+            self.suggestion_text = self._matching_ac_texts[self._matching_ac_index][len(self.text):]    # type: ignore #mypy
 
     def _delete_ac_text(self, ac_text: str = ""):
         if not ac_text and self._matching_ac_texts:
@@ -651,7 +670,7 @@ class FlowInput(HelpBehavior, TextInput):                                       
         """
         key_name = keycode[1]
         if self._ac_dropdown.attach_to:
-            if key_name in ('enter', 'right'):
+            if key_name in ('enter', 'right') and len(self._matching_ac_texts) > self._matching_ac_index:
                 self.suggestion_text = ""
                 self.text = self._matching_ac_texts[self._matching_ac_index]
                 self._ac_dropdown.dismiss()
