@@ -17,7 +17,7 @@ from ae.i18n import default_language
 from ae.gui_app import APP_STATE_SECTION_NAME, id_of_flow, flow_key, replace_flow_action, MainAppBase
 from ae.kivy_app import (
     MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN,
-    KivyMainApp, FrameworkApp, ensure_tap_kwargs_refs, get_txt)
+    KivyMainApp, FrameworkApp, ensure_tap_kwargs_refs, get_txt, update_event_kwargs)
 
 
 TST_VAR = 'win_rectangle'
@@ -182,6 +182,25 @@ def test_ensure_tap_kwargs_refs_full():
     assert 'popup_kwargs' in kwargs['tap_kwargs']
     assert 'parent' in kwargs['tap_kwargs']['popup_kwargs']
     assert kwargs['tap_kwargs']['popup_kwargs']['parent'] is wid
+
+
+def test_update_event_kwargs():
+    wid = MagicMock()  # create real Widget instance fails at gitlab-CI
+    event_dict = dict()
+    wid.tap_kwargs = event_dict
+    assert update_event_kwargs(wid) is event_dict
+
+    assert 'tap_widget' in update_event_kwargs(wid)
+    assert 'popup_kwargs' in update_event_kwargs(wid)
+    assert 'parent' in update_event_kwargs(wid)['popup_kwargs']
+
+    popup_dict = dict(popup_extra_kwarg='tst')
+    assert 'popup_kwargs' in update_event_kwargs(wid, popup_kwargs=popup_dict)
+    assert 'popup_extra_kwarg' in update_event_kwargs(wid)['popup_kwargs']
+    assert update_event_kwargs(wid)['popup_kwargs']['popup_extra_kwarg'] == 'tst'
+
+    assert 'extra_kwarg' in update_event_kwargs(wid, extra_kwarg='extra_tst')
+    assert update_event_kwargs(wid)['extra_kwarg'] == 'extra_tst'
 
 
 SKIP_EXPRESSION = "'CI_PROJECT_ID' in os.environ"

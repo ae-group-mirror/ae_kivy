@@ -633,7 +633,7 @@ class FlowInput(HelpBehavior, TextInput):                                       
             chi[idx].square_fill_ink = Window.clearcolor
             self._matching_ac_index = (idx + delta + cnt) % cnt
             chi[self._matching_ac_index].square_fill_ink = self.auto_complete_selector_index_ink
-            self.suggestion_text = self._matching_ac_texts[self._matching_ac_index][len(self.text):]    # type: ignore #mypy
+            self.suggestion_text = self._matching_ac_texts[self._matching_ac_index][len(self.text):]  # type: ignore
 
     def _delete_ac_text(self, ac_text: str = ""):
         if not ac_text and self._matching_ac_texts:
