@@ -123,7 +123,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.63'
+__version__ = '0.1.64'
 
 
 kivy.require('2.0.0')
@@ -1065,7 +1065,7 @@ class KivyMainApp(HelpAppBase):
     unselected_item_ink: tuple = (0.39, 0.39, 0.39, 0.18)   #: rgba color for list items (unselected)
 
     get_txt_ = get_txt                                      #: make i18n translations available via main app instance
-    kbd_input_mode: str = 'pan'                             #: optional app state for to set Window[Base].softinput_mode
+    kbd_input_mode: str = 'scale'                           #: optional app state for to set Window[Base].softinput_mode
     documents_root_path: str = "."                          #: root file path for app documents, e.g. for import/export
 
     _debug_enable_clicks: int = 0
