@@ -1,4 +1,4 @@
-kivy==2.0.0rc4
+kivy
 plyer
 ae_base
 ae_paths

@@ -123,7 +123,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.64'
+__version__ = '0.1.65'
 
 
 kivy.require('2.0.0')
