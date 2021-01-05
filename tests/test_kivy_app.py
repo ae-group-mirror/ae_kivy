@@ -95,7 +95,7 @@ class KivyAppTest(KivyMainApp):
         """ called from KivyMainApp """
         self.on_resume_called = True
 
-    def on_kivy_app_stop(self):
+    def on_app_stopped(self):
         """ called from KivyMainApp """
         self.on_stop_called = True
 

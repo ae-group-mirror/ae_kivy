@@ -33,11 +33,12 @@ This portion is adding to the :ref:`application events` provided by :class:`~ae.
 events redirected from the Kivy :class:`~kivy.app.App` class (the original Kivy event/callback-method name is
 given in brackets):
 
-* on_kivy_app_build (build).
-* on_kivy_app_start (on_start)
-* on_app_pause (on_pause)
-* on_app_resume (on_resume)
-* on_kivy_app_stop (on_stop)
+* on_app_build (after main_app.on_app_run and before kivy.app.App.build).
+* on_app_built (after kivy.app.App.build).
+* on_app_started (kivy.app.App.on_start)
+* on_app_pause (kivy.app.App.on_pause)
+* on_app_resume (kivy.app.App.on_resume)
+* on_app_stopped (kivy.app.App.on_stop)
 
 
 kivy widget classes
@@ -106,7 +107,7 @@ from kivy.uix.widget import Widget                                              
 
 from ae.base import os_platform                                                             # type: ignore
 from ae.paths import app_docs_path                                                          # type: ignore
-from ae.files import FilesRegister, CachedFile                                              # type: ignore
+from ae.files import CachedFile                                                             # type: ignore
 from ae.i18n import default_language, get_f_string, get_text                                # type: ignore
 from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED                               # type: ignore
 
@@ -123,7 +124,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.65'
+__version__ = '0.1.66'
 
 
 kivy.require('2.0.0')
@@ -827,7 +828,7 @@ class FrameworkApp(App):
         :return:                root widget (Main instance) of this app.
         """
         self.main_app.vpo("FrameworkApp.build")
-        self.main_app.call_method('on_kivy_app_build')
+        self.main_app.call_method('on_app_build')
         Window.bind(on_resize=self.win_pos_size_change,
                     left=self.win_pos_size_change,
                     top=self.win_pos_size_change,
@@ -835,6 +836,7 @@ class FrameworkApp(App):
                     on_key_up=self.key_release_from_kivy)
 
         self.main_app.framework_root = root = Factory.Main()
+        self.main_app.call_method('on_app_built')
         return root
 
     def key_press_from_kivy(self, keyboard: Any, key_code: int, _scan_code: int, key_text: Optional[str],
@@ -923,22 +925,22 @@ class FrameworkApp(App):
         Kivy just created the main layout by calling its :meth:`~kivy.app.App.build` method and
         attached it to the main window.
 
-        Emits the `on_kivy_app_start` event.
+        Emits the `on_app_started` event.
        """
         self.main_app.vpo("FrameworkApp.on_start")
         self.main_app.framework_win = self.root.parent
         self.win_pos_size_change()  # init. app./self.landscape (on app startup and after build)
-        self.main_app.call_method('on_kivy_app_start')
+        self.main_app.call_method('on_app_started')
 
     def on_stop(self):
         """ quit app event automatically saving the app states.
 
-        Emits the `on_kivy_app_stop` event whereas the method :meth:`~ae.gui_app.MainAppBase.stop_app`
+        Emits the `on_app_stopped` event whereas the method :meth:`~ae.gui_app.MainAppBase.stop_app`
         emits the `on_app_stop` event.
         """
         self.main_app.vpo("FrameworkApp.on_stop")
         self.main_app.save_app_states()
-        self.main_app.call_method('on_kivy_app_stop')
+        self.main_app.call_method('on_app_stopped')
 
     def win_pos_size_change(self, *_):
         """ resize handler updates: :attr:`~ae.gui_app.MainAppBase.win_rectangle`, :attr:`~FrameworkApp.landscape`. """
@@ -1152,8 +1154,8 @@ class KivyMainApp(HelpAppBase):
 
     def load_sounds(self):
         """ override for to pre-load audio sounds from app folder snd into sound file cache. """
-        self.sound_files = FilesRegister('snd/**', file_class=CachedFile,
-                                         object_loader=lambda f: SoundLoader.load(f.path))
+        super().load_sounds()   # load from sound file paths all files into :class:`~ae.files.RegisteredFile` instances
+        self.sound_files.reclassify(object_loader=lambda f: SoundLoader.load(f.path))   # :class:`~ae.files.CachedFile`
 
     def mix_background_ink(self):
         """ remix background ink if one of the basic back colours change. """
@@ -1170,7 +1172,7 @@ class KivyMainApp(HelpAppBase):
 
     def on_app_start(self):                                                                     # pragma: no cover
         """ app start event handler - used for to set the window pos and size. """
-        # super().on_app_start()      # call of ae.gui_app.MainAppBase.on_app_start() not needed
+        super().on_app_start()      # ae.gui_app.MainAppBase.on_app_start() does the i18n initialization
         get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
         Window.softinput_mode = self.kbd_input_mode
