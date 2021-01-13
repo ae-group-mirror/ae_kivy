@@ -124,7 +124,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.66'
+__version__ = '0.1.67'
 
 
 kivy.require('2.0.0')
@@ -161,6 +161,7 @@ Builder.load_string('''\
 #: import flow_action ae.gui_app.flow_action
 #: import flow_key ae.gui_app.flow_key
 #: import flow_key_split ae.gui_app.flow_key_split
+#: import flow_object ae.gui_app.flow_object
 #: import id_of_flow ae.gui_app.id_of_flow
 #: import replace_flow_action ae.gui_app.replace_flow_action
 
