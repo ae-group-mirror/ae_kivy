@@ -115,7 +115,7 @@ from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED                   
 from ae.gui_app import (                                                                    # type: ignore
     AppStateType, APP_STATE_SECTION_NAME,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
-    id_of_flow, replace_flow_action
+    ensure_tap_kwargs_refs, id_of_flow, replace_flow_action
 )
 from ae.gui_help import layout_ps_hints, HelpAppBase                                        # type: ignore
 from ae.kivy_auto_width import ContainerChildrenAutoWidthBehavior                           # type: ignore
@@ -124,7 +124,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.67'
+__version__ = '0.1.68'
 
 
 kivy.require('2.0.0')
@@ -164,6 +164,7 @@ Builder.load_string('''\
 #: import flow_object ae.gui_app.flow_object
 #: import id_of_flow ae.gui_app.id_of_flow
 #: import replace_flow_action ae.gui_app.replace_flow_action
+#: import update_tap_kwargs ae.gui_app.update_tap_kwargs
 
 #: import relief_colors ae.kivy_relief_canvas.relief_colors
 
@@ -330,52 +331,6 @@ Builder.load_string('''\
                 background_color: 0, 0, 0, 0
                 on_release: root.dismiss()
 ''')
-
-
-def ensure_tap_kwargs_refs(init_kwargs: Dict[str, Any], tap_widget: Widget):
-    """ ensure that the passed widget.__init__ kwargs dict contains a reference to itself within kwargs['tap_kwargs'].
-
-    :param init_kwargs:         kwargs of the widgets __init__ method.
-    :param tap_widget:          reference to the tap widget.
-
-    This alternative version is only 10 % faster but much less clean than the current implementation::
-
-        if 'tap_kwargs' not in init_kwargs:
-            init_kwargs['tap_kwargs'] = dict()
-        tap_kwargs = init_kwargs['tap_kwargs']
-
-        if 'tap_widget' not in tap_kwargs:
-            tap_kwargs['tap_widget'] = tap_widget
-
-        if 'popup_kwargs' not in tap_kwargs:
-            tap_kwargs['popup_kwargs'] = dict()
-        popup_kwargs = tap_kwargs['popup_kwargs']
-        if 'parent' not in popup_kwargs:
-            popup_kwargs['parent'] = tap_kwargs['tap_widget']
-
-    """
-    init_kwargs['tap_kwargs'] = tap_kwargs = init_kwargs.get('tap_kwargs', dict())
-    tap_kwargs['tap_widget'] = tap_widget = tap_kwargs.get('tap_widget', tap_widget)
-    tap_kwargs['popup_kwargs'] = popup_kwargs = tap_kwargs.get('popup_kwargs', dict())
-    popup_kwargs['parent'] = popup_kwargs.get('parent', tap_widget)
-
-
-def update_event_kwargs(widget: Widget, popup_kwargs: Optional[Dict[str, Any]] = None, **tap_kwargs) -> Dict[str, Any]:
-    """ update widget's tap_kwargs property and return the updated dictionary (for kv rule of tap_kwargs).
-
-    :param widget:              widget with tap_kwargs property to be updated.
-    :param popup_kwargs:        dict with items for to update popup_kwargs key of tap_kwargs
-    :param tap_kwargs:          additional tap_kwargs items to update.
-    :return:
-    """
-    handle = dict(tap_kwargs=widget.tap_kwargs)
-    ensure_tap_kwargs_refs(handle, widget)
-    new_kwargs = handle['tap_kwargs']
-    if popup_kwargs:
-        new_kwargs['popup_kwargs'].update(popup_kwargs)
-    if tap_kwargs:
-        new_kwargs.update(tap_kwargs)
-    return new_kwargs
 
 
 class AppStateSlider(HelpBehavior, Slider):

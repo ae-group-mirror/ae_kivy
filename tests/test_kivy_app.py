@@ -2,7 +2,6 @@
 import os
 import pytest
 import shutil
-from typing import cast
 from unittest.mock import MagicMock, patch
 
 from kivy.base import stopTouchApp
@@ -10,14 +9,13 @@ from kivy.clock import Clock
 from kivy.lang import Builder, Observable
 from kivy.properties import BooleanProperty
 from kivy.uix.popup import Popup
-from kivy.uix.widget import Widget
 
 from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED
 from ae.i18n import default_language
-from ae.gui_app import APP_STATE_SECTION_NAME, id_of_flow, flow_key, replace_flow_action, MainAppBase
+from ae.gui_app import APP_STATE_SECTION_NAME, flow_key, id_of_flow, replace_flow_action, MainAppBase
 from ae.kivy_app import (
-    MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN,
-    KivyMainApp, FrameworkApp, ensure_tap_kwargs_refs, get_txt, update_event_kwargs)
+    MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN, get_txt,
+    KivyMainApp, FrameworkApp)
 
 
 TST_VAR = 'win_rectangle'
@@ -133,74 +131,6 @@ def test_kv_default_file_name():
 
 def test_main_app_class_abstracts():
     assert hasattr(MainAppBase, 'init_app')
-
-
-def test_ensure_tap_kwargs_refs_empty():
-    kwargs = dict()
-    wid = cast(Widget, object())  # create real Widget instance fails at gitlab-CI with "Unable to get a Window, abort."
-
-    ensure_tap_kwargs_refs(kwargs, wid)
-    assert 'tap_kwargs' in kwargs
-
-    assert 'tap_widget' in kwargs['tap_kwargs']
-    assert kwargs['tap_kwargs']['tap_widget'] is wid
-
-    assert 'popup_kwargs' in kwargs['tap_kwargs']
-    assert 'parent' in kwargs['tap_kwargs']['popup_kwargs']
-    assert kwargs['tap_kwargs']['popup_kwargs']['parent'] is wid
-
-
-def test_ensure_tap_kwargs_refs_parent_from_tap_widget():
-    wid = cast(Widget, object())  # create real Widget instance fails at gitlab-CI with "Unable to get a Window, abort."
-    wid2 = cast(Widget, object())
-    assert wid != wid2
-    kwargs = dict(tap_kwargs=dict(tap_widget=wid))
-
-    ensure_tap_kwargs_refs(kwargs, wid2)
-    assert 'tap_kwargs' in kwargs
-
-    assert 'tap_widget' in kwargs['tap_kwargs']
-    assert kwargs['tap_kwargs']['tap_widget'] is wid
-
-    assert 'popup_kwargs' in kwargs['tap_kwargs']
-    assert 'parent' in kwargs['tap_kwargs']['popup_kwargs']
-    assert kwargs['tap_kwargs']['popup_kwargs']['parent'] is wid
-
-
-def test_ensure_tap_kwargs_refs_full():
-    wid = cast(Widget, object())  # create real Widget instance fails at gitlab-CI with "Unable to get a Window, abort."
-    wid2 = cast(Widget, object())
-    assert wid != wid2
-    kwargs = dict(tap_kwargs=dict(tap_widget=wid, popup_kwargs=dict(parent=wid)))
-
-    ensure_tap_kwargs_refs(kwargs, wid2)
-    assert 'tap_kwargs' in kwargs
-
-    assert 'tap_widget' in kwargs['tap_kwargs']
-    assert kwargs['tap_kwargs']['tap_widget'] is wid
-
-    assert 'popup_kwargs' in kwargs['tap_kwargs']
-    assert 'parent' in kwargs['tap_kwargs']['popup_kwargs']
-    assert kwargs['tap_kwargs']['popup_kwargs']['parent'] is wid
-
-
-def test_update_event_kwargs():
-    wid = MagicMock()  # create real Widget instance fails at gitlab-CI
-    event_dict = dict()
-    wid.tap_kwargs = event_dict
-    assert update_event_kwargs(wid) is event_dict
-
-    assert 'tap_widget' in update_event_kwargs(wid)
-    assert 'popup_kwargs' in update_event_kwargs(wid)
-    assert 'parent' in update_event_kwargs(wid)['popup_kwargs']
-
-    popup_dict = dict(popup_extra_kwarg='tst')
-    assert 'popup_kwargs' in update_event_kwargs(wid, popup_kwargs=popup_dict)
-    assert 'popup_extra_kwarg' in update_event_kwargs(wid)['popup_kwargs']
-    assert update_event_kwargs(wid)['popup_kwargs']['popup_extra_kwarg'] == 'tst'
-
-    assert 'extra_kwarg' in update_event_kwargs(wid, extra_kwarg='extra_tst')
-    assert update_event_kwargs(wid)['extra_kwarg'] == 'extra_tst'
 
 
 SKIP_EXPRESSION = "'CI_PROJECT_ID' in os.environ"
