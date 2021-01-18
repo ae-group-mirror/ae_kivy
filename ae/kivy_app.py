@@ -26,15 +26,16 @@ class. This Kivy app class instance can be directly accessed from the main app c
 :attr:`~ae.gui_app.MainAppBase.framework_app` attribute.
 
 
-kivy app class events
-^^^^^^^^^^^^^^^^^^^^^
+kivy application events
+^^^^^^^^^^^^^^^^^^^^^^^
 
-This portion is adding to the :ref:`application events` provided by :class:`~ae.gui_app.MainAppBase` the following
-events redirected from the Kivy :class:`~kivy.app.App` class (the original Kivy event/callback-method name is
-given in brackets):
+This portion is firing :ref:`application events` additional to the ones provided by :class:`~ae.gui_app.MainAppBase` by
+redirecting events of the Kivy :class:`~kivy.app.App` class (the original Kivy event/callback-method name is
+given in brackets). These framework app events get fired after :meth:`~ae.gui_app.MainAppBase.on_app_run` got executed
+and in the following order:
 
-* on_app_build (after main_app.on_app_run and before kivy.app.App.build).
-* on_app_built (after kivy.app.App.build).
+* on_app_build (kivy.app.App.build, after the main kv file get loaded).
+* on_app_built (kivy.app.App.build, after the root widget get build).
 * on_app_started (kivy.app.App.on_start)
 * on_app_pause (kivy.app.App.on_pause)
 * on_app_resume (kivy.app.App.on_resume)
@@ -124,7 +125,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.68'
+__version__ = '0.1.69'
 
 
 kivy.require('2.0.0')
@@ -156,6 +157,13 @@ CRITICAL_VIBRATE_PATTERN = (0.00, 0.12, 0.12, 0.12, 0.12, 0.12,
 
 # helper widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size)
 Builder.load_string('''\
+#: import file_lines ae.base.file_lines
+#: import file_write ae.base.file_write
+
+#: import norm_path ae.paths.norm_path
+#: import PATH_PLACEHOLDERS ae.paths.PATH_PLACEHOLDERS
+#: import path_name ae.paths.path_name
+
 #: import Window kivy.core.window.Window
 
 #: import flow_action ae.gui_app.flow_action
@@ -1118,6 +1126,10 @@ class KivyMainApp(HelpAppBase):
         self.framework_app.mixed_back_ink = (sum(_) / len(_) for _ in zip(
             self.flow_id_ink, self.flow_path_ink, self.selected_item_ink, self.unselected_item_ink))
 
+    def on_app_built(self):
+        """ kivy App build event handler called at the end of :meth:`kivy.app.App.build`. """
+        self.vpo("KivyMainApp.on_app_built default/fallback event handler called")
+
     def on_app_init(self):
         """ setup loaded app states within the now available framework app and its widgets. """
         # redirect back ink app state color changes to actualize mixed_back_ink
@@ -1126,9 +1138,17 @@ class KivyMainApp(HelpAppBase):
         setattr(self, 'on_selected_item_ink', self.mix_background_ink)
         setattr(self, 'on_unselected_item_ink', self.mix_background_ink)
 
+    def on_app_pause(self):
+        """ kivy :meth:`~kivy.app.App.on_pause` event handler. """
+        self.vpo("KivyMainApp.on_app_pause default/fallback event handler called")
+
+    def on_app_resume(self):
+        """ kivy :meth:`~kivy.app.App.on_resume` event handler. """
+        self.vpo("KivyMainApp.on_app_resume default/fallback event handler called")
+
     def on_app_start(self):                                                                     # pragma: no cover
         """ app start event handler - used for to set the window pos and size. """
-        super().on_app_start()      # ae.gui_app.MainAppBase.on_app_start() does the i18n initialization
+        super().on_app_start()
         get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
         Window.softinput_mode = self.kbd_input_mode
@@ -1138,6 +1158,14 @@ class KivyMainApp(HelpAppBase):
             if win_rect:                                # is empty tuple at very first app start
                 Window.left, Window.top = win_rect[:2]
                 Window.size = win_rect[2:]
+
+    def on_app_started(self):
+        """ kivy :meth:`~kivy.app.App.on_start` event handler (called after on_app_build/on_app_built). """
+        self.vpo("KivyMainApp.on_app_started default/fallback event handler called")
+
+    def on_app_stopped(self):
+        """ kivy :meth:`~kivy.app.App.on_stop` event handler (called after on_app_stop). """
+        self.vpo("KivyMainApp.on_app_stopped default/fallback event handler called")
 
     def on_flow_widget_focused(self):
         """ set focus to the widget referenced by the current flow id. """

@@ -83,18 +83,22 @@ class KivyAppTest(KivyMainApp):
 
     def on_app_start(self):
         """ called from KivyMainApp """
+        super().on_app_start()
         self.on_start_called = True
 
     def on_app_pause(self):
         """ called from KivyMainApp """
+        super().on_app_pause()
         self.on_pause_called = True
 
     def on_app_resume(self):
         """ called from KivyMainApp """
+        super().on_app_resume()
         self.on_resume_called = True
 
     def on_app_stopped(self):
         """ called from KivyMainApp """
+        super().on_app_stopped()
         self.on_stop_called = True
 
     def on_flow_id(self):
@@ -296,7 +300,7 @@ class TestAppState:
 class TestHelperMethods:
     def test_call_method_delayed_invalid_method(self, restore_app_env):
         app = KivyMainApp()
-        assert app.call_method_delayed(0.0, 'invalid_method_name') is None
+        app.call_method_delayed(0.0, 'invalid_method_name')
 
     def test_call_method_delayed_valid_method(self, ini_file, restore_app_env):
         app = KivyAppTest(additional_cfg_files=(ini_file,))
@@ -365,11 +369,11 @@ class TestHelperMethods:
 
     def test_play_beep(self, restore_app_env):
         app = KivyMainApp()
-        assert app.play_beep() is None
+        app.play_beep()
 
     def test_play_sound_missing(self, restore_app_env):
         app = KivyMainApp()
-        assert app.play_sound('tst') is None
+        app.play_sound('tst')
 
     def test_play_sound_wav(self, restore_app_env):
         sound_dir = 'snd'
@@ -378,7 +382,8 @@ class TestHelperMethods:
             os.mkdir(sound_dir)
             shutil.copy(os.path.join('tests', 'tst.wav'), os.path.join(sound_dir, sound_file + '.wav'))
             app = KivyMainApp()
-            assert app.play_sound(sound_file) is None
+            app.load_sounds()
+            app.play_sound(sound_file)
         finally:
             shutil.rmtree(sound_dir)
 
@@ -390,17 +395,18 @@ class TestHelperMethods:
             with open(os.path.join(sound_dir, sound_file + '.mp3'), 'w') as fp:
                 fp.write('invalid sound file content')
             app = KivyMainApp()
-            assert app.play_sound(sound_file) is None
+            app.load_sounds()
+            app.play_sound(sound_file)
         finally:
             shutil.rmtree(sound_dir)
 
     def test_play_vibrate(self, restore_app_env):
         app = KivyMainApp()
-        assert app.play_vibrate() is None
+        app.play_vibrate()
 
     def test_play_vibrate_invalid_pattern(self, restore_app_env):
         app = KivyMainApp()
-        assert app.play_vibrate(('invalid pattern', )) is None
+        app.play_vibrate(('invalid pattern', ))
 
 
 @skip_gitlab_ci
