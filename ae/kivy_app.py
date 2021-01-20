@@ -114,7 +114,7 @@ from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED                   
 
 # id_of_flow not used here - added for easier import in app project
 from ae.gui_app import (                                                                    # type: ignore
-    AppStateType, APP_STATE_SECTION_NAME,
+    APP_STATE_SECTION_NAME,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
     ensure_tap_kwargs_refs, id_of_flow, replace_flow_action
 )
@@ -125,7 +125,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.69'
+__version__ = '0.1.70'
 
 
 kivy.require('2.0.0')
@@ -638,7 +638,7 @@ class FlowInput(HelpBehavior, TextInput):                                       
             if key_name in ('enter', 'right') and len(self._matching_ac_texts) > self._matching_ac_index:
                 self.suggestion_text = ""
                 self.text = self._matching_ac_texts[self._matching_ac_index]
-                self._ac_dropdown.dismiss()
+                self._ac_dropdown.close()
                 return True
 
             if key_name == 'down':
@@ -689,12 +689,12 @@ class FlowInput(HelpBehavior, TextInput):                                       
             self._change_selector_index(0)
             self.suggestion_text = matching[self._matching_ac_index][len(self.text):]
         elif self._ac_dropdown.attach_to:
-            self._ac_dropdown.dismiss()
+            self._ac_dropdown.close()
 
     def _select_ac_text(self, selector: Widget):
         """ put selected autocompletion text into text input and close _ac_dropdown """
         self.text = selector.text
-        self._ac_dropdown.dismiss()
+        self._ac_dropdown.close()
 
     def _show_cut_copy_paste(self, *args, **kwargs):
         kivy.uix.textinput.TextInputCutCopyPaste = ExtTextInputCutCopyPaste  # reset in ExtTextInputCutCopyPaste.__init_
@@ -724,7 +724,7 @@ class FlowPopup(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, Rel
     def on_key_down(self, _instance, key, _scancode, _codepoint, _modifiers):
         """ close/dismiss this popup if back/Esc key get pressed - allowing stacking with DropDown/FlowDropDown. """
         if key == 27 and self.get_parent_window():
-            self.dismiss()
+            self.close()
             return True
         return False
 
@@ -1025,11 +1025,6 @@ global_idmap['_'] = get_txt                 # bind as function/callable with the
 
 class KivyMainApp(HelpAppBase):
     """ Kivy application """
-    flow_id_ink: tuple = (0.99, 0.99, 0.69, 0.69)           #: rgba color for flow id / drag&drop node placeholder
-    flow_path_ink: tuple = (0.99, 0.99, 0.39, 0.48)         #: rgba color for flow_path/drag&drop item placeholder
-    selected_item_ink: tuple = (0.69, 1.0, 0.39, 0.18)      #: rgba color for list items (selected)
-    unselected_item_ink: tuple = (0.39, 0.39, 0.39, 0.18)   #: rgba color for list items (unselected)
-
     get_txt_ = get_txt                                      #: make i18n translations available via main app instance
     kbd_input_mode: str = 'scale'                           #: optional app state for to set Window[Base].softinput_mode
     documents_root_path: str = "."                          #: root file path for app documents, e.g. for import/export
@@ -1080,6 +1075,11 @@ class KivyMainApp(HelpAppBase):
             return Factory.get(class_name)
         except (FactoryException, AttributeError):
             return None
+
+    @staticmethod
+    def dpi_factor() -> float:
+        """ dpi scaling factor - overwrite if the used GUI framework supports dpi scaling. """
+        return sp(1.0)
 
     def ensure_top_most_z_index(self, widget: Any):
         """ ensure visibility of the passed widget to be the top most in the z index/order
@@ -1250,16 +1250,6 @@ class KivyMainApp(HelpAppBase):
             #    self.po(f"KivyMainApp.play_vibrate JavaException {ex}, update plyer to git/master")
             except Exception as ex:
                 self.po(f"KivyMainApp.play_vibrate exception {ex}")
-
-    def setup_app_states(self, app_states: AppStateType):
-        """ put app state variables into main app instance for to prepare framework app.run_app.
-
-        :param app_states:      dict of app states.
-        """
-        self.vpo(f"KivyMainApp.setup_app_states {app_states}")
-        if isinstance(app_states.get('font_size', None), str):
-            app_states['font_size'] = sp(app_states['font_size'])     # very first app start
-        super().setup_app_states(app_states)
 
     def show_message(self, message: str, title: str = "", is_error: bool = True):
         """ display (error) message popup to the user.

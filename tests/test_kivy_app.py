@@ -12,7 +12,8 @@ from kivy.uix.popup import Popup
 
 from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED
 from ae.i18n import default_language
-from ae.gui_app import APP_STATE_SECTION_NAME, flow_key, id_of_flow, replace_flow_action, MainAppBase
+from ae.gui_app import (
+    APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE, flow_key, id_of_flow, replace_flow_action, MainAppBase)
 from ae.kivy_app import (
     MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN, get_txt,
     KivyMainApp, FrameworkApp)
@@ -237,8 +238,9 @@ class TestAppState:
         app.setup_app_states(TST_DICT)
         assert getattr(app, TST_VAR) == TST_VAL
         assert app.win_rectangle == def_app_states[TST_VAR]
-        app.setup_app_states(dict(font_size='12'))
+        app.setup_app_states(dict(font_size=-12))
         assert isinstance(app.font_size, (int, float))
+        TST_DICT.pop('font_size')       # remove font_size for the following tests
 
     def test_change_app_state(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
@@ -287,10 +289,10 @@ class TestAppState:
 
     def test_set_font_size(self, ini_file, restore_app_env):
         app = KivyAppTest(additional_cfg_files=(ini_file,))
-        assert app.font_size == 21.0
+        assert app.font_size == MIN_FONT_SIZE
         assert not app.on_font_size_called
 
-        font_size = 99.9
+        font_size = MAX_FONT_SIZE
         app.change_app_state('font_size', font_size)
         assert app.font_size == font_size
         assert app.on_font_size_called
