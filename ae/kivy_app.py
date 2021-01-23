@@ -125,7 +125,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.70'
+__version__ = '0.1.71'
 
 
 kivy.require('2.0.0')
@@ -157,8 +157,8 @@ CRITICAL_VIBRATE_PATTERN = (0.00, 0.12, 0.12, 0.12, 0.12, 0.12,
 
 # helper widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size)
 Builder.load_string('''\
-#: import file_lines ae.base.file_lines
-#: import file_write ae.base.file_write
+#: import file_lines ae.files.file_lines
+#: import write_file_text ae.files.write_file_text
 
 #: import norm_path ae.paths.norm_path
 #: import PATH_PLACEHOLDERS ae.paths.PATH_PLACEHOLDERS
