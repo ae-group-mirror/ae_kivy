@@ -53,7 +53,7 @@ Most of them also change automatically the :ref:`application flow`.
 The following widgets provided by this portion will be registered in the kivy widget class maps by importing this module
 for to be available for your app:
 
-* :class:`AppStateSlider`: :class:`~kivy.uix.slider.Slider>` changing the value of :ref:`app-state-variables`.
+* :class:`AppStateSlider`: :class:`~kivy.uix.slider.Slider` changing the value of :ref:`app-state-variables`.
 * :class:`FlowButton`: :class:`ImageButton` for to change the application flow.
 * :class:`FlowDropDown`: :class:`~kivy.uix.dropdown.DropDown` for to process application flow.
 * :class:`FlowInput`: dynamic kivy widget based on :class:`~kivy.uix.textinput.TextInput` with application flow support.
@@ -125,7 +125,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.71'
+__version__ = '0.1.72'
 
 
 kivy.require('2.0.0')
@@ -134,13 +134,13 @@ kivy.require('2.0.0')
 
 MAIN_KV_FILE_NAME = 'main.kv'   #: default file name of the main kv file
 
-""" sine 3 x deeper repeating animation, used e.g. for to animate ae.kivy_help.HelpLayout
-Kivy version 2.0 needed; Animation Sequence bugs fixed in kivy master with the PR #5926, merged 7-May-2020.
-"""
 ANI_SINE_DEEPER_REPEAT3 = \
     Animation(ani_value=0.99, t='in_out_sine', d=0.6) + Animation(ani_value=0.87, t='in_out_sine', d=0.9) + \
     Animation(ani_value=0.96, t='in_out_sine', d=1.5) + Animation(ani_value=0.81, t='in_out_sine', d=0.9) + \
     Animation(ani_value=0.90, t='in_out_sine', d=0.6) + Animation(ani_value=0.54, t='in_out_sine', d=0.3)
+""" sine 3 x deeper repeating animation, used e.g. for to animate ae.kivy_help.HelpLayout
+Kivy version 2.0 needed; Animation Sequence bugs fixed in kivy master with the PR #5926, merged 7-May-2020.
+"""
 ANI_SINE_DEEPER_REPEAT3.repeat = True
 
 LOVE_VIBRATE_PATTERN = (0.0, 0.12, 0.12, 0.21, 0.03, 0.12, 0.12, 0.12)
@@ -176,7 +176,7 @@ Builder.load_string('''\
 
 #: import relief_colors ae.kivy_relief_canvas.relief_colors
 
-<AppStateSlider>:
+<AppStateSlider>
     help_id: app.main_app.help_app_state_id(self.app_state_name)
     help_vars: dict(state_name=self.app_state_name, state_value=self.value, self=self)
     value: app.app_states.get(self.app_state_name, (self.min + self.max) / 2) if self.app_state_name else self.value
@@ -194,7 +194,7 @@ Builder.load_string('''\
             pos: self.pos
             size: self.size
 
-<ImageLabel>:
+<ImageLabel>
     ellipse_fill_ink: 1.0, 1.0, 1.0, 0.0
     ellipse_fill_pos: ()
     ellipse_fill_size: ()
@@ -249,7 +249,7 @@ Builder.load_string('''\
         pos: self.parent.image_pos or self.parent.default_pos or self.parent.pos
         size: self.parent.image_size or self.parent.default_size or self.parent.size
 
-<FlowInput>:
+<FlowInput>
     help_id: app.main_app.help_flow_id(self.focus_flow_id)
     help_vars: dict(new_flow_id=self.focus_flow_id, self=self)
     font_size: app.app_states['font_size']
@@ -258,7 +258,7 @@ Builder.load_string('''\
     use_bubble: True
     use_handles: True
 
-<FlowButton>:
+<FlowButton>
     help_id: app.main_app.help_flow_id(self.tap_flow_id)
     help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
     icon_name: ""
@@ -267,7 +267,7 @@ Builder.load_string('''\
         app.main_app.img_file(self.icon_name or flow_key_split(self.tap_flow_id)[0], \
                               app.app_states['font_size'], app.app_states['light_theme'])
 
-<OptionalButton@FlowButton>:
+<OptionalButton@FlowButton>
     visible: False
     size_hint: None, None
     height: int(app.app_states['font_size'] * 1.5) if self.visible else 0
@@ -275,7 +275,7 @@ Builder.load_string('''\
     disabled: not self.visible
     opacity: 1 if self.visible else 0
 
-<FlowDropDown>:             # DropDown flow gets handled similar to a Popup
+<FlowDropDown>
     close_kwargs:
         dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else dict()
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
@@ -294,7 +294,7 @@ Builder.load_string('''\
             width: sp(1.8)
             rounded_rectangle: self.x, self.y, self.width, self.height, sp(9)
 
-<FlowPopup>:
+<FlowPopup>
     close_kwargs:
         dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else dict()
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
@@ -311,7 +311,7 @@ Builder.load_string('''\
             pos: self.pos
             size: self.size
 
-<FlowToggler>:
+<FlowToggler>
     tap_flow_id: ''
     help_id: app.main_app.help_flow_id(self.tap_flow_id)
     help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
@@ -321,7 +321,7 @@ Builder.load_string('''\
         app.main_app.img_file(self.icon_name or flow_key_split(self.tap_flow_id)[0], \
                               app.app_states['font_size'], app.app_states['light_theme'])
 
-<MessageShowPopup>:
+<MessageShowPopup>
     size_hint: 0.9, None
     height: int(min(Window.height - sp(96), self.children[0].minimum_height + msg_txt_box.height))
     ScrollView:
@@ -458,7 +458,7 @@ class ImageButton(ButtonBehavior, ImageLabel):                                  
         self._cancel_long_touch_clock(touch)
 
         # also dispatch as alternative tap
-        self.dispatch('on_alt_tap', touch)
+        self.dispatch('on_alt_tap', touch)  # pylint: disable=no-member
 
 
 class FlowButton(HelpBehavior, ImageButton):                                            # pragma: no cover
@@ -498,13 +498,14 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
 
 
 class ExtTextInputCutCopyPaste(_TextInputCutCopyPaste):                                     # pragma: no cover
-    """ overwrite kivy.uix.textinput.TextInputCutCopyPaste for to translate options and add autocompletion options. """
+    """ overwrite/extend :class:`kivy.uix.textinput.TextInputCutCopyPaste` w/ translatable and autocomplete options. """
     def __init__(self, **kwargs):
-        """ reset monkey patch of kivy.uix.textinput.TextInputCutCopyPaste done in FlowInput._show_cut_copy_paste().
+        """ create :class:`~kivy.uix.Bubble` instance for to display the cut/copy/paste options.
 
-        reset has to be done before super() call below, for to prevent endless recursion because else the other
-        super(cls, instance) call (in python2 style within TextInputCutCopyPaste.__init__()) results
-        in the same instance (instead of the overwritten instance).
+        The monkey patch of :class:`~kivy.uix.textinput.TextInputCutCopyPaste` which was done in
+        :meth:`FlowInput._show_cut_copy_paste` has to be temporarily reset before the super() call below, for to prevent
+        endless recursion because else the other super(cls, instance) call (in python2 style within
+        :meth:`TextInputCutCopyPaste.__init__`) results in the same instance (instead of the overwritten instance).
         """
         kivy.uix.textinput.TextInputCutCopyPaste = _TextInputCutCopyPaste
         super().__init__(**kwargs)
@@ -545,7 +546,7 @@ class FlowInput(HelpBehavior, TextInput):                                       
 
     Until version 0.1.43 of this portion the background and text color of :class:`FlowInput` did automatically
     get switched by a change of the light_theme app state. Now all colors left unchanged (before only the ones
-    with <unchanged>):
+    with <unchanged>)::
 
     * background_color: Window.clearcolor            # default: 1, 1, 1, 1
     * cursor_color: app.font_color                   # default: 1, 0, 0, 1
@@ -754,7 +755,7 @@ class FlowToggler(HelpBehavior, ToggleButtonBehavior, ImageLabel):              
         :param touch:   motion/touch event data.
         :return:        True if event got processed/used.
         """
-        if not self.disabled and self.collide_point(touch.x, touch.y):
+        if not self.disabled and self.collide_point(touch.x, touch.y):  # pylint: disable=no-member
             self._touch_anim = 0.0
             Animation(_touch_anim=1.0, t='out_quad', d=0.39).start(self)
         return super().on_touch_down(touch)
@@ -826,20 +827,20 @@ class FrameworkApp(App):
         return self.main_app.call_method('on_key_release', keyboard.command_keys.get(key_code, str(key_code)))
 
     def on_file_chooser_entry_added(self, view_entries: List[Widget]):                                # pragma: no cover
-        """ on_entry_added/on_subentry_to_entry event handler for to patch theme-related properties of FileChooser.
+        """ on_entry_added/on_subentry_to_entry event handler for to patch theme-related properties of Kivy FileChooser.
 
         :param view_entries:    list of view entries for a node (icon or label) of the file chooser.
 
         .. note::
             This method get called for each node in the moment when a file entry widget (FileListEntry or FileIconEntry)
-            gets added to the file chooser (FileChooser widget).
+            gets added to an instance of Kivy's :class:`~kivy.uix.filechooser.FileChooser` widget class.
 
             Therefore the patches done here are not affected if the user preferences (e.g. the font size or light/dark
             theme) get changed while a file chooser instance is displayed. In this case the user has to simply close
             and reopen/re-instantiate the file chooser for to display the nodes with the just changed user preferences.
 
             Theme adaption is still missing for the file chooser progress: all font sizes and colors of the currently
-            used :class:`~kivy.uix.filechooser.FileChooserProgress` are hard-coded, so a theme-aware progress class
+            used :class:`~kivy.uix.filechooser.FileChooserProgressBase` are hard-coded, so a theme-aware progress class
             has to be implemented (and assigned to the :attr:`~kivy.uix.filechooser.FileChooserController.progress_cls`
             property).
 
@@ -884,9 +885,10 @@ class FrameworkApp(App):
         return True
 
     def on_start(self):
-        """ kivy app start event, called after :meth:`MainAppBase.run_app` method and MainAppBase.on_app_start event.
+        """ kivy app start event.
 
-        Kivy just created the main layout by calling its :meth:`~kivy.app.App.build` method and
+        Called after :meth:`~ae.gui_app.MainAppBase.run_app` method and :meth:`~ae.gui_app.MainAppBase.on_app_start`
+        event and after Kivy created the main layout (by calling its :meth:`~kivy.app.App.build` method) and has
         attached it to the main window.
 
         Emits the `on_app_started` event.
@@ -923,8 +925,8 @@ class _GetTextBinder(Observable):
     kivy currently only support a single one automatic binding in kv files for all function names ending with `_`
     (see `watched_keys` extension in kivy/lang/parser.py line 201; e.g. `f_` would get recognized by the lang_tr
     re pattern, but kivy will only add the `_` symbol to watched_keys and therefore `f_` not gets bound.)
-    For to allow both - f-strings and simple get_text messages - this module binds only :func:`ae.i18n.get_f_string`
-    to the `get_txt` symbol (instead of :func:`ae.i18n.get_text` to `_` and :func:`ae.i18n.get_f_string` to `f_`).
+    For to allow both - f-strings and simple get_text messages - this module binds :func:`ae.i18n.get_f_string`
+    to the `get_txt` symbol (instead of :func:`ae.i18n.get_text`).
 
     :data:`get_txt` can be used as translation callable, but also for to switch the current default language.
     Additionally :data:`get_txt` is implemented as an observer that automatically updates any translations
@@ -1182,7 +1184,7 @@ class KivyMainApp(HelpAppBase):
         :param _event_kwargs:   unused event kwargs.
         :return:                True for to confirm the language change.
         """
-        self.vpo(f"MainAppBase.on_kbd_input_mode_change to {mode}")
+        self.vpo(f"KivyMainApp.on_kbd_input_mode_change to {mode}")
         self.change_app_state('kbd_input_mode', mode)
         self.set_var('kbd_input_mode', mode, section=APP_STATE_SECTION_NAME)  # add optional app state var to config
         Window.softinput_mode = mode
