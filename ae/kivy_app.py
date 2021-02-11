@@ -125,7 +125,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.72'
+__version__ = '0.1.73'
 
 
 kivy.require('2.0.0')
@@ -825,40 +825,6 @@ class FrameworkApp(App):
         :return:                return value of call to `on_key_release` (True if ke got processed/used).
         """
         return self.main_app.call_method('on_key_release', keyboard.command_keys.get(key_code, str(key_code)))
-
-    def on_file_chooser_entry_added(self, view_entries: List[Widget]):                                # pragma: no cover
-        """ on_entry_added/on_subentry_to_entry event handler for to patch theme-related properties of Kivy FileChooser.
-
-        :param view_entries:    list of view entries for a node (icon or label) of the file chooser.
-
-        .. note::
-            This method get called for each node in the moment when a file entry widget (FileListEntry or FileIconEntry)
-            gets added to an instance of Kivy's :class:`~kivy.uix.filechooser.FileChooser` widget class.
-
-            Therefore the patches done here are not affected if the user preferences (e.g. the font size or light/dark
-            theme) get changed while a file chooser instance is displayed. In this case the user has to simply close
-            and reopen/re-instantiate the file chooser for to display the nodes with the just changed user preferences.
-
-            Theme adaption is still missing for the file chooser progress: all font sizes and colors of the currently
-            used :class:`~kivy.uix.filechooser.FileChooserProgressBase` are hard-coded, so a theme-aware progress class
-            has to be implemented (and assigned to the :attr:`~kivy.uix.filechooser.FileChooserController.progress_cls`
-            property).
-
-        """
-        for entry in view_entries:
-            if 'FileListEntry' in str(entry):               # isinstance(entry, Factory.FileListEntry) -> TypeError
-                box, entry = entry, entry.children[0]       # children[0] is BoxLayout of FileListEntry
-                # box.children[0].children[1] is box.ids.filename
-                box.color_selected = [0.69, 0.69, 0.69, 1.0] if self.app_states['light_theme'] else [0.3, 0.3, 0.3, 1.0]
-                entry.children[1].color = self.font_color   # children[1] is file name label
-                entry.children[1].font_size = min(box.height * 0.90, self.app_states['font_size'])
-                entry.children[0].color = self.font_color   # children[0] is file size label
-                entry.children[0].font_size = min(box.height * 0.69, self.app_states['font_size'])
-            elif 'FileIconEntry' in str(entry):             # TypeError if using isinstance()
-                entry.children[1].color = self.font_color
-                entry.children[1].font_size = min(entry.children[1].height * 0.99, self.app_states['font_size'])
-                entry.children[0].color = self.font_color if self.app_states['light_theme'] else [0.81, 0.81, 0.81, 1.0]
-                entry.children[0].font_size = min(entry.children[0].height * 0.90, self.app_states['font_size'])
 
     def on_pause(self) -> bool:
         """ app pause event automatically saving the app states.
