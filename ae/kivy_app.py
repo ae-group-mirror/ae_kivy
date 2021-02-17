@@ -125,7 +125,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.73'
+__version__ = '0.1.74'
 
 
 kivy.require('2.0.0')
@@ -496,6 +496,12 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
             return False        # allow help activator button to process this touch down event
         return super().on_touch_down(touch)
 
+    def _reposition(self, *args):
+        """ fixing Dropdown bug - see issue #7382 and PR #7383. TODO: remove if PR gets merged and distributed. """
+        if self.attach_to and not self.attach_to.parent:
+            return
+        super()._reposition(*args)
+
 
 class ExtTextInputCutCopyPaste(_TextInputCutCopyPaste):                                     # pragma: no cover
     """ overwrite/extend :class:`kivy.uix.textinput.TextInputCutCopyPaste` w/ translatable and autocomplete options. """
@@ -710,6 +716,11 @@ class FlowPopup(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, Rel
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        title_label = self.children[0].children[-1]     # Popup contains GridLayout [0] which contains title/spacer/box
+        title_label.shorten = True                      # patch Kivy Popup for to prevent multi-line title height
+        title_label.shorten_from = 'right'
+
         Window.bind(on_key_down=self.on_key_down)
 
     def dismiss(self, *args, **kwargs):
@@ -719,7 +730,7 @@ class FlowPopup(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, Rel
         :param kwargs:      kwargs to be passed to ModalView.dismiss().
         """
         app = App.get_running_app()
-        if app.get_running_app().help_layout is None or not isinstance(app.help_layout.target, HelpToggler):
+        if app.help_layout is None or not isinstance(app.help_layout.target, HelpToggler):
             super().dismiss(*args, **kwargs)
 
     def on_key_down(self, _instance, key, _scancode, _codepoint, _modifiers):
