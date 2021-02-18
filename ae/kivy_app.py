@@ -51,15 +51,15 @@ specifying the desired app style (dark or light) and font size.
 Most of them also change automatically the :ref:`application flow`.
 
 The following widgets provided by this portion will be registered in the kivy widget class maps by importing this module
-for to be available for your app:
+to be available for your app:
 
 * :class:`AppStateSlider`: :class:`~kivy.uix.slider.Slider` changing the value of :ref:`app-state-variables`.
-* :class:`FlowButton`: :class:`ImageButton` for to change the application flow.
-* :class:`FlowDropDown`: :class:`~kivy.uix.dropdown.DropDown` for to process application flow.
+* :class:`FlowButton`: :class:`ImageButton` to change the application flow.
+* :class:`FlowDropDown`: :class:`~kivy.uix.dropdown.DropDown` to process application flow.
 * :class:`FlowInput`: dynamic kivy widget based on :class:`~kivy.uix.textinput.TextInput` with application flow support.
-* :class:`FlowPopup`: :class:`~kivy.uix.popup.Popup` for to process application flow.
+* :class:`FlowPopup`: :class:`~kivy.uix.popup.Popup` to process application flow.
 * :class:`FlowToggler`: toggle button based on :class:`ImageLabel` and :class:`~kivy.uix.behaviors.ToggleButtonBehavior`
-  for to change the application flow.
+  to change the application flow.
 * :class:`ImageLabel`: dynamic kivy widget extending the Kivy :class:`~kivy.uix.label.Label` widget with an image.
 * :class:`ImageButton`: button widget based on :class:`~kivy.uix.behaviors.ButtonBehavior` with an additional image.
 * :class:`MessageShowPopup`: simple message box widget.
@@ -75,7 +75,7 @@ unit tests need at least V 2.0 of OpenGL and the kivy framework installed.
     unit tests does have 100 % coverage but are currently not passing the gitlab CI tests because we failing in setup
     a proper running window system on the python image that all ae portions are using.
 
-Any help for to fix the problems with the used gitlab CI image would be highly appreciated.
+Any help to fix the problems with the used gitlab CI image would be highly appreciated.
 """
 import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
@@ -125,7 +125,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.74'
+__version__ = '0.1.75'
 
 
 kivy.require('2.0.0')
@@ -138,7 +138,7 @@ ANI_SINE_DEEPER_REPEAT3 = \
     Animation(ani_value=0.99, t='in_out_sine', d=0.6) + Animation(ani_value=0.87, t='in_out_sine', d=0.9) + \
     Animation(ani_value=0.96, t='in_out_sine', d=1.5) + Animation(ani_value=0.81, t='in_out_sine', d=0.9) + \
     Animation(ani_value=0.90, t='in_out_sine', d=0.6) + Animation(ani_value=0.54, t='in_out_sine', d=0.3)
-""" sine 3 x deeper repeating animation, used e.g. for to animate ae.kivy_help.HelpLayout
+""" sine 3 x deeper repeating animation, used e.g. to animate ae.kivy_help.HelpLayout
 Kivy version 2.0 needed; Animation Sequence bugs fixed in kivy master with the PR #5926, merged 7-May-2020.
 """
 ANI_SINE_DEEPER_REPEAT3.repeat = True
@@ -333,7 +333,7 @@ Builder.load_string('''\
             size_hint: 1, None
             height: self.texture_size[1]
             color: app.font_color
-            Button:     # invisible button for to close popup on message text click
+            Button:     # invisible button to close popup on message text click
                 pos: msg_txt_box.pos
                 size: msg_txt_box.size
                 background_color: 0, 0, 0, 0
@@ -342,7 +342,7 @@ Builder.load_string('''\
 
 
 class AppStateSlider(HelpBehavior, Slider):
-    """ slider widget with help text for to change app state value. """
+    """ slider widget with help text to change app state value. """
     app_state_name = StringProperty()   #: name of the app state to be changed by this slider value
 
 
@@ -369,7 +369,7 @@ class ImageButton(ButtonBehavior, ImageLabel):                                  
 
     """
     def __init__(self, **kwargs):
-        # register before call of super().__init__() for to prevent errors, e.g. "AttributeError: long_tap"
+        # register before call of super().__init__() to prevent errors, e.g. "AttributeError: long_tap"
         self.register_event_type('on_double_tap')   # pylint: disable=maybe-no-member
         self.register_event_type('on_triple_tap')   # pylint: disable=maybe-no-member
         self.register_event_type('on_long_tap')     # pylint: disable=maybe-no-member
@@ -450,11 +450,11 @@ class ImageButton(ButtonBehavior, ImageLabel):                                  
 
         :param touch:   motion/touch event data with the touched widget in `touch.grab_current`.
         """
-        # for to prevent dismiss via super().on_touch_up: exclusive receive of this touch up event in self.on_touch_up
+        # to prevent dismiss via super().on_touch_up: exclusive receive of this touch up event in self.on_touch_up
         touch.grab(self, exclusive=True)
 
-        # remove 'long_touch_handler' key from touch.ud dict although just fired for to signalize that
-        # the long tap event got handled in self.on_touch_up (for to return True)
+        # remove 'long_touch_handler' key from touch.ud dict although just fired to signalize that
+        # the long tap event got handled in self.on_touch_up (to return True)
         self._cancel_long_touch_clock(touch)
 
         # also dispatch as alternative tap
@@ -478,7 +478,7 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
     parent_popup_to_close = ObjectProperty()    #: tuple of popup widget instances to be closed if this drop down closes
 
     def dismiss(self, *args):
-        """ override DropDown method for to prevent dismiss of any dropdown/popup while clicking on activator widget.
+        """ override DropDown method to prevent dismiss of any dropdown/popup while clicking on activator widget.
 
         :param args:        args to be passed to DropDown.dismiss().
         """
@@ -506,10 +506,10 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
 class ExtTextInputCutCopyPaste(_TextInputCutCopyPaste):                                     # pragma: no cover
     """ overwrite/extend :class:`kivy.uix.textinput.TextInputCutCopyPaste` w/ translatable and autocomplete options. """
     def __init__(self, **kwargs):
-        """ create :class:`~kivy.uix.Bubble` instance for to display the cut/copy/paste options.
+        """ create :class:`~kivy.uix.Bubble` instance to display the cut/copy/paste options.
 
         The monkey patch of :class:`~kivy.uix.textinput.TextInputCutCopyPaste` which was done in
-        :meth:`FlowInput._show_cut_copy_paste` has to be temporarily reset before the super() call below, for to prevent
+        :meth:`FlowInput._show_cut_copy_paste` has to be temporarily reset before the super() call below, to prevent
         endless recursion because else the other super(cls, instance) call (in python2 style within
         :meth:`TextInputCutCopyPaste.__init__`) results in the same instance (instead of the overwritten instance).
         """
@@ -517,7 +517,7 @@ class ExtTextInputCutCopyPaste(_TextInputCutCopyPaste):                         
         super().__init__(**kwargs)
 
     def on_parent(self, instance: Widget, value: Widget):
-        """ overwritten for to translate BubbleButton texts and for to add extra menus for to add/delete ac texts.
+        """ overwritten to translate BubbleButton texts and to add extra menus to add/delete ac texts.
 
         :param instance:        self.
         :param value:           kivy main window.
@@ -561,22 +561,22 @@ class FlowInput(HelpBehavior, TextInput):                                       
     * hint_text_color: <unchanged>                   # default: 0.5, 0.5, 0.5, 1.0
     * selection_color: <unchanged>                   # default: 0.1843, 0.6549, 0.8313, .5
 
-    For to implement a dark background for the dark theme we would need also to change the images in the properties:
+    To implement a dark background for the dark theme we would need also to change the images in the properties:
     background_active, background_disabled_normal and self.background_normal.
 
     Also the images/colors of the bubble that is showing e.g. on long press of the TextInput widget (cut/copy/paste/...)
     kept unchanged - only the font_size get adapted and the bubble button texts get translated. For that the class
     :class:`ExtTextInputCutCopyPaste` provided by this portion inherits from the original bubble class
     :class:`~kivy.uix.textinput.TextInputCutCopyPaste`. Additionally the original bubble class gets monkey patched
-    shortly/temporarily in the moment of the instantiation for to translate the bubble menu options, change the font
-    sizes and add additional menu options for to memorize/forget auto-completion texts.
+    shortly/temporarily in the moment of the instantiation to translate the bubble menu options, change the font
+    sizes and add additional menu options to memorize/forget auto-completion texts.
     """
     focus_flow_id = StringProperty()        #: flow id that will be set when this widget get focus
     unfocus_flow_id = StringProperty()      #: flow id that will be set when this widget lost focus
 
     auto_complete_texts: List[str] = ListProperty()     #: list of autocompletion texts
     auto_complete_selector_index_ink: Tuple[float, float, float, float] = ListProperty((0.69, 0.69, 0.69, 1))
-    """ color and alpha used for to highlight the currently selected text of all matching autocompletion texts """
+    """ color and alpha used to highlight the currently selected text of all matching autocompletion texts """
 
     _ac_dropdown: Any = None                            #: singleton FlowDropDown instance for all TextInput instances
     _matching_ac_texts: List[str] = list()              #: one list instance for all TextInput instances is enough
@@ -718,13 +718,13 @@ class FlowPopup(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, Rel
         super().__init__(**kwargs)
 
         title_label = self.children[0].children[-1]     # Popup contains GridLayout [0] which contains title/spacer/box
-        title_label.shorten = True                      # patch Kivy Popup for to prevent multi-line title height
+        title_label.shorten = True                      # patch Kivy Popup to prevent multi-line title height
         title_label.shorten_from = 'right'
 
         Window.bind(on_key_down=self.on_key_down)
 
     def dismiss(self, *args, **kwargs):
-        """ override ModalView method for to prevent dismiss of any dropdown/popup while clicking on activator widget.
+        """ override ModalView method to prevent dismiss of any dropdown/popup while clicking on activator widget.
 
         :param args:        args to be passed to ModalView.dismiss().
         :param kwargs:      kwargs to be passed to ModalView.dismiss().
@@ -891,7 +891,7 @@ class FrameworkApp(App):
 
 
 class MessageShowPopup(FlowPopup):
-    """ flow popup for to display info or error messages. """
+    """ flow popup to display info or error messages. """
     title = StringProperty(get_text("Error"))       #: popup window title
     message = StringProperty()                      #: popup window label text (message to display)
 
@@ -902,10 +902,10 @@ class _GetTextBinder(Observable):
     kivy currently only support a single one automatic binding in kv files for all function names ending with `_`
     (see `watched_keys` extension in kivy/lang/parser.py line 201; e.g. `f_` would get recognized by the lang_tr
     re pattern, but kivy will only add the `_` symbol to watched_keys and therefore `f_` not gets bound.)
-    For to allow both - f-strings and simple get_text messages - this module binds :func:`ae.i18n.get_f_string`
+    To allow both - f-strings and simple get_text messages - this module binds :func:`ae.i18n.get_f_string`
     to the `get_txt` symbol (instead of :func:`ae.i18n.get_text`).
 
-    :data:`get_txt` can be used as translation callable, but also for to switch the current default language.
+    :data:`get_txt` can be used as translation callable, but also to switch the current default language.
     Additionally :data:`get_txt` is implemented as an observer that automatically updates any translations
     messages of all active/visible kv rules on switch of the language at app run-time.
 
@@ -920,7 +920,7 @@ class _GetTextBinder(Observable):
     _bound_uid = -1
 
     def fbind(self, name: str, func: Callable, *args, **kwargs) -> int:
-        """ override fbind (fast bind) from :class:`Observable` for to collect and separate `_` bindings.
+        """ override fbind (fast bind) from :class:`Observable` to collect and separate `_` bindings.
 
         :param name:            attribute name to be bound.
         :param func:            observer notification function (to be called if attribute changes).
@@ -999,13 +999,13 @@ class _GetTextBinder(Observable):
 # Sphinx make html fails if the comment underneath is included into autodoc/autosummary (by changing '# ' into '#: ')
 get_txt = _GetTextBinder()      #: instantiate global i18n translation callable and language switcher
 get_txt.__qualname__ = 'GetTextBinder'      # hide sphinx build warning (build crashes if get_txt get documented)
-global_idmap['_'] = get_txt                 # bind as function/callable with the name `_` for to be used in kv files
+global_idmap['_'] = get_txt                 # bind as function/callable with the name `_` to be used in kv files
 
 
 class KivyMainApp(HelpAppBase):
     """ Kivy application """
     get_txt_ = get_txt                                      #: make i18n translations available via main app instance
-    kbd_input_mode: str = 'scale'                           #: optional app state for to set Window[Base].softinput_mode
+    kbd_input_mode: str = 'scale'                           #: optional app state to set Window[Base].softinput_mode
     documents_root_path: str = "."                          #: root file path for app documents, e.g. for import/export
 
     _debug_enable_clicks: int = 0
@@ -1017,7 +1017,7 @@ class KivyMainApp(HelpAppBase):
         """ initialize framework app instance and prepare app startup.
 
         :param framework_app_class:     class to create app instance (optionally extended by app project).
-        :return:                        callable for to start and stop/exit the GUI event loop.
+        :return:                        callable to start and stop/exit the GUI event loop.
         """
         self.documents_root_path = app_docs_path()
 
@@ -1028,6 +1028,36 @@ class KivyMainApp(HelpAppBase):
         return self.framework_app.run, self.framework_app.stop
 
     # overwritten and helper methods
+
+    def app_env_dict(self) -> Dict[str, Any]:
+        """ collect run-time app environment data and settings.
+
+        :return:                dict with app environment data/settings.
+        """
+        app_env_info = super().app_env_dict()
+
+        app_env_info['dpi_factor'] = self.dpi_factor()
+
+        if self.debug:
+            app_env_info['image_files'] = self.image_files
+            app_env_info['sound_files'] = self.sound_files
+
+            app_states_data = dict(app_state_version=self.app_state_version, app_state_keys=self.app_state_keys())
+            if self.verbose:
+                app_states_data["framework app states"] = self.framework_app.app_states
+                app_states_data['kbd_input_mode'] = self.kbd_input_mode
+
+                help_data = dict()
+                help_data["help_variables globals"] = self.help_variables(dict())[0]
+                help_data['_last_focus_flow_id'] = self._last_focus_flow_id
+                help_data['_next_help_id'] = self._next_help_id
+                help_data['displayed_help_id'] = self.displayed_help_id
+                app_env_info['help data'] = help_data
+
+                app_env_info['app data']['documents_root_path'] = self.documents_root_path
+            app_env_info['app states data'] = app_states_data
+
+        return app_env_info
 
     def call_method_delayed(self, delay: float, method: str, *args, **kwargs):
         """ in `delay` seconds call method with the passed args, catching and logging exceptions preventing app exit.
@@ -1070,8 +1100,7 @@ class KivyMainApp(HelpAppBase):
             self.framework_win.add_widget(widget)
 
     def help_activation_toggle(self):                                               # pragma: no cover
-        """ button tapped event handler for to switch help mode between active and inactive.
-        """
+        """ button tapped event handler to switch help mode between active and inactive. """
         activator = self.help_activator
         activate = self.help_layout is None
         help_id = ''
@@ -1096,7 +1125,7 @@ class KivyMainApp(HelpAppBase):
             ANI_SINE_DEEPER_REPEAT3.start(activator)
 
     def load_sounds(self):
-        """ override for to pre-load audio sounds from app folder snd into sound file cache. """
+        """ override to pre-load audio sounds from app folder snd into sound file cache. """
         super().load_sounds()   # load from sound file paths all files into :class:`~ae.files.RegisteredFile` instances
         self.sound_files.reclassify(object_loader=lambda f: SoundLoader.load(f.path))   # :class:`~ae.files.CachedFile`
 
@@ -1126,7 +1155,7 @@ class KivyMainApp(HelpAppBase):
         self.vpo("KivyMainApp.on_app_resume default/fallback event handler called")
 
     def on_app_start(self):                                                                     # pragma: no cover
-        """ app start event handler - used for to set the window pos and size. """
+        """ app start event handler - used to set the window pos and size. """
         super().on_app_start()
         get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
@@ -1159,7 +1188,7 @@ class KivyMainApp(HelpAppBase):
 
         :param mode:            the new softinput_mode string (passed as flow key).
         :param _event_kwargs:   unused event kwargs.
-        :return:                True for to confirm the language change.
+        :return:                True to confirm the language change.
         """
         self.vpo(f"KivyMainApp.on_kbd_input_mode_change to {mode}")
         self.change_app_state('kbd_input_mode', mode)
@@ -1168,7 +1197,7 @@ class KivyMainApp(HelpAppBase):
         return True
 
     def on_lang_code(self):
-        """ language code app-state-change-event-handler for to refresh kv rules. """
+        """ language code app-state-change-event-handler to refresh kv rules. """
         self.vpo(f"KivyMainApp.on_lang_code: language got changed to {self.lang_code}")
         get_txt.switch_lang(self.lang_code)
 
@@ -1251,7 +1280,7 @@ class KivyMainApp(HelpAppBase):
         """ open Popup or DropDown using the `open` method. Overwriting the main app class method.
 
         :param popup_class:         class of the Popup or DropDown widget.
-        :param popup_kwargs:        args for to be set as attributes of the popup class instance plus an optional
+        :param popup_kwargs:        args to be set as attributes of the popup class instance plus an optional
                                     `parent` kwarg that will be passed as the popup parent widget arg
                                     to the popup.open method; if parent does not get passed then the root widget/layout
                                     of self.framework_app will passed into the popup.open method as the widget argument.

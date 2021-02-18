@@ -10,7 +10,7 @@ from kivy.lang import Builder, Observable
 from kivy.properties import BooleanProperty
 from kivy.uix.popup import Popup
 
-from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED
+from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED, DEBUG_LEVEL_VERBOSE
 from ae.i18n import default_language
 from ae.gui_app import (
     APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE, flow_key, id_of_flow, replace_flow_action, MainAppBase)
@@ -300,6 +300,13 @@ class TestAppState:
 
 @skip_gitlab_ci
 class TestHelperMethods:
+    def test_app_env_dict(self, restore_app_env):
+        app = KivyMainApp()
+        app.set_opt('debug_level', DEBUG_LEVEL_VERBOSE)
+        data = app.app_env_dict()
+        assert 'dpi_factor' in data
+        assert 'app data' in data
+
     def test_call_method_delayed_invalid_method(self, restore_app_env):
         app = KivyMainApp()
         app.call_method_delayed(0.0, 'invalid_method_name')
