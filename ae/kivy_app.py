@@ -42,8 +42,8 @@ and in the following order:
 * on_app_stopped (kivy.app.App.on_stop)
 
 
-kivy widget classes
--------------------
+enhanced widget classes
+-----------------------
 
 The widgets provided by this portion are based on the kivy widgets and are respecting the :ref:`app-state-variables`
 specifying the desired app style (dark or light) and font size.
@@ -119,28 +119,27 @@ from ae.gui_app import (                                                        
     ensure_tap_kwargs_refs, id_of_flow, replace_flow_action
 )
 from ae.gui_help import layout_ps_hints, HelpAppBase                                        # type: ignore
+from ae.kivy_glsl import ShadersMixin                                                       # type: ignore
 from ae.kivy_auto_width import ContainerChildrenAutoWidthBehavior                           # type: ignore
 from ae.kivy_dyn_chi import DynamicChildrenBehavior                                         # type: ignore
 from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                              # type: ignore
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.75'
+__version__ = '0.1.77'
 
 
 kivy.require('2.0.0')
 # 1.9.1 is needed for Window.softinput_mode 'below_target'
-# 2.0.0 is needed for Animation Sequence (>= 2.0.0rc2) and ScrollView recursion (> 2.0.0rc3) bug fixes
+# 2.0.0/PR #5926 is needed for Animation Sequence (>= 2.0.0rc2) and ScrollView recursion (> 2.0.0rc3) bug fixes
 
 MAIN_KV_FILE_NAME = 'main.kv'   #: default file name of the main kv file
 
 ANI_SINE_DEEPER_REPEAT3 = \
-    Animation(ani_value=0.99, t='in_out_sine', d=0.6) + Animation(ani_value=0.87, t='in_out_sine', d=0.9) + \
-    Animation(ani_value=0.96, t='in_out_sine', d=1.5) + Animation(ani_value=0.81, t='in_out_sine', d=0.9) + \
-    Animation(ani_value=0.90, t='in_out_sine', d=0.6) + Animation(ani_value=0.54, t='in_out_sine', d=0.3)
-""" sine 3 x deeper repeating animation, used e.g. to animate ae.kivy_help.HelpLayout
-Kivy version 2.0 needed; Animation Sequence bugs fixed in kivy master with the PR #5926, merged 7-May-2020.
-"""
+    Animation(ani_value=0.99, t='in_out_sine', d=0.9) + Animation(ani_value=0.87, t='in_out_sine', d=1.2) + \
+    Animation(ani_value=0.96, t='in_out_sine', d=1.5) + Animation(ani_value=0.75, t='in_out_sine', d=1.2) + \
+    Animation(ani_value=0.90, t='in_out_sine', d=0.9) + Animation(ani_value=0.45, t='in_out_sine', d=0.6)
+""" sine 3 x deeper repeating animation, used e.g. to animate ae.kivy_help.HelpLayout """
 ANI_SINE_DEEPER_REPEAT3.repeat = True
 
 LOVE_VIBRATE_PATTERN = (0.0, 0.12, 0.12, 0.21, 0.03, 0.12, 0.12, 0.12)
@@ -341,12 +340,12 @@ Builder.load_string('''\
 ''')
 
 
-class AppStateSlider(HelpBehavior, Slider):
+class AppStateSlider(HelpBehavior, Slider, ShadersMixin):
     """ slider widget with help text to change app state value. """
     app_state_name = StringProperty()   #: name of the app state to be changed by this slider value
 
 
-class ImageLabel(ReliefCanvas, Label):
+class ImageLabel(ReliefCanvas, Label, ShadersMixin):
     """ base label used for all labels and buttons. """
     _touch_anim = NumericProperty(1.0)  #: used for animation to display that the widget got touched
 
@@ -547,7 +546,7 @@ class ExtTextInputCutCopyPaste(_TextInputCutCopyPaste):                         
         self.size = width, height
 
 
-class FlowInput(HelpBehavior, TextInput):                                                             # pragma: no cover
+class FlowInput(HelpBehavior, TextInput, ShadersMixin):                                            # pragma: no cover
     """ text input/edit widget with optional autocompletion.
 
     Until version 0.1.43 of this portion the background and text color of :class:`FlowInput` did automatically
@@ -892,7 +891,7 @@ class FrameworkApp(App):
 
 class MessageShowPopup(FlowPopup):
     """ flow popup to display info or error messages. """
-    title = StringProperty(get_text("Error"))       #: popup window title
+    title = StringProperty(get_text("error"))       #: popup window title
     message = StringProperty()                      #: popup window label text (message to display)
 
 
@@ -1102,26 +1101,29 @@ class KivyMainApp(HelpAppBase):
     def help_activation_toggle(self):                                               # pragma: no cover
         """ button tapped event handler to switch help mode between active and inactive. """
         activator = self.help_activator
-        activate = self.help_layout is None
+        layout = self.help_layout
+        activate = layout is None
         help_id = ''
         help_vars = dict()
-        hlw = None
         if activate:
             target, help_id = self.help_target_and_id(help_vars)
-            hlw = HelpLayout(target=target,
-                             ps_hints=layout_ps_hints(*target.to_window(*target.pos), *target.size,
-                                                      self.framework_win.width, self.framework_win.height))
-            self.framework_win.add_widget(hlw)
+            layout = HelpLayout(target=target,
+                                ps_hints=layout_ps_hints(*target.to_window(*target.pos), *target.size,
+                                                         self.framework_win.width, self.framework_win.height))
+            self.framework_win.add_widget(layout)
         else:
-            ANI_SINE_DEEPER_REPEAT3.stop(self.help_layout)
+            ANI_SINE_DEEPER_REPEAT3.stop(layout)
+            layout.ani_value = 0.99
             ANI_SINE_DEEPER_REPEAT3.stop(activator)
-            self.framework_win.remove_widget(self.help_layout)
+            activator.ani_value = 0.99
+            self.framework_win.remove_widget(layout)
+            layout = None
 
-        self.change_observable('help_layout', hlw)
+        self.change_observable('help_layout', layout)
 
         if activate:
             self.help_display(help_id, help_vars)   # show found/initial help text (after self.help_layout got set)
-            ANI_SINE_DEEPER_REPEAT3.start(hlw)
+            ANI_SINE_DEEPER_REPEAT3.start(layout)
             ANI_SINE_DEEPER_REPEAT3.start(activator)
 
     def load_sounds(self):
