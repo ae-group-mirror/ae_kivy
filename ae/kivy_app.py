@@ -110,7 +110,7 @@ from ae.base import os_platform                                                 
 from ae.paths import app_docs_path                                                          # type: ignore
 from ae.files import CachedFile                                                             # type: ignore
 from ae.i18n import default_language, get_f_string, get_text                                # type: ignore
-from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED                               # type: ignore
+from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                                       # type: ignore
 
 # id_of_flow not used here - added for easier import in app project
 from ae.gui_app import (                                                                    # type: ignore
@@ -126,7 +126,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.77'
+__version__ = '0.1.78'
 
 
 kivy.require('2.0.0')
@@ -1220,10 +1220,10 @@ class KivyMainApp(HelpAppBase):
         def _timeout_reset(_dt: float):
             self._debug_enable_clicks = 0
 
-        if self.debug_level == DEBUG_LEVEL_DISABLED:
+        if not self.debug:
             self._debug_enable_clicks += 1
             if self._debug_enable_clicks >= 3:
-                self.debug_level: int = DEBUG_LEVEL_ENABLED
+                self.on_debug_level_change(DEBUG_LEVELS[DEBUG_LEVEL_ENABLED], dict())   # also enable for all sub-apps
                 self._debug_enable_clicks = 0
             elif self._debug_enable_clicks == 1:
                 Clock.schedule_once(_timeout_reset, 6.0)
