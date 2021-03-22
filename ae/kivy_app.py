@@ -107,8 +107,8 @@ from kivy.uix.textinput import TextInput, TextInputCutCopyPaste as _TextInputCut
 from kivy.uix.widget import Widget                                                          # type: ignore
 
 from ae.base import os_platform                                                             # type: ignore
-from ae.paths import app_docs_path                                                          # type: ignore
 from ae.files import CachedFile                                                             # type: ignore
+from ae.paths import app_docs_path                                                          # type: ignore
 from ae.i18n import default_language, get_f_string, get_text                                # type: ignore
 from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                                       # type: ignore
 
@@ -126,7 +126,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler                  
 from ae.kivy_relief_canvas import ReliefCanvas                                              # type: ignore
 
 
-__version__ = '0.1.78'
+__version__ = '0.1.79'
 
 
 kivy.require('2.0.0')

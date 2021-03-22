@@ -10,6 +10,7 @@ from kivy.lang import Builder, Observable
 from kivy.properties import BooleanProperty
 from kivy.uix.popup import Popup
 
+from ae.base import INI_EXT
 from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED, DEBUG_LEVEL_VERBOSE
 from ae.i18n import default_language
 from ae.gui_app import (
@@ -35,7 +36,7 @@ Builder.load_string(MAIN_KV_LAYOUT)
 @pytest.fixture
 def ini_file(restore_app_env):
     """ provide test config file """
-    fn = 'tests/tst.ini'
+    fn = "tests/tst" + INI_EXT
     with open(fn, 'w') as file_handle:
         file_handle.write(f"[{APP_STATE_SECTION_NAME}]\n")
         file_handle.write("\n".join(k + " = " + repr(v) for k, v in def_app_states.items()))
