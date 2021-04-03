@@ -418,6 +418,18 @@ class TestHelperMethods:
         app = KivyMainApp()
         app.play_vibrate(('invalid pattern', ))
 
+    def test_text_size_guess(self, restore_app_env):
+        app = KivyMainApp()
+
+        assert app.text_size_guess("") == (0, app.font_size * 1.2)
+        assert app.text_size_guess("tst") == (3 * app.font_size / 1.8, app.font_size * 1.2)
+        assert app.text_size_guess("tst\nWWW") == (3 * app.font_size / 1.8, app.font_size * 2 * 1.2)
+
+        font_size = 99
+        assert app.text_size_guess("", font_size=font_size) == (0, font_size * 1.2)
+        assert app.text_size_guess("tst", font_size=font_size) == (3 * font_size / 1.8, font_size * 1.2)
+        assert app.text_size_guess("tst\nWWW", font_size=font_size) == (3 * font_size / 1.8, font_size * 2 * 1.2)
+
 
 @skip_gitlab_ci
 class TestFlow:
