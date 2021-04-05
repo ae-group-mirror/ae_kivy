@@ -139,7 +139,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler          # type: 
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas           # type: ignore
 
 
-__version__ = '0.1.81'
+__version__ = '0.1.82'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -335,8 +335,8 @@ Builder.load_string('''\
         padding: sp(12), sp(6)
         secondary_size: self.height * 1.8, self.height
         secondary_pos:
-            min(self.right - self.secondary_size[0] * 0.51, Window.width - self.secondary_size[0]), \
-            min(self.top - self.secondary_size[1] * 0.81, Window.height - self.secondary_size[1])
+            min(self.right - self.secondary_size[0] * 0.12, Window.width - self.secondary_size[0]), \
+            min(self.top - self.secondary_size[1] * 0.12, Window.height - self.secondary_size[1])
         ellipse_fill_ink: 1.0, 0.0, 0.0, 0.69
         optimal_width:
             app.main_app.text_size_guess(root.title)[0] + self.secondary_size[0] / 2.1 + self.padding[0] * 2.1
