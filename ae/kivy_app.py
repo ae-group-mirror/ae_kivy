@@ -136,10 +136,10 @@ from ae.kivy_glsl import ShadersMixin                                   # type: 
 from ae.kivy_auto_width import ContainerChildrenAutoWidthBehavior       # type: ignore
 from ae.kivy_dyn_chi import DynamicChildrenBehavior                     # type: ignore
 from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler          # type: ignore
-from ae.kivy_relief_canvas import ReliefCanvas                          # type: ignore
+from ae.kivy_relief_canvas import relief_colors, ReliefCanvas           # type: ignore
 
 
-__version__ = '0.1.80'
+__version__ = '0.1.81'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -205,8 +205,8 @@ Builder.load_string('''\
     ellipse_fill_ink: 1.0, 1.0, 1.0, 0.0
     ellipse_fill_pos: ()
     ellipse_fill_size: ()
-    default_pos: self.default_pos or self.pos
-    default_size: self.default_size or self.size
+    secondary_pos: self.secondary_pos or self.pos
+    secondary_size: self.secondary_size or self.size
     image_pos: ()
     image_size: ()
     source: themeLabelImage.source
@@ -222,13 +222,13 @@ Builder.load_string('''\
         Color:
             rgba: self.square_fill_ink
         Rectangle:
-            pos: self.square_fill_pos or self.default_pos or self.pos
-            size: self.square_fill_size or self.default_size or self.size
+            pos: self.square_fill_pos or self.secondary_pos or self.pos
+            size: self.square_fill_size or self.secondary_size or self.size
         Color:
             rgba: self.ellipse_fill_ink
         Ellipse:
-            pos: self.ellipse_fill_pos or self.default_pos or self.pos
-            size: self.ellipse_fill_size or self.default_size or self.size
+            pos: self.ellipse_fill_pos or self.secondary_pos or self.pos
+            size: self.ellipse_fill_size or self.secondary_size or self.size
     canvas.after:
         StencilPush
         Rectangle:
@@ -253,9 +253,9 @@ Builder.load_string('''\
         allow_stretch: True
         keep_ratio: False
         opacity: 1 if self.source else 0
-        pos: self.parent.image_pos or self.parent.default_pos or self.parent.pos
+        pos: self.parent.image_pos or self.parent.secondary_pos or self.parent.pos
         # size_hint: None, None not needed because parent is no layout
-        size: self.parent.image_size or self.parent.default_size or self.parent.size
+        size: self.parent.image_size or self.parent.secondary_size or self.parent.size
 
 <FlowInput>
     help_id: app.main_app.help_flow_id(self.focus_flow_id)
@@ -306,13 +306,11 @@ Builder.load_string('''\
     container: container
     orientation: 'vertical'
     query_data_maps: query_box.child_data_maps
-    background_color: Window.clearcolor
-    separator_color: app.font_color
-    max_width: Window.width - (root.side_spacing if app.landscape else 0)
-    max_height: Window.height - (0 if app.landscape else root.side_spacing)
+    _max_width: Window.width - (root.side_spacing if app.landscape else 0)
+    _max_height: Window.height - (0 if app.landscape else root.side_spacing)
     size_hint: None, None
-    width: min(max(title_bar.optimal_width or 90, body_box.optimal_width or 120), self.max_width)
-    height: min(title_bar.height + root.separator_height + (body_box.optimal_height or 189), self.max_height)
+    width: min(max(title_bar.optimal_width or 90, body_box.optimal_width or 120), self._max_width)
+    height: min(title_bar.height + root.separator_height + (body_box.optimal_height or 189), self._max_height)
     close_kwargs:
         dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else dict()
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
@@ -335,13 +333,13 @@ Builder.load_string('''\
         shorten: True
         shorten_from: 'right'
         padding: sp(12), sp(6)
-        default_size: self.height * 1.8, self.height
-        default_pos:
-            min(self.right - self.default_size[0] * 0.51, Window.width - self.default_size[0]), \
-            min(self.top - self.default_size[1] * 0.81, Window.height - self.default_size[1])
+        secondary_size: self.height * 1.8, self.height
+        secondary_pos:
+            min(self.right - self.secondary_size[0] * 0.51, Window.width - self.secondary_size[0]), \
+            min(self.top - self.secondary_size[1] * 0.81, Window.height - self.secondary_size[1])
         ellipse_fill_ink: 1.0, 0.0, 0.0, 0.69
         optimal_width:
-            app.main_app.text_size_guess(root.title)[0] + self.default_size[0] / 2.1 + self.padding[0] * 2.1
+            app.main_app.text_size_guess(root.title)[0] + self.secondary_size[0] / 2.1 + self.padding[0] * 2.1
         size_hint_y: None
         height: app.main_app.font_size * 1.8 + self.padding[1] * 2.1 if root.title else 0
         on_press: root.close()
@@ -361,12 +359,12 @@ Builder.load_string('''\
             (container.optimal_width or 336) + (query_box.optimal_width or 0) if app.landscape else \
             max(container.optimal_width or 339, query_box.optimal_width or 0))
         size_hint_x: None
-        width: min(self.optimal_width, root.max_width)
+        width: min(self.optimal_width, root._max_width)
         optimal_height:
             max(container.optimal_height or 363, query_box.optimal_height or 0) if app.landscape else \
             (container.optimal_height or 369) + (query_box.optimal_height or 0)
         size_hint_y: None
-        height: min(self.optimal_height, root.max_height - title_bar.height - root.separator_height)
+        height: min(self.optimal_height, root._max_height - title_bar.height - root.separator_height)
         ScrollView:
             id: container
             bar_width: sp(9)
@@ -421,7 +419,7 @@ Builder.load_string('''\
         text: root.message
         color: app.font_color
         font_size: app.main_app.font_size
-        text_size: min(root.max_width, root.optimal_content_width), None
+        text_size: min(root._max_width, root.optimal_content_width), None
         size_hint: None, None
         size: self.texture_size
         Button:     # invisible button to close popup on message text click
@@ -439,9 +437,9 @@ class AppStateSlider(HelpBehavior, Slider, ShadersMixin):
 
 class ImageLabel(ReliefCanvas, Label, ShadersMixin):
     """ base label used for all labels and buttons. """
-    _touch_anim = NumericProperty(1.0)  #: used internally by :class:`ImageButton` for widget-got-touched-animation
-    _touch_x = NumericProperty()        #: used internally by :class:`ImageButton` as x pos moving from touch to center
-    _touch_y = NumericProperty()        #: used internally by :class:`ImageButton` as y pos moving from touch to center
+    _touch_anim = NumericProperty(1.0)  #: internally used by :class:`ImageButton` for widget-got-touched-animation
+    _touch_x = NumericProperty()        #: internally used by :class:`ImageButton` as x pos moving from touch to center
+    _touch_y = NumericProperty()        #: internally used by :class:`ImageButton` as y pos moving from touch to center
 
 
 class ImageButton(ButtonBehavior, ImageLabel):  # pragma: no cover
@@ -472,7 +470,8 @@ class ImageButton(ButtonBehavior, ImageLabel):  # pragma: no cover
         if not self.disabled and self.collide_point(touch.x, touch.y):
             self._touch_anim = 0.0
             self._touch_x, self._touch_y = touch.pos
-            Animation(_touch_anim=1.0, _touch_x=self.center_x, _touch_y=self.center_y, t='out_quad', d=0.69).start(self)
+            Animation(_touch_anim=1.0, _touch_x=self.center_x, _touch_y=self.center_y,  # pylint: disable=no-member
+                      t='out_quad', d=0.69).start(self)
             is_triple = touch.is_triple_tap
             if is_triple or touch.is_double_tap:
                 # pylint: disable=maybe-no-member
@@ -633,7 +632,7 @@ class ExtTextInputCutCopyPaste(_TextInputCutCopyPaste):  # pragma: no cover
         # estimate container size (exact calc not possible because button width / texture_size[0] is still 100 / 0)
         width = cont.padding[0] + cont.padding[2] + len(cont.children) * (cont.spacing[0] + sp(126))
         height = cont.padding[1] + cont.padding[3] + self.fw_app.button_height
-        self.size = width, height
+        self.size = width, height   # pylint: disable=attribute-defined-outside-init # false positive
 
 
 class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
@@ -795,7 +794,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
         self.text = selector.text
         self._ac_dropdown.close()
 
-    def _show_cut_copy_paste(self, *args, **kwargs):
+    def _show_cut_copy_paste(self, *args, **kwargs):    # pylint: disable=signature-differs
         kivy.uix.textinput.TextInputCutCopyPaste = ExtTextInputCutCopyPaste  # reset in ExtTextInputCutCopyPaste.__init_
         super()._show_cut_copy_paste(*args, **kwargs)
         kivy.uix.textinput.TextInputCutCopyPaste = _TextInputCutCopyPaste  # reset here too if already instantiated
@@ -842,8 +841,8 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
     :attr:`auto_dismiss` is a :class:`~kivy.properties.BooleanProperty` and defaults to True.
     """
 
-    background_color = ColorProperty([1, 1, 1, 1])
-    """ background color, in the format (r, g, b, a).
+    background_color = ColorProperty()
+    """ background ink tuple in the format (red, green, blue, alpha).
 
     The :attr:`background_color` is a :class:`~kivy.properties.ColorProperty` and defaults to
     :attr:`~kivy.core.window.Window.clearcolor`.
@@ -880,10 +879,11 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
     minus the :attr:`side_spacing` and the height needed by the :attr:`query_data_maps` widgets.
     """
 
-    overlay_color = ColorProperty([0.0, 0.0, 0.0, 0.51])
-    """ color in the format (r, g, b, a) used for dimming the main window.
+    overlay_color = ColorProperty()
+    """ ink (color + alpha) tuple in the format (red, green, blue, alpha) used for dimming of the main window.
 
-    :attr:`overlay_color` is a :class:`~kivy.properties.ColorProperty` and defaults to [0.0, 0.0, 0.0, 0.51].
+    :attr:`overlay_color` is a :class:`~kivy.properties.ColorProperty` and defaults to the current color value
+    :attr:`~kivy.core.window.Window.clearcolor` with an alpha of 0.6 (set in :meth:`.__init__`).
     """
 
     parent_popup_to_close = ObjectProperty()
@@ -898,10 +898,11 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
     :attr:`query_data_maps` is a :class:`~kivy.properties.ListProperty` and defaults to an empty list.
     """
 
-    separator_color = ColorProperty((0.18, 0.69, 0.84, 1.0))
+    separator_color = ColorProperty()
     """ color used by the separator between title and the content-/container-layout.
 
-    :attr:`separator_color` is a :class:`~kivy.properties.ColorProperty` and defaults to (0.18, 0.69, 0.84, 1.0).
+    :attr:`separator_color` is a :class:`~kivy.properties.ColorProperty` and defaults to the current value of the
+    :attr:`~FrameworkApp.font_color` property.
     """
 
     separator_height = NumericProperty('3sp')
@@ -923,25 +924,35 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
 
     _anim_alpha = NumericProperty()                         #: internal opacity/alpha for fade-in/-out animations
     _anim_duration = NumericProperty(.3)                    #: internal time in seconds for fade-in/-out animations
+    _max_height = NumericProperty()                         #: popup max height (calculated from Window/side_spacing)
+    _max_width = NumericProperty()                          #: popup max width (calculated from Window/side_spacing)
     _window = ObjectProperty(allownone=True, rebind=True)   #: internal flag to store main window instance if open
 
     __events__ = ('on_pre_open', 'on_open', 'on_pre_dismiss', 'on_dismiss')
 
     def __init__(self, **kwargs):
-        # default already set in kv: self.background_color = kwargs.pop('background_color', Window.clearcolor)
-        self.fw_app = App.get_running_app()
-        super().__init__(**kwargs)
         self._touch_started_inside = None
+
+        self.fw_app = app = App.get_running_app()
+
+        clr_ink = Window.clearcolor
+        self.background_color = clr_ink
+        self.overlay_color = tuple(clr_ink[:3]) + (.6, )
+        self.relief_square_outer_colors = relief_colors(app.font_color)
+        self.relief_square_outer_lines = sp(9)
+        self.separator_color = app.font_color
+
+        super().__init__(**kwargs)
 
     def _align_center(self, *_args):
         if self._window:
             self.center = Window.center
 
-    def add_widget(self, widget, **kwargs):
+    def add_widget(self, widget, **kwargs):     # pylint: disable=arguments-differ
         """ add widget to the container.
 
         :param widget:          widget instance to be added to the container layout.
-        :param kwargs:          kwargs of :meth:`kivy.uix.widget.Widget`.
+        :param kwargs:          kwargs of :meth:`kivy.uix.widget.Widget` (currently: index=0, canvas=None).
         """
         if self.container:
             if self.content:
@@ -968,9 +979,9 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
         if app.help_layout is not None and isinstance(app.help_layout.target, HelpToggler):
             return
 
-        self.dispatch('on_pre_dismiss')
+        self.dispatch('on_pre_dismiss')                                                     # pylint: disable=no-member
 
-        if self.dispatch('on_dismiss') is True and kwargs.get('force', False) is not True:
+        if self.dispatch('on_dismiss') is True and kwargs.get('force', False) is not True:  # pylint: disable=no-member
             return
 
         if kwargs.get('animation', True):
@@ -1012,25 +1023,12 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
 
     def on_open(self):
         """ open default event handler. """
-        # print("FlowPopup.on_open WIN SIZE", Window.size,
-        #      "cont-o", list((self.optimal_content_width, self.optimal_content_height)))
-        # self.print_sizes(self)
-
-    # def print_sizes(self, wid, ind=""):
-    #    """ debug helper method for to display sizes of wid and children. """
-    #    print(ind, wid.__class__.__name__, wid.pos, "S", wid.size, "sh", wid.size_hint,
-    #          "m", getattr(wid, 'minimum_size', ""),
-    #          "o", list((getattr(wid, 'optimal_width', ""), getattr(wid, 'optimal_height', ""))))
-    #    for chi in reversed(wid.children):
-    #        self.print_sizes(chi, ind + "  ")
 
     def on_pre_dismiss(self):
         """ pre close/dismiss event handler. """
 
     def on_pre_open(self):
         """ pre open default event handler. """
-        # print("FlowPopup.on_pre_open WIN SIZE", Window.size,
-        #      "cont-o", list((self.optimal_content_width, self.optimal_content_height)))
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
         """ touch down event handler, prevents the processing of a touch on the help activator widget by this popup.
@@ -1041,7 +1039,8 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
         self._touch_started_inside = self.collide_point(*touch.pos)
         if self.fw_app.main_app.help_activator.collide_point(*touch.pos):
             return False  # allow help activator button to process this touch down event
-        if not (self.disabled if self._touch_started_inside else self.auto_dismiss):    # pylint bug: parens ARE needed
+        # pylint: disable=superfluous-parens # false positive
+        if not (self.disabled if self._touch_started_inside else self.auto_dismiss):
             super().on_touch_down(touch)
         return True
 
@@ -1071,31 +1070,31 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
         """
         app = self.fw_app
         if not self.optimal_content_width:
-            self.optimal_content_width = self.max_width * (0.69 if self.query_data_maps and app.landscape else 1.0)
+            self.optimal_content_width = self._max_width * (0.69 if self.query_data_maps and app.landscape else 1.0)
         if not self.optimal_content_height:
-            self.optimal_content_height = self.max_height \
+            self.optimal_content_height = self._max_height \
                 - (app.button_height + self.ids.title_bar.padding[1] * 2 if self.title else 0.0) \
                 - (len(self.query_data_maps) * app.button_height if not app.landscape else 0.0)
 
         self._window = Window
         self.center = Window.center
 
-        self.dispatch('on_pre_open')
+        self.dispatch('on_pre_open')                                            # pylint: disable=no-member
 
         Window.add_widget(self)
         Window.bind(on_resize=self._align_center, on_keyboard=self._on_key_down)
 
-        fast_bind = self.fbind
+        fast_bind = self.fbind                                                  # pylint: disable=no-member
         fast_bind('center', self._align_center)
         fast_bind('size', self._align_center)
 
         if kwargs.get('animation', True):
             ani = Animation(_anim_alpha=1.0, d=self._anim_duration)
-            ani.bind(on_complete=lambda *_unused: self.dispatch('on_open'))
+            ani.bind(on_complete=lambda *_unused: self.dispatch('on_open'))     # pylint: disable=no-member
             ani.start(self)
         else:
             self._anim_alpha = 1.0
-            self.dispatch('on_open')
+            self.dispatch('on_open')    # pylint: disable=no-member
 
     def _real_remove_widget(self):
         if self._window is None:
