@@ -139,7 +139,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler          # type: 
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas           # type: ignore
 
 
-__version__ = '0.1.83'
+__version__ = '0.1.84'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
