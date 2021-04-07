@@ -139,7 +139,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler          # type: 
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas           # type: ignore
 
 
-__version__ = '0.1.82'
+__version__ = '0.1.83'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -163,271 +163,7 @@ CRITICAL_VIBRATE_PATTERN = (0.00, 0.12, 0.12, 0.12, 0.12, 0.12,
 """ very long/~2.4s vibrate pattern for critical error notification (sending SOS to the mobile world;) """
 
 # helper widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size)
-Builder.load_string('''\
-#: import file_lines ae.files.file_lines
-#: import write_file_text ae.files.write_file_text
-
-#: import norm_path ae.paths.norm_path
-#: import PATH_PLACEHOLDERS ae.paths.PATH_PLACEHOLDERS
-#: import path_name ae.paths.path_name
-
-#: import Window kivy.core.window.Window
-
-#: import flow_action ae.gui_app.flow_action
-#: import flow_key ae.gui_app.flow_key
-#: import flow_key_split ae.gui_app.flow_key_split
-#: import flow_object ae.gui_app.flow_object
-#: import id_of_flow ae.gui_app.id_of_flow
-#: import replace_flow_action ae.gui_app.replace_flow_action
-#: import update_tap_kwargs ae.gui_app.update_tap_kwargs
-
-#: import relief_colors ae.kivy_relief_canvas.relief_colors
-
-<AppStateSlider>
-    help_id: app.main_app.help_app_state_id(self.app_state_name)
-    help_vars: dict(state_name=self.app_state_name, state_value=self.value, self=self)
-    value: app.app_states.get(self.app_state_name, (self.min + self.max) / 2) if self.app_state_name else self.value
-    on_value: app.main_app.change_app_state(self.app_state_name, args[1])
-    size_hint_y: None
-    height: app.button_height
-    cursor_size: app.button_height, app.button_height
-    padding: int(min(app.app_states['font_size'] * 2.4, sp(18)))
-    value_track: True
-    value_track_color: app.font_color[:3] + (0.39, )
-    canvas.before:
-        Color:
-            rgba: Window.clearcolor
-        Rectangle:
-            pos: self.pos
-            size: self.size
-
-<ImageLabel>
-    ellipse_fill_ink: 1.0, 1.0, 1.0, 0.0
-    ellipse_fill_pos: ()
-    ellipse_fill_size: ()
-    secondary_pos: self.secondary_pos or self.pos
-    secondary_size: self.secondary_size or self.size
-    image_pos: ()
-    image_size: ()
-    source: themeLabelImage.source
-    square_fill_ink: 1.0, 1.0, 1.0, 0.0
-    square_fill_pos: ()
-    square_fill_size: ()
-    size_hint_y: None
-    size_hint_min_x: self.height
-    height: app.button_height
-    font_size: app.app_states['font_size']
-    color: app.font_color
-    canvas.before:
-        Color:
-            rgba: self.square_fill_ink
-        Rectangle:
-            pos: self.square_fill_pos or self.secondary_pos or self.pos
-            size: self.square_fill_size or self.secondary_size or self.size
-        Color:
-            rgba: self.ellipse_fill_ink
-        Ellipse:
-            pos: self.ellipse_fill_pos or self.secondary_pos or self.pos
-            size: self.ellipse_fill_size or self.secondary_size or self.size
-    canvas.after:
-        StencilPush
-        Rectangle:
-            pos: self.pos
-            size: self.size
-        StencilUse
-        Color:
-            rgba: 0.99, 0.96, 0.09, 1.0 - self._touch_anim
-        Ellipse:
-            pos:
-                round(self._touch_x - self.width * self._touch_anim / 2.01), \
-                round(self._touch_y - self.height * self._touch_anim / 2.01)
-            size: round(self.width * self._touch_anim), round(self.height * self._touch_anim)
-        StencilUnUse
-        Rectangle:
-            pos: self.pos
-            size: self.size
-        StencilPop
-    Image:
-        id: themeLabelImage
-        source: root.source
-        allow_stretch: True
-        keep_ratio: False
-        opacity: 1 if self.source else 0
-        pos: self.parent.image_pos or self.parent.secondary_pos or self.parent.pos
-        # size_hint: None, None not needed because parent is no layout
-        size: self.parent.image_size or self.parent.secondary_size or self.parent.size
-
-<FlowInput>
-    help_id: app.main_app.help_flow_id(self.focus_flow_id)
-    help_vars: dict(new_flow_id=self.focus_flow_id, self=self)
-    font_size: app.app_states['font_size']
-    multiline: False
-    write_tab: False
-    use_bubble: True
-    use_handles: True
-
-<FlowButton>
-    help_id: app.main_app.help_flow_id(self.tap_flow_id)
-    help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
-    icon_name: ""
-    on_release: app.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
-    source:
-        app.main_app.img_file(self.icon_name or flow_key_split(self.tap_flow_id)[0], \
-                              app.app_states['font_size'], app.app_states['light_theme'])
-
-<OptionalButton@FlowButton>
-    visible: False
-    size_hint: None, None
-    height: app.button_height if self.visible else 0
-    width: self.height if self.visible else 0
-    disabled: not self.visible
-    opacity: 1 if self.visible else 0
-
-<FlowDropDown>
-    close_kwargs:
-        dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else dict()
-    on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
-    auto_width: False
-    # width determined by ContainerChildrenAutoWidthBehavior, so no need for: width: min(Window.width - sp(96), sp(960))
-    canvas.before:
-        Color:
-            rgba: Window.clearcolor
-        RoundedRectangle:
-            pos: self.pos
-            size: self.size
-    canvas.after:
-        Color:
-            rgba: app.font_color
-        Line:
-            width: sp(1.8)
-            rounded_rectangle: self.x, self.y, self.width, self.height, sp(9)
-
-<FlowPopup>
-    container: container
-    orientation: 'vertical'
-    query_data_maps: query_box.child_data_maps
-    _max_width: Window.width - (root.side_spacing if app.landscape else 0)
-    _max_height: Window.height - (0 if app.landscape else root.side_spacing)
-    size_hint: None, None
-    width: min(max(title_bar.optimal_width or 90, body_box.optimal_width or 120), self._max_width)
-    height: min(title_bar.height + root.separator_height + (body_box.optimal_height or 189), self._max_height)
-    close_kwargs:
-        dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else dict()
-    on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
-    canvas:
-        Color:
-            rgba: root.overlay_color[:3] + [root.overlay_color[-1] * self._anim_alpha]
-        Rectangle:
-            size: self._window.size if self._window else (0, 0)
-        Color:
-            rgba: root.background_color
-        RoundedRectangle:
-            pos: self.pos
-            size: self.size
-    FlowButton:
-        id: title_bar
-        tap_flow_id: id_of_flow('close', 'popup')
-        text: root.title
-        text_size: None, app.button_height
-        halign: 'center'
-        shorten: True
-        shorten_from: 'right'
-        padding: sp(12), sp(6)
-        secondary_size: self.height * 1.8, self.height
-        secondary_pos:
-            min(self.right - self.secondary_size[0] * 0.12, Window.width - self.secondary_size[0]), \
-            min(self.top - self.secondary_size[1] * 0.12, Window.height - self.secondary_size[1])
-        ellipse_fill_ink: 1.0, 0.0, 0.0, 0.69
-        optimal_width:
-            app.main_app.text_size_guess(root.title)[0] + self.secondary_size[0] / 2.1 + self.padding[0] * 2.1
-        size_hint_y: None
-        height: app.main_app.font_size * 1.8 + self.padding[1] * 2.1 if root.title else 0
-        on_press: root.close()
-    Widget:
-        size_hint_y: None
-        height: root.separator_height
-        canvas:
-            Color:
-                rgba: root.separator_color
-            Rectangle:
-                pos: self.pos
-                size: self.size
-    StackLayout:
-        id: body_box
-        optimal_width:
-            max(title_bar.optimal_width or 333,
-            (container.optimal_width or 336) + (query_box.optimal_width or 0) if app.landscape else \
-            max(container.optimal_width or 339, query_box.optimal_width or 0))
-        size_hint_x: None
-        width: min(self.optimal_width, root._max_width)
-        optimal_height:
-            max(container.optimal_height or 363, query_box.optimal_height or 0) if app.landscape else \
-            (container.optimal_height or 369) + (query_box.optimal_height or 0)
-        size_hint_y: None
-        height: min(self.optimal_height, root._max_height - title_bar.height - root.separator_height)
-        ScrollView:
-            id: container
-            bar_width: sp(9)
-            bar_color: app.font_color
-            bar_inactive_color: app.font_color[:3] + (0.69, )
-            optimal_width: root.optimal_content_width
-            size_hint_x:
-                container.optimal_width / (container.optimal_width + query_box.optimal_width) \
-                if app.landscape and (container.optimal_width or query_box.optimal_width) else 1.0
-            optimal_height: root.optimal_content_height
-            size_hint_y:
-                container.optimal_height / (container.optimal_height + query_box.optimal_height) \
-                if not app.landscape and (container.optimal_height or query_box.optimal_height) else 1.0
-        PopupQueryBox:
-            id: query_box
-            orientation: 'bt-rl'
-            child_data_maps: root.query_data_maps
-            optimal_width:
-                max((app.main_app.text_size_guess(wid.text)[0] for wid in self.children)) \
-                if self.children else 0
-            size_hint_x:
-                query_box.optimal_width / (container.optimal_width + query_box.optimal_width) \
-                if app.landscape and (container.optimal_width or query_box.optimal_width) else \
-                1.0 if self.children else 0.0
-            optimal_height: len(self.children) * app.button_height
-            size_hint_y:
-                query_box.optimal_height / (container.optimal_height + query_box.optimal_height) \
-                if not app.landscape and (container.optimal_height or query_box.optimal_height) else \
-                1.0 if self.children else 0.0
-
-
-<PopupQueryBox@DynamicChildrenBehavior+StackLayout>
-
-
-<FlowToggler>
-    tap_flow_id: ''
-    help_id: app.main_app.help_flow_id(self.tap_flow_id)
-    help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
-    icon_name: ""
-    on_state: app.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
-    source:
-        app.main_app.img_file(self.icon_name or flow_key_split(self.tap_flow_id)[0], \
-                              app.app_states['font_size'], app.app_states['light_theme'])
-
-<MessageShowPopup>
-    title: _("error")
-    guessed_text_size: app.main_app.text_size_guess(root.message)
-    optimal_content_width: max(msg_txt_box.texture_size[0], self.guessed_text_size[0])
-    optimal_content_height: max(msg_txt_box.texture_size[1], self.guessed_text_size[1])
-    Label:
-        id: msg_txt_box
-        text: root.message
-        color: app.font_color
-        font_size: app.main_app.font_size
-        text_size: min(root._max_width, root.optimal_content_width), None
-        size_hint: None, None
-        size: self.texture_size
-        Button:     # invisible button to close popup on message text click
-            pos: msg_txt_box.pos
-            size: msg_txt_box.size
-            background_color: 0, 0, 0, 0
-            on_release: root.close()
-''')
+Builder.load_file(os.path.join(os.path.dirname(__file__), "widgets.kv"))
 
 
 class AppStateSlider(HelpBehavior, Slider, ShadersMixin):
@@ -470,8 +206,8 @@ class ImageButton(ButtonBehavior, ImageLabel):  # pragma: no cover
         if not self.disabled and self.collide_point(touch.x, touch.y):
             self._touch_anim = 0.0
             self._touch_x, self._touch_y = touch.pos
-            Animation(_touch_anim=1.0, _touch_x=self.center_x, _touch_y=self.center_y,  # pylint: disable=no-member
-                      t='out_quad', d=0.69).start(self)
+            # pylint: disable=no-member # false positive
+            Animation(_touch_anim=1.0, _touch_x=self.center_x, _touch_y=self.center_y, t='out_quad', d=0.69).start(self)
             is_triple = touch.is_triple_tap
             if is_triple or touch.is_double_tap:
                 # pylint: disable=maybe-no-member
@@ -924,6 +660,7 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
 
     _anim_alpha = NumericProperty()                         #: internal opacity/alpha for fade-in/-out animations
     _anim_duration = NumericProperty(.3)                    #: internal time in seconds for fade-in/-out animations
+    _fast_bound: List = list()                              #: list of arg tuples for fbind/funbind
     _max_height = NumericProperty()                         #: popup max height (calculated from Window/side_spacing)
     _max_width = NumericProperty()                          #: popup max width (calculated from Window/side_spacing)
     _window = ObjectProperty(allownone=True, rebind=True)   #: internal flag to store main window instance if open
@@ -1085,12 +822,13 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
         Window.bind(on_resize=self._align_center, on_keyboard=self._on_key_down)
 
         fast_bind = self.fbind                                                  # pylint: disable=no-member
-        fast_bind('center', self._align_center)
-        fast_bind('size', self._align_center)
+        self._fast_bound = [('center', self._align_center), ('size', self._align_center)]
+        for fast_binding in self._fast_bound:
+            fast_bind(*fast_binding)
 
         if kwargs.get('animation', True):
             ani = Animation(_anim_alpha=1.0, d=self._anim_duration)
-            ani.bind(on_complete=lambda *_unused: self.dispatch('on_open'))     # pylint: disable=no-member
+            ani.bind(on_complete=lambda *_args: self.dispatch('on_open'))       # pylint: disable=no-member
             ani.start(self)
         else:
             self._anim_alpha = 1.0
@@ -1100,8 +838,13 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
         if self._window is None:
             return
 
-        Window.remove_widget(self)
+        fast_unbind = self.funbind      # pylint: disable=no-member
+        for fast_unbinding in self._fast_bound:
+            fast_unbind(*fast_unbinding)
+        self._fast_bound = list()
+
         Window.unbind(on_resize=self._align_center, on_keyboard=self._on_key_down)
+        Window.remove_widget(self)
 
         self._window = None
 
@@ -1123,7 +866,9 @@ class FlowToggler(HelpBehavior, ToggleButtonBehavior, ImageLabel):  # pragma: no
         """
         if not self.disabled and self.collide_point(touch.x, touch.y):  # pylint: disable=no-member
             self._touch_anim = 0.0
-            Animation(_touch_anim=1.0, t='out_quad', d=0.39).start(self)
+            self._touch_x, self._touch_y = touch.pos
+            # pylint: disable=no-member # suppress center_x/y false positives
+            Animation(_touch_anim=1.0, _touch_x=self.center_x, _touch_y=self.center_y, t='out_quad', d=0.39).start(self)
         return super().on_touch_down(touch)
 
 
