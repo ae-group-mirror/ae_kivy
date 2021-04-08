@@ -2,7 +2,7 @@
 main application classes and widgets for GUIApp-conform Kivy apps
 =================================================================
 
-This ae portion is providing some useful constants, various enhanced widget classes, two application classes
+This ae portion is providing some useful constants, mix-ins, various enhanced widget classes, two application classes
 (:class:`FrameworkApp` and :class:`KivyMainApp`) and a i18n wrapper (:func:`get_txt`) adding translatable f-strings to
 the python and kv code of your app.
 
@@ -11,6 +11,23 @@ kivy app constants
 ------------------
 
 More information on each constants you find in the constant declaration section starting with :data:`MAIN_KV_FILE_NAME`.
+
+
+mix-in classes
+--------------
+
+To convert a container widget into a modal dialog, add the :class:`ModalBehavior` mix-in class, provided by this ae
+namespace portion. To activate the modal mode call the method :meth:`~ModalBehavior.activate_modal`. The modal mode can
+be deactivated by calling the :meth:`~ModalBehavior.deactivate_modal` method::
+
+    class MyContainer(ModalBehavior, BoxLayout):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.activate_modal()
+
+        def close(self):
+            self.deactivate_modal()
+
 
 
 enhanced widget classes
@@ -139,7 +156,7 @@ from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler          # type: 
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas           # type: ignore
 
 
-__version__ = '0.1.84'
+__version__ = '0.1.85'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -164,6 +181,92 @@ CRITICAL_VIBRATE_PATTERN = (0.00, 0.12, 0.12, 0.12, 0.12, 0.12,
 
 # helper widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size)
 Builder.load_file(os.path.join(os.path.dirname(__file__), "widgets.kv"))
+
+
+class ModalBehavior:                                                                    # pragma: no cover
+    """ mix-in making a container widget modal. """
+    # abstracts provided by the mixing-in container widget
+    center: List
+    close: Callable
+    collide_point: Callable
+    disabled: bool
+    fbind: Callable
+    funbind: Callable
+
+    auto_dismiss = BooleanProperty()
+    """ determines if the container is automatically dismissed when the user hits the Esc/Back key or clicks outside it.
+
+    :attr:`auto_dismiss` is a :class:`~kivy.properties.BooleanProperty` and defaults to True.
+    """
+
+    _fast_bound: List = list()                              #: list of arg tuples for fbind/funbind
+    _touch_started_inside: Optional[bool] = None            #: flag if touch started inside of the container widget
+    _window = ObjectProperty(allownone=True, rebind=True)   #: internal flag to store main window instance if open
+
+    def activate_modal(self):
+        """ activate modal mode for the mixing-in container. """
+        self._window = Window
+
+        Window.add_widget(self)
+        Window.bind(on_resize=self._align_center, on_keyboard=self._on_key_down)
+
+        fast_bind = self.fbind                                                  # pylint: disable=no-member
+        self._fast_bound = [('center', self._align_center), ('size', self._align_center)]
+        for fast_binding in self._fast_bound:
+            fast_bind(*fast_binding)
+
+    def _align_center(self, *_args):
+        """ reposition container on window resize. """
+        if self._window:
+            self.center = Window.center
+
+    def deactivate_modal(self):
+        """ de-activate modal mode for the mixing-in container. """
+        fast_unbind = self.funbind                                              # pylint: disable=no-member
+        for fast_unbinding in self._fast_bound:
+            fast_unbind(*fast_unbinding)
+        self._fast_bound = list()
+
+        if self._window:
+            Window.unbind(on_resize=self._align_center, on_keyboard=self._on_key_down)
+            Window.remove_widget(self)
+        self._window = None
+
+    def _on_key_down(self, _window, key, _scancode, _codepoint, _modifiers):
+        """ close/dismiss this popup if back/Esc key get pressed - allowing stacking with DropDown/FlowDropDown. """
+        if key == 27 and self.auto_dismiss and self._window:
+            self.close()
+            return True
+        return False
+
+    def on_touch_down(self, touch: MotionEvent) -> bool:
+        """ touch down event handler, prevents the processing of a touch on the help activator widget by this popup.
+
+        :param touch:           motion/touch event data.
+        :return:                True if event got processed/used.
+        """
+        self._touch_started_inside = self.collide_point(*touch.pos)
+        if App.get_running_app().main_app.help_activator.collide_point(*touch.pos):
+            return False  # allow help activator button to process this touch down event
+        # pylint: disable=superfluous-parens # false positive
+        if not (self.disabled if self._touch_started_inside else self.auto_dismiss):
+            super().on_touch_down(touch)    # type: ignore # pylint: disable=no-member # false positive
+        return True
+
+    def on_touch_move(self, touch):
+        """ touch move event handler. """
+        if not self.auto_dismiss or self._touch_started_inside:
+            super().on_touch_move(touch)    # type: ignore # pylint: disable=no-member # false positive
+        return True
+
+    def on_touch_up(self, touch):
+        """ touch up event handler. """
+        if self.auto_dismiss and self._touch_started_inside is False:
+            self.close()
+        else:
+            super().on_touch_up(touch)      # type: ignore # pylint: disable=no-member # false positive
+        self._touch_started_inside = None
+        return True
 
 
 class AppStateSlider(HelpBehavior, Slider, ShadersMixin):
@@ -536,7 +639,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
         kivy.uix.textinput.TextInputCutCopyPaste = _TextInputCutCopyPaste  # reset here too if already instantiated
 
 
-class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):                      # pragma: no cover
+class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout):                   # pragma: no cover
     """ popup for dynamic and auto-content-sizing dialogs and other top-most or modal windows.
 
     The scrollable :attr:`container` (a :class:`~kivy.uix.scrollview.ScrollView` instance) can only have one children,
@@ -569,12 +672,6 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
         `on_dismiss`:
             Fired when the FlowPopup is closed. If the callback returns True, the dismiss will be canceled.
 
-    """
-
-    auto_dismiss = BooleanProperty()
-    """ determines if the view is automatically dismissed when the user hits the Esc/Back key or clicks outside it.
-
-    :attr:`auto_dismiss` is a :class:`~kivy.properties.BooleanProperty` and defaults to True.
     """
 
     background_color = ColorProperty()
@@ -660,16 +757,12 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
 
     _anim_alpha = NumericProperty()                         #: internal opacity/alpha for fade-in/-out animations
     _anim_duration = NumericProperty(.3)                    #: internal time in seconds for fade-in/-out animations
-    _fast_bound: List = list()                              #: list of arg tuples for fbind/funbind
     _max_height = NumericProperty()                         #: popup max height (calculated from Window/side_spacing)
     _max_width = NumericProperty()                          #: popup max width (calculated from Window/side_spacing)
-    _window = ObjectProperty(allownone=True, rebind=True)   #: internal flag to store main window instance if open
 
     __events__ = ('on_pre_open', 'on_open', 'on_pre_dismiss', 'on_dismiss')
 
     def __init__(self, **kwargs):
-        self._touch_started_inside = None
-
         self.fw_app = app = App.get_running_app()
 
         clr_ink = Window.clearcolor
@@ -680,10 +773,6 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
         self.separator_color = app.font_color
 
         super().__init__(**kwargs)
-
-    def _align_center(self, *_args):
-        if self._window:
-            self.center = Window.center
 
     def add_widget(self, widget, **kwargs):     # pylint: disable=arguments-differ
         """ add widget to the container.
@@ -725,14 +814,14 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
             Animation(_anim_alpha=0.0, d=self._anim_duration).start(self)
         else:
             self._anim_alpha = 0.0
-            self._real_remove_widget()
+            self.deactivate_modal()
 
     dismiss = close     #: alias method of :meth:`~FlowPopup.close`
 
     def on__anim_alpha(self, _instance, value):
         """ _anim_alpha changed event handler. """
         if value == 0.0 and self._window is not None:
-            self._real_remove_widget()
+            self.deactivate_modal()
 
     def on_content(self, _instance, value):
         """ optional single widget (to be added to the container layout) set directly or via FlowPopup kwargs. """
@@ -751,13 +840,6 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
     def on_dismiss(self):
         """ dismiss/close event handler. """
 
-    def _on_key_down(self, _window, key, _scancode, _codepoint, _modifiers):
-        """ close/dismiss this popup if back/Esc key get pressed - allowing stacking with DropDown/FlowDropDown. """
-        if key == 27 and self.auto_dismiss and self._window:
-            self.close()
-            return True
-        return False
-
     def on_open(self):
         """ open default event handler. """
 
@@ -766,35 +848,6 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
 
     def on_pre_open(self):
         """ pre open default event handler. """
-
-    def on_touch_down(self, touch: MotionEvent) -> bool:
-        """ touch down event handler, prevents the processing of a touch on the help activator widget by this popup.
-
-        :param touch:           motion/touch event data.
-        :return:                True if event got processed/used.
-        """
-        self._touch_started_inside = self.collide_point(*touch.pos)
-        if self.fw_app.main_app.help_activator.collide_point(*touch.pos):
-            return False  # allow help activator button to process this touch down event
-        # pylint: disable=superfluous-parens # false positive
-        if not (self.disabled if self._touch_started_inside else self.auto_dismiss):
-            super().on_touch_down(touch)
-        return True
-
-    def on_touch_move(self, touch):
-        """ touch move event handler. """
-        if not self.auto_dismiss or self._touch_started_inside:
-            super().on_touch_move(touch)
-        return True
-
-    def on_touch_up(self, touch):
-        """ touch up event handler. """
-        if self.auto_dismiss and self._touch_started_inside is False:
-            self.dismiss()
-        else:
-            super().on_touch_up(touch)
-        self._touch_started_inside = None
-        return True
 
     def open(self, *_args, **kwargs):
         """ start optional open animation after calling open method if exists in inheriting container/layout widget.
@@ -812,41 +865,17 @@ class FlowPopup(DynamicChildrenBehavior, ReliefCanvas, BoxLayout):              
             self.optimal_content_height = self._max_height \
                 - (app.button_height + self.ids.title_bar.padding[1] * 2 if self.title else 0.0) \
                 - (len(self.query_data_maps) * app.button_height if not app.landscape else 0.0)
-
-        self._window = Window
         self.center = Window.center
 
         self.dispatch('on_pre_open')                                            # pylint: disable=no-member
-
-        Window.add_widget(self)
-        Window.bind(on_resize=self._align_center, on_keyboard=self._on_key_down)
-
-        fast_bind = self.fbind                                                  # pylint: disable=no-member
-        self._fast_bound = [('center', self._align_center), ('size', self._align_center)]
-        for fast_binding in self._fast_bound:
-            fast_bind(*fast_binding)
-
+        self.activate_modal()
         if kwargs.get('animation', True):
             ani = Animation(_anim_alpha=1.0, d=self._anim_duration)
             ani.bind(on_complete=lambda *_args: self.dispatch('on_open'))       # pylint: disable=no-member
             ani.start(self)
         else:
             self._anim_alpha = 1.0
-            self.dispatch('on_open')    # pylint: disable=no-member
-
-    def _real_remove_widget(self):
-        if self._window is None:
-            return
-
-        fast_unbind = self.funbind      # pylint: disable=no-member
-        for fast_unbinding in self._fast_bound:
-            fast_unbind(*fast_unbinding)
-        self._fast_bound = list()
-
-        Window.unbind(on_resize=self._align_center, on_keyboard=self._on_key_down)
-        Window.remove_widget(self)
-
-        self._window = None
+            self.dispatch('on_open')                                            # pylint: disable=no-member
 
 
 class FlowToggler(HelpBehavior, ToggleButtonBehavior, ImageLabel):  # pragma: no cover
