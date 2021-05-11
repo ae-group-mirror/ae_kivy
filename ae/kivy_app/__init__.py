@@ -2,7 +2,7 @@
 main application classes and widgets for GUIApp-conform Kivy apps
 =================================================================
 
-This ae portion is providing some useful constants, mix-ins, various enhanced widget classes, two application classes
+This ae portion is providing some useful constants, various enhanced widget classes, two application classes
 (:class:`FrameworkApp` and :class:`KivyMainApp`) and a i18n wrapper (:func:`get_txt`) adding translatable f-strings to
 the python and kv code of your app.
 
@@ -11,23 +11,6 @@ kivy app constants
 ------------------
 
 More information on each constants you find in the constant declaration section starting with :data:`MAIN_KV_FILE_NAME`.
-
-
-mix-in classes
---------------
-
-To convert a container widget into a modal dialog, add the :class:`ModalBehavior` mix-in class, provided by this ae
-namespace portion. To activate the modal mode call the method :meth:`~ModalBehavior.activate_modal`. The modal mode can
-be deactivated by calling the :meth:`~ModalBehavior.deactivate_modal` method::
-
-    class MyContainer(ModalBehavior, BoxLayout):
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
-            self.activate_modal()
-
-        def close(self):
-            self.deactivate_modal()
-
 
 
 enhanced widget classes
@@ -109,54 +92,54 @@ unit tests need at least V 2.0 of OpenGL and the kivy framework installed.
 import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
-from plyer import vibrator                                              # type: ignore
+from plyer import vibrator                                                                  # type: ignore
 
-import kivy                                                             # type: ignore
-from kivy.animation import Animation                                    # type: ignore
-from kivy.app import App                                                # type: ignore
-from kivy.clock import Clock                                            # type: ignore
-from kivy.core.audio import SoundLoader                                 # type: ignore
-from kivy.core.window import Window                                     # type: ignore
-from kivy.factory import Factory, FactoryException                      # type: ignore
-from kivy.input import MotionEvent                                      # type: ignore
-from kivy.lang import Builder, Observable, global_idmap                 # type: ignore
-from kivy.metrics import sp                                             # type: ignore
+import kivy                                                                                 # type: ignore
+from kivy.animation import Animation                                                        # type: ignore
+from kivy.app import App                                                                    # type: ignore
+from kivy.clock import Clock                                                                # type: ignore
+from kivy.core.audio import SoundLoader                                                     # type: ignore
+from kivy.core.window import Window                                                         # type: ignore
+from kivy.factory import Factory, FactoryException                                          # type: ignore
+from kivy.input import MotionEvent                                                          # type: ignore
+from kivy.lang import Builder, Observable, global_idmap                                     # type: ignore
+from kivy.metrics import sp                                                                 # type: ignore
 # pylint: disable=no-name-in-module
-from kivy.properties import (                                           # type: ignore
+from kivy.properties import (                                                               # type: ignore
     BooleanProperty, ColorProperty, DictProperty, ListProperty, NumericProperty, ObjectProperty, StringProperty)
-from kivy.uix.boxlayout import BoxLayout                                # type: ignore
-from kivy.uix.behaviors import ButtonBehavior, ToggleButtonBehavior     # type: ignore
-from kivy.uix.bubble import BubbleButton                                # type: ignore
-from kivy.uix.dropdown import DropDown                                  # type: ignore
-from kivy.uix.label import Label                                        # type: ignore
-from kivy.uix.popup import Popup                                        # type: ignore
-from kivy.uix.slider import Slider                                      # type: ignore
-import kivy.uix.textinput                                               # type: ignore
+from kivy.uix.boxlayout import BoxLayout                                                    # type: ignore
+from kivy.uix.behaviors import ButtonBehavior, ToggleButtonBehavior                         # type: ignore
+from kivy.uix.bubble import BubbleButton                                                    # type: ignore
+from kivy.uix.dropdown import DropDown                                                      # type: ignore
+from kivy.uix.label import Label                                                            # type: ignore
+from kivy.uix.popup import Popup                                                            # type: ignore
+from kivy.uix.slider import Slider                                                          # type: ignore
+import kivy.uix.textinput                                                                   # type: ignore
 # noinspection PyProtectedMember
-from kivy.uix.textinput import TextInput, TextInputCutCopyPaste as _TextInputCutCopyPaste  # type: ignore
-from kivy.uix.widget import Widget                                      # type: ignore
+from kivy.uix.textinput import TextInput, TextInputCutCopyPaste as _TextInputCutCopyPaste   # type: ignore
+from kivy.uix.widget import Widget                                                          # type: ignore
 
-from ae.base import os_platform                                         # type: ignore
-from ae.files import CachedFile                                         # type: ignore
-from ae.paths import app_docs_path                                      # type: ignore
-from ae.i18n import default_language, get_f_string                      # type: ignore
-from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                   # type: ignore
+from ae.base import os_platform                                                             # type: ignore
+from ae.files import CachedFile                                                             # type: ignore
+from ae.paths import app_docs_path                                                          # type: ignore
+from ae.i18n import default_language, get_f_string                                          # type: ignore
+from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                                       # type: ignore
 
 # id_of_flow not used here - added for easier import in app project
-from ae.gui_app import (                                                # type: ignore
+from ae.gui_app import (                                                                    # type: ignore
     APP_STATE_SECTION_NAME,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
     ensure_tap_kwargs_refs, id_of_flow, replace_flow_action
 )
-from ae.gui_help import layout_ps_hints, HelpAppBase                    # type: ignore
-from ae.kivy_glsl import ShadersMixin                                   # type: ignore
-from ae.kivy_auto_width import ContainerChildrenAutoWidthBehavior       # type: ignore
-from ae.kivy_dyn_chi import DynamicChildrenBehavior                     # type: ignore
-from ae.kivy_help import HelpBehavior, HelpLayout, HelpToggler          # type: ignore
-from ae.kivy_relief_canvas import relief_colors, ReliefCanvas           # type: ignore
+from ae.gui_help import layout_ps_hints, HelpAppBase                                        # type: ignore
+from ae.kivy_glsl import ShadersMixin                                                       # type: ignore
+from ae.kivy_auto_width import ContainerChildrenAutoWidthBehavior                           # type: ignore
+from ae.kivy_dyn_chi import DynamicChildrenBehavior                                         # type: ignore
+from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, TourOverlay     # type: ignore
+from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.1.85'
+__version__ = '0.1.86'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -165,7 +148,7 @@ ANI_SINE_DEEPER_REPEAT3 = \
     Animation(ani_value=0.99, t='in_out_sine', d=0.9) + Animation(ani_value=0.87, t='in_out_sine', d=1.2) + \
     Animation(ani_value=0.96, t='in_out_sine', d=1.5) + Animation(ani_value=0.75, t='in_out_sine', d=1.2) + \
     Animation(ani_value=0.90, t='in_out_sine', d=0.9) + Animation(ani_value=0.45, t='in_out_sine', d=0.6)
-""" sine 3 x deeper repeating animation, used e.g. to animate ae.kivy_help.HelpLayout """
+""" sine 3 x deeper repeating animation, used e.g. to animate help layout (ae.kivy_help.Tooltip) """
 ANI_SINE_DEEPER_REPEAT3.repeat = True
 
 LOVE_VIBRATE_PATTERN = (0.0, 0.12, 0.12, 0.21, 0.03, 0.12, 0.12, 0.12)
@@ -179,94 +162,8 @@ CRITICAL_VIBRATE_PATTERN = (0.00, 0.12, 0.12, 0.12, 0.12, 0.12,
                             0.12, 0.12, 0.12, 0.12, 0.12, 0.12)
 """ very long/~2.4s vibrate pattern for critical error notification (sending SOS to the mobile world;) """
 
-# helper widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size)
+# load/declare base widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size)
 Builder.load_file(os.path.join(os.path.dirname(__file__), "widgets.kv"))
-
-
-class ModalBehavior:                                                                    # pragma: no cover
-    """ mix-in making a container widget modal. """
-    # abstracts provided by the mixing-in container widget
-    center: List
-    close: Callable
-    collide_point: Callable
-    disabled: bool
-    fbind: Callable
-    funbind: Callable
-
-    auto_dismiss = BooleanProperty()
-    """ determines if the container is automatically dismissed when the user hits the Esc/Back key or clicks outside it.
-
-    :attr:`auto_dismiss` is a :class:`~kivy.properties.BooleanProperty` and defaults to True.
-    """
-
-    _fast_bound: List = list()                              #: list of arg tuples for fbind/funbind
-    _touch_started_inside: Optional[bool] = None            #: flag if touch started inside of the container widget
-    _window = ObjectProperty(allownone=True, rebind=True)   #: internal flag to store main window instance if open
-
-    def activate_modal(self):
-        """ activate modal mode for the mixing-in container. """
-        self._window = Window
-
-        Window.add_widget(self)
-        Window.bind(on_resize=self._align_center, on_keyboard=self._on_key_down)
-
-        fast_bind = self.fbind                                                  # pylint: disable=no-member
-        self._fast_bound = [('center', self._align_center), ('size', self._align_center)]
-        for fast_binding in self._fast_bound:
-            fast_bind(*fast_binding)
-
-    def _align_center(self, *_args):
-        """ reposition container on window resize. """
-        if self._window:
-            self.center = Window.center
-
-    def deactivate_modal(self):
-        """ de-activate modal mode for the mixing-in container. """
-        fast_unbind = self.funbind                                              # pylint: disable=no-member
-        for fast_unbinding in self._fast_bound:
-            fast_unbind(*fast_unbinding)
-        self._fast_bound = list()
-
-        if self._window:
-            Window.unbind(on_resize=self._align_center, on_keyboard=self._on_key_down)
-            Window.remove_widget(self)
-        self._window = None
-
-    def _on_key_down(self, _window, key, _scancode, _codepoint, _modifiers):
-        """ close/dismiss this popup if back/Esc key get pressed - allowing stacking with DropDown/FlowDropDown. """
-        if key == 27 and self.auto_dismiss and self._window:
-            self.close()
-            return True
-        return False
-
-    def on_touch_down(self, touch: MotionEvent) -> bool:
-        """ touch down event handler, prevents the processing of a touch on the help activator widget by this popup.
-
-        :param touch:           motion/touch event data.
-        :return:                True if event got processed/used.
-        """
-        self._touch_started_inside = self.collide_point(*touch.pos)
-        if App.get_running_app().main_app.help_activator.collide_point(*touch.pos):
-            return False  # allow help activator button to process this touch down event
-        # pylint: disable=superfluous-parens # false positive
-        if not (self.disabled if self._touch_started_inside else self.auto_dismiss):
-            super().on_touch_down(touch)    # type: ignore # pylint: disable=no-member # false positive
-        return True
-
-    def on_touch_move(self, touch):
-        """ touch move event handler. """
-        if not self.auto_dismiss or self._touch_started_inside:
-            super().on_touch_move(touch)    # type: ignore # pylint: disable=no-member # false positive
-        return True
-
-    def on_touch_up(self, touch):
-        """ touch up event handler. """
-        if self.auto_dismiss and self._touch_started_inside is False:
-            self.close()
-        else:
-            super().on_touch_up(touch)      # type: ignore # pylint: disable=no-member # false positive
-        self._touch_started_inside = None
-        return True
 
 
 class AppStateSlider(HelpBehavior, Slider, ShadersMixin):
@@ -409,7 +306,7 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
         :param args:            args to be passed to DropDown.dismiss().
         """
         app = App.get_running_app()
-        if app.help_layout is None or not isinstance(app.help_layout.target, HelpToggler):
+        if app.help_layout is None or not isinstance(app.help_layout.explained_widget, HelpToggler):
             super().dismiss(*args)
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
@@ -689,8 +586,14 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
     empty dict.
     """
 
+    container = ObjectProperty()
+    """ popup scrollable layout underneath the title bar and content container (parent widget of :attr:`content`).
+
+    :attr:`container` is an :class:`~kivy.properties.ObjectProperty` and is read-only.
+    """
+
     content = ObjectProperty()
-    """ popup main content, displayed in the scrollable layout :attr:`container` underneath the title bar.
+    """ popup main content, displayed in the scrollable layout :attr:`container`.
 
     :attr:`content` is an :class:`~kivy.properties.ObjectProperty` and has to be specified either in the kv language
     as children or via the `content` kwarg.
@@ -774,21 +677,22 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
 
         super().__init__(**kwargs)
 
-    def add_widget(self, widget, **kwargs):     # pylint: disable=arguments-differ
-        """ add widget to the container.
+    def add_widget(self, widget, index=0, canvas=None):
+        """ add container and content widgets (first call set container from kv rule, 2nd the content, 3rd raise error).
 
-        :param widget:          widget instance to be added to the container layout.
-        :param kwargs:          kwargs of :meth:`kivy.uix.widget.Widget` (currently: index=0, canvas=None).
+        :param widget:          widget instance to be added.
+        :param index:           index kwarg of :meth:`kivy.uix.widget.Widget`.
+        :param canvas:          canvas kwarg of :meth:`kivy.uix.widget.Widget`.
         """
-        if self.container:
+        if self.container:      # None until FlowPopup kv rule in widgets.kv is fully built (before user kv rule build)
             if self.content:
-                raise ValueError("FlowPopup has already a children, set via kv or the content property")
-            self.fw_app.main_app.vpo("FlowPopup: add content widget to container", widget, kwargs)
-            self.container.add_widget(widget, **kwargs)
+                raise ValueError("FlowPopup has already a children, set via this method, kv or the content property")
+            self.fw_app.main_app.vpo(f"FlowPopup: add content widget {widget} to container", index, canvas)
+            self.container.add_widget(widget, index=index)  # ScrollView.add_widget does not have canvas parameter
             self.content = widget
         else:
-            self.fw_app.main_app.vpo("FlowPopup: add widget", widget, kwargs)
-            super().add_widget(widget, **kwargs)
+            self.fw_app.main_app.vpo(f"FlowPopup: add container {widget} from internal kv rule", index, canvas)
+            super().add_widget(widget, index=index, canvas=canvas)
 
     def close(self, *_args, **kwargs):
         """ close/dismiss container/layout (ae.gui_app popup handling compatibility for all GUI frameworks).
@@ -802,7 +706,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
             return
 
         app = self.fw_app
-        if app.help_layout is not None and isinstance(app.help_layout.target, HelpToggler):
+        if app.help_layout is not None and isinstance(app.help_layout.explained_widget, HelpToggler):
             return
 
         self.dispatch('on_pre_dismiss')                                                     # pylint: disable=no-member
@@ -825,17 +729,9 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
 
     def on_content(self, _instance, value):
         """ optional single widget (to be added to the container layout) set directly or via FlowPopup kwargs. """
-        if self.container:
-            self.fw_app.main_app.vpo(f"FlowPopup.on_content setting {self.container} to content ({value}")
-            self.container.clear_widgets()
-            self.container.add_widget(value)
-
-    def on_container(self, _instance, value):
-        """ container layout property set or changed. """
-        if value is not None and self.content is not None:
-            self.fw_app.main_app.vpo(f"FlowPopup.on_container resetting {self.container} to content ({self.content}")
-            self.container.clear_widgets()
-            self.container.add_widget(self.content)
+        self.fw_app.main_app.vpo(f"FlowPopup.on_content adding content {value} to container {self.container}")
+        self.container.clear_widgets()
+        self.container.add_widget(value)
 
     def on_dismiss(self):
         """ dismiss/close event handler. """
@@ -907,6 +803,7 @@ class FrameworkApp(App):
     app_states = DictProperty()                         #: duplicate of MainAppBase app state for events/binds
     displayed_help_id = StringProperty()                #: help id of the currently explained/help-target widget
     help_layout = ObjectProperty(allownone=True)        #: layout widget if help mode is active else None
+    tour_layout = ObjectProperty(allownone=True)        #: overlay layout widget if tour is active else None
 
     button_height = NumericProperty('45sp')             #: default button height, dynamically calculated from font size
     font_color = ObjectProperty(THEME_DARK_FONT_COLOR)  #: rgba color of the font used for labels/buttons/...
@@ -1129,9 +1026,10 @@ global_idmap['_'] = get_txt             # bind as function/callable with the nam
 
 class KivyMainApp(HelpAppBase):
     """ Kivy application """
-    get_txt_ = get_txt                  #: make i18n translations available via main app instance
-    kbd_input_mode: str = 'scale'       #: optional app state to set Window[Base].softinput_mode
-    documents_root_path: str = "."      #: root file path for app documents, e.g. for import/export
+    documents_root_path: str = "."                      #: root file path for app documents, e.g. for import/export
+    get_txt_: Any = get_txt                             #: make i18n translations available via main app instance
+    kbd_input_mode: str = 'scale'                       #: optional app state to set Window[Base].softinput_mode
+    tour_overlay_class: Optional[Any] = TourOverlay     #: Kivy main app tour overlay class
 
     _debug_enable_clicks: int = 0
 
@@ -1184,15 +1082,17 @@ class KivyMainApp(HelpAppBase):
 
         return app_env_info
 
-    def call_method_delayed(self, delay: float, method: str, *args, **kwargs):
-        """ in `delay` seconds call method with the passed args, catching and logging exceptions preventing app exit.
+    def call_method_delayed(self, delay: float, callback: Union[Callable, str], *args, **kwargs) -> Any:
+        """ delayed call of passed callable/method with args/kwargs catching and logging exceptions preventing app exit.
 
-        :param delay:           delay in seconds when to call the method specified by the `method` argument.
-        :param method:          name of the main app method to call.
-        :param args:            args passed to the main app method to be called.
-        :param kwargs:          kwargs passed to the main app method to be called.
+        :param delay:           delay in seconds when to call the callable/method specified by :paramref:`.callback`.
+        :param callback:        either callable or name of the main app method to call.
+        :param args:            args passed to the callable/main-app-method to be called.
+        :param kwargs:          kwargs passed to the callable/main-app-method to be called.
+        :return:                delayed call event (in Kivy of Type[ClockEvent]) providing a `cancel` method to allow
+                                the cancellation of the delayed call within the delay time.
         """
-        Clock.schedule_once(lambda dt: self.call_method(method, *args, **kwargs), timeout=delay)
+        return Clock.schedule_once(lambda dt: self.call_method(callback, *args, **kwargs), timeout=delay)
 
     def change_light_theme(self, light_theme: bool):
         """ change font and window clear/background colors to match 'light'/'black' themes.
@@ -1215,41 +1115,46 @@ class KivyMainApp(HelpAppBase):
         """ dpi scaling factor - overwrite if the used GUI framework supports dpi scaling. """
         return sp(1.0)
 
-    def ensure_top_most_z_index(self, widget: Any):
+    def ensure_top_most_z_index(self, widget: Widget):
         """ ensure visibility of the passed widget to be the top most in the z index/order
 
         :param widget:          widget to check and possibly correct to be the top most one.
         """
         if self.framework_win.children[0] != widget:  # if other dropdown/popup opened after help layout
             self.framework_win.remove_widget(widget)  # then correct z index/order to show help text in front
-            self.framework_win.add_widget(widget, )
+            self.framework_win.add_widget(widget)
 
     def help_activation_toggle(self):  # pragma: no cover
-        """ button tapped event handler to switch help mode between active and inactive. """
+        """ button tapped event handler to switch help mode between active and inactive (also inactivating tour). """
         activator = self.help_activator
-        layout = self.help_layout
-        activate = layout is None
+        help_layout = self.help_layout
+        tour_layout = self.tour_layout
+        activate = help_layout is None and tour_layout is None
         help_id = ''
         help_vars = dict()
         if activate:
             target, help_id = self.help_target_and_id(help_vars)
-            layout = HelpLayout(target=target,
-                                ps_hints=layout_ps_hints(*target.to_window(*target.pos), *target.size,
-                                                         self.framework_win.width, self.framework_win.height))
-            self.framework_win.add_widget(layout, )
+            help_layout = Tooltip(explained_widget=target,
+                                  ps_hints=layout_ps_hints(*target.to_window(*target.pos), *target.size,
+                                                           self.framework_win.width, self.framework_win.height))
+            self.framework_win.add_widget(help_layout)
         else:
-            ANI_SINE_DEEPER_REPEAT3.stop(layout)
-            layout.ani_value = 0.99
-            ANI_SINE_DEEPER_REPEAT3.stop(activator)
-            activator.ani_value = 0.99
-            self.framework_win.remove_widget(layout)
-            layout = None
+            if help_layout:
+                ANI_SINE_DEEPER_REPEAT3.stop(help_layout)
+                help_layout.ani_value = 0.99
+                ANI_SINE_DEEPER_REPEAT3.stop(activator)
+                activator.ani_value = 0.99
+                self.framework_win.remove_widget(help_layout)
+                help_layout = None
 
-        self.change_observable('help_layout', layout)
+            if tour_layout:
+                tour_layout.stop_tour()
+
+        self.change_observable('help_layout', help_layout)
 
         if activate:
             self.help_display(help_id, help_vars)  # show found/initial help text (after self.help_layout got set)
-            ANI_SINE_DEEPER_REPEAT3.start(layout)
+            ANI_SINE_DEEPER_REPEAT3.start(help_layout)
             ANI_SINE_DEEPER_REPEAT3.start(activator)
 
     def load_sounds(self):
@@ -1257,22 +1162,13 @@ class KivyMainApp(HelpAppBase):
         super().load_sounds()  # load from sound file paths all files into :class:`~ae.files.RegisteredFile` instances
         self.sound_files.reclassify(object_loader=lambda f: SoundLoader.load(f.path))  # :class:`~ae.files.CachedFile`
 
-    def mix_background_ink(self):
-        """ remix background ink if one of the basic back colours change. """
-        self.framework_app.mixed_back_ink = (sum(_) / len(_) for _ in zip(
-            self.flow_id_ink, self.flow_path_ink, self.selected_item_ink, self.unselected_item_ink))
-
     def on_app_built(self):
         """ kivy App build event handler called at the end of :meth:`kivy.app.App.build`. """
         self.vpo("KivyMainApp.on_app_built default/fallback event handler called")
 
     def on_app_init(self):
         """ setup loaded app states within the now available framework app and its widgets. """
-        # redirect back ink app state color changes to actualize mixed_back_ink
-        setattr(self, 'on_flow_id_ink', self.mix_background_ink)
-        setattr(self, 'on_flow_path_ink', self.mix_background_ink)
-        setattr(self, 'on_selected_item_ink', self.mix_background_ink)
-        setattr(self, 'on_unselected_item_ink', self.mix_background_ink)
+        self.vpo("KivyMainApp.on_app_built default/fallback event handler called")
 
     def on_app_pause(self):
         """ kivy :meth:`~kivy.app.App.on_pause` event handler. """
@@ -1298,6 +1194,7 @@ class KivyMainApp(HelpAppBase):
     def on_app_started(self):
         """ kivy :meth:`~kivy.app.App.on_start` event handler (called after on_app_build/on_app_built). """
         self.vpo("KivyMainApp.on_app_started default/fallback event handler called")
+        super().on_app_started()    # check onboarding tour start in ae.gui_help.HelpAppBase
 
     def on_app_stopped(self):
         """ kivy :meth:`~kivy.app.App.on_stop` event handler (called after on_app_stop). """
@@ -1311,7 +1208,7 @@ class KivyMainApp(HelpAppBase):
         if liw and getattr(liw, 'is_focusable', False) and not liw.focus:
             liw.focus = True
 
-    def on_kbd_input_mode_change(self, mode: str, _event_kwargs: dict) -> bool:
+    def on_kbd_input_mode_change(self, mode: str, _event_kwargs: Dict[str, Any]) -> bool:
         """ language app state change event handler.
 
         :param mode:            the new softinput_mode string (passed as flow key).
@@ -1334,14 +1231,12 @@ class KivyMainApp(HelpAppBase):
         self.vpo(f"KivyMainApp.on_light_theme: theme got changed to {self.light_theme}")
         self.change_light_theme(self.light_theme)
 
-    def on_user_preferences_open(self, _flow_id: str, _event_kwargs) -> bool:
+    def on_user_preferences_open(self, _flow_id: str, _event_kwargs: Dict[str, Any]) -> bool:
         """ enable debug mode after clicking 3 times within 6 seconds.
 
-        :param _flow_id:        new flow id.
-        :param _event_kwargs:   optional event kwargs; the optional item with the key `popup_kwargs`
-                                will be passed onto the `__init__` method of the found Popup class.
+        :param _flow_id:        (unused).
+        :param _event_kwargs:   (unused).
         :return:                False for :meth:`~.on_flow_change` get called, opening user preferences popup.
-
         """
         def _timeout_reset(_dt: float):
             self._debug_enable_clicks = 0
@@ -1354,7 +1249,7 @@ class KivyMainApp(HelpAppBase):
             elif self._debug_enable_clicks == 1:
                 Clock.schedule_once(_timeout_reset, 6.0)
 
-        return False
+        return False        # side-run:returning False (allowing user prefs dropdown to open)
 
     def play_beep(self):
         """ make a short beep sound. """
@@ -1387,6 +1282,19 @@ class KivyMainApp(HelpAppBase):
             except Exception as ex:
                 self.po(f"KivyMainApp.play_vibrate exception {ex}")
 
+    def popups_opened(self, classes: Tuple[Widget, ...] = ()) -> List[Widget]:
+        """ determine all popup-like container widgets that are currently opened.
+
+        :param classes:         optional class filter - if not passed then only the widgets underneath win/root with an
+                                `open` method will be yielded. Pass tuple for to restrict found popup widgets to certain
+                                classes. like e.g. by passing `(Popup, DropDown, FlowPopup)` to get all popups of an
+                                ae/Kivy app.
+        :return:                list of opened/visible popup class instances that are children of either the
+                                root layout or the app window, ordered by their z-coordinate (most upfront widget last).
+                                Overwritten because the children z-order is reversed in Kivy (topmost widget first).
+        """
+        return list(reversed(super().popups_opened(classes=classes)))
+
     def show_message(self, message: str, title: str = "", is_error: bool = True):
         """ display (error) message popup to the user.
 
@@ -1404,7 +1312,7 @@ class KivyMainApp(HelpAppBase):
 
         self.change_flow(id_of_flow('show', 'message'), popup_kwargs=popup_kwargs)
 
-    def show_popup(self, popup_class: Type[Union[Popup, DropDown]], **popup_kwargs) -> Widget:
+    def open_popup(self, popup_class: Type[Union[FlowPopup, Popup, DropDown]], **popup_kwargs) -> Widget:
         """ open Popup or DropDown using the `open` method. Overwriting the main app class method.
 
         :param popup_class:     class of the Popup or DropDown widget.
@@ -1414,7 +1322,7 @@ class KivyMainApp(HelpAppBase):
                                 of self.framework_app will passed into the popup.open method as the widget argument.
         :return:                created and displayed/opened popup class instance.
         """
-        self.dpo(f"KivyMainApp.show_popup {popup_class} {popup_kwargs}")
+        self.dpo(f"KivyMainApp.open_popup {popup_class} {popup_kwargs}")
 
         # framework_win has absolute screen coordinates and lacks x, y properties, therefore use app.root as def parent
         parent = popup_kwargs.pop('parent', self.framework_root)
@@ -1438,7 +1346,7 @@ class KivyMainApp(HelpAppBase):
             font_size = self.font_size
 
         char_width = font_size / 1.8
-        line_height = font_size * 1.2
+        line_height = font_size * 1.2 if text else 0
         max_width = lines_height = 0.0
         for line in text.split("\n"):
             line_width = len(line) * char_width
@@ -1447,3 +1355,12 @@ class KivyMainApp(HelpAppBase):
             lines_height += line_height
 
         return max_width, lines_height
+
+    def widget_children(self, wid: Any, only_visible: bool = False) -> List:
+        """ determine the children of widget or its container (if exists) in z-order (top-most last).
+
+        :param wid:             widget to determine the children from.
+        :param only_visible:    pass True to only return visible widgets.
+        :return:                list of children widgets of the passed widget.
+        """
+        return list(reversed(super().widget_children(wid, only_visible=only_visible)))

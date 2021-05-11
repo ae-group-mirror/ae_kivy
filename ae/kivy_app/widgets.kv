@@ -18,7 +18,7 @@
 #: import relief_colors ae.kivy_relief_canvas.relief_colors
 
 <AppStateSlider>
-    help_id: app.main_app.help_app_state_id(self.app_state_name)
+    help_id: id_of_state_help(self.app_state_name)
     help_vars: dict(state_name=self.app_state_name, state_value=self.value, self=self)
     value: app.app_states.get(self.app_state_name, (self.min + self.max) / 2) if self.app_state_name else self.value
     on_value: app.main_app.change_app_state(self.app_state_name, args[1])
@@ -92,7 +92,7 @@
         size: self.parent.image_size or self.parent.secondary_size or self.parent.size
 
 <FlowInput>
-    help_id: app.main_app.help_flow_id(self.focus_flow_id)
+    help_id: id_of_flow_help(self.focus_flow_id)
     help_vars: dict(new_flow_id=self.focus_flow_id, self=self)
     font_size: app.app_states['font_size']
     multiline: False
@@ -101,7 +101,7 @@
     use_handles: True
 
 <FlowButton>
-    help_id: app.main_app.help_flow_id(self.tap_flow_id)
+    help_id: id_of_flow_help(self.tap_flow_id)
     help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
     icon_name: ""
     on_release: app.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
@@ -119,7 +119,7 @@
 
 <FlowToggler>
     tap_flow_id: ''
-    help_id: app.main_app.help_flow_id(self.tap_flow_id)
+    help_id: id_of_flow_help(self.tap_flow_id)
     help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
     icon_name: ""
     on_release: app.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
@@ -181,6 +181,10 @@
             min(self.right - self.secondary_size[0] * 0.102, Window.width - self.secondary_size[0]), \
             min(self.top - self.secondary_size[1] * 0.102, Window.height - self.secondary_size[1])
         ellipse_fill_ink: 1.0, 0.0, 0.0, 0.69
+        relief_pos_size: (*self.secondary_pos, *self.secondary_size)
+        #relief_ellipse_inner_colors: relief_colors(self.ellipse_fill_ink)
+        relief_ellipse_inner_colors: relief_colors()
+        relief_ellipse_inner_lines: round(self.height / 3.6)
         optimal_width:
             app.main_app.text_size_guess(root.title)[0] + self.secondary_size[0] / 2.1 + self.padding[0] * 2.1
         size_hint_y: None
@@ -210,6 +214,7 @@
         height: min(self.optimal_height, root._max_height - title_bar.height - root.separator_height)
         ScrollView:
             id: container
+            always_overscroll: False        # workaround to kivy scrollview bug (viewport kept at bottom)
             bar_width: sp(9)
             bar_color: app.font_color
             bar_inactive_color: app.font_color[:3] + (0.69, )

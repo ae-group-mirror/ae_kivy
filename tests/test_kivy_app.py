@@ -308,6 +308,18 @@ class TestHelperMethods:
         assert 'dpi_factor' in data
         assert 'app data' in data
 
+    def test_call_method_delayed_invalid_callback(self, restore_app_env):
+        app = KivyMainApp()
+        app.call_method_delayed(0.0, app.__doc__)
+
+    def test_call_method_delayed_valid_callback(self, restore_app_env):
+        app = KivyAppTest()
+        assert not app.on_flow_id_called
+        app.call_method_delayed(0.0, app.on_flow_id)
+        assert not app.on_flow_id_called
+        Clock.tick()
+        assert app.on_flow_id_called
+
     def test_call_method_delayed_invalid_method(self, restore_app_env):
         app = KivyMainApp()
         app.call_method_delayed(0.0, 'invalid_method_name')
@@ -418,23 +430,63 @@ class TestHelperMethods:
         app = KivyMainApp()
         app.play_vibrate(('invalid pattern', ))
 
+    def test_popups_opened(self, restore_app_env):
+        app = KivyAppTest()
+        app.framework_win = MagicMock()
+        app.framework_win.children = list()
+        app.framework_root = MagicMock()
+        app.framework_root.children = list()
+
+        class _Popup:
+            """ dummy popup """
+            def open(self, _parent):
+                """ popup open method """
+                app.framework_win.children.append(self)
+
+        # noinspection PyTypeChecker
+        app.open_popup(_Popup)
+
+        popups = app.popups_opened()
+        assert popups
+        assert isinstance(popups[0], _Popup)
+
     def test_text_size_guess(self, restore_app_env):
         app = KivyMainApp()
 
-        assert app.text_size_guess("") == (0, app.font_size * 1.2)
+        assert app.text_size_guess("") == (0.0, 0.0)
         assert app.text_size_guess("tst") == (3 * app.font_size / 1.8, app.font_size * 1.2)
         assert app.text_size_guess("tst\nWWW") == (3 * app.font_size / 1.8, app.font_size * 2 * 1.2)
 
         font_size = 99
-        assert app.text_size_guess("", font_size=font_size) == (0, font_size * 1.2)
+        assert app.text_size_guess("", font_size=font_size) == (0.0, 0.0)
         assert app.text_size_guess("tst", font_size=font_size) == (3 * font_size / 1.8, font_size * 1.2)
         assert app.text_size_guess("tst\nWWW", font_size=font_size) == (3 * font_size / 1.8, font_size * 2 * 1.2)
+
+    def test_widget_children(self, restore_app_env):
+        app = KivyMainApp()
+
+        class _Widget:
+            """ dummy widget """
+            children = list()
+            width = 99
+            height = 99
+        parent = _Widget()
+        app.framework_win = parent
+        wid = _Widget()
+        app.framework_win.children.append(wid)
+        assert app.widget_children(app.framework_win) == [wid]
+
+        assert app.widget_children(app.framework_win, only_visible=True) == [wid]
+        wid.width = 0
+        assert app.widget_children(app.framework_win, only_visible=True) == []
 
 
 @skip_gitlab_ci
 class TestFlow:
     def test_flow_enter(self, restore_app_env):
         app = KivyAppTest()
+        app.framework_win = MagicMock()
+        app.framework_win.children = list()
         assert len(app.flow_path) == 0
         flow1 = id_of_flow('enter', 'first_flow')
         app.change_flow(flow1)
@@ -443,6 +495,8 @@ class TestFlow:
 
     def test_flow_enter_next_id(self, restore_app_env):
         app = KivyAppTest()
+        app.framework_win = MagicMock()
+        app.framework_win.children = list()
         assert len(app.flow_path) == 0
         assert app.flow_id == ""
         flow1 = id_of_flow('enter', 'first_flow')
@@ -454,6 +508,8 @@ class TestFlow:
 
     def test_flow_leave(self, restore_app_env):
         app = KivyAppTest()
+        app.framework_win = MagicMock()
+        app.framework_win.children = list()
         flow1 = id_of_flow('enter', 'first_flow', 'tst_key')
         app.change_flow(flow1)
         assert len(app.flow_path) == 1
@@ -468,6 +524,8 @@ class TestFlow:
 
     def test_flow_leave_next_id(self, restore_app_env):
         app = KivyAppTest()
+        app.framework_win = MagicMock()
+        app.framework_win.children = list()
         flow1 = id_of_flow('enter', 'first_flow', 'tst_key')
         flow2 = id_of_flow('action', '2nd_flow', 'tst_key2')
         flow3 = id_of_flow('leave', '3rd_flow')
@@ -592,17 +650,7 @@ class TestEvents:
         assert app.debug_level == DEBUG_LEVEL_DISABLED
         assert app._debug_enable_clicks == 0
 
-    def test_show_message(self, restore_app_env):
-        def _chg_flow(flow_id, popup_kwargs):
-            """ mock of app.change_flow """
-            assert flow_id == id_of_flow('show', 'message')
-            assert popup_kwargs['message'] == 'tst msg'
-            assert popup_kwargs['title'] == 'tst tit'
-        app = KivyAppTest()
-        app.change_flow = _chg_flow
-        app.show_message('tst msg', 'tst tit')
-
-    def test_show_popup_basic(self, restore_app_env):
+    def test_open_popup_basic(self, restore_app_env):
         app = KivyAppTest()
         called = False
         passed_pa = None
@@ -619,16 +667,16 @@ class TestEvents:
                 passed_pa = parent
 
         # noinspection PyTypeChecker
-        popup = app.show_popup(TestPopUp, test_attr=True)
+        popup = app.open_popup(TestPopUp, test_attr=True)
         assert called
         assert hasattr(popup, 'test_attr')
         assert popup.test_attr is True
 
         # noinspection PyTypeChecker
-        app.show_popup(TestPopUp, parent=popup, test_attr=True)
+        app.open_popup(TestPopUp, parent=popup, test_attr=True)
         assert passed_pa == popup
 
-    def test_show_popup_like_android(self, restore_app_env):
+    def test_open_popup_like_android(self, restore_app_env):
         app = KivyAppTest()
         called = False
         passed_pa = None
@@ -646,14 +694,24 @@ class TestEvents:
 
         with patch('ae.kivy_app.os_platform', return_value='android'):
             # noinspection PyTypeChecker
-            popup = app.show_popup(TestPopUp, test_attr=True)
+            popup = app.open_popup(TestPopUp, test_attr=True)
             assert called
             assert hasattr(popup, 'test_attr')
             assert popup.test_attr is True
 
             # noinspection PyTypeChecker
-            app.show_popup(TestPopUp, parent=popup, test_attr=True)
+            app.open_popup(TestPopUp, parent=popup, test_attr=True)
             assert passed_pa == popup
+
+    def test_show_message(self, restore_app_env):
+        def _chg_flow(flow_id, popup_kwargs):
+            """ mock of app.change_flow """
+            assert flow_id == id_of_flow('show', 'message')
+            assert popup_kwargs['message'] == 'tst msg'
+            assert popup_kwargs['title'] == 'tst tit'
+        app = KivyAppTest()
+        app.change_flow = _chg_flow
+        app.show_message('tst msg', 'tst tit')
 
 
 called_bound = False
