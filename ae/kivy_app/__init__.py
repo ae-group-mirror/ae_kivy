@@ -139,7 +139,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.1.86'
+__version__ = '0.1.87'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -1071,7 +1071,7 @@ class KivyMainApp(HelpAppBase):
                 app_states_data['kbd_input_mode'] = self.kbd_input_mode
 
                 help_data = dict()
-                help_data["help_variables globals"] = self.help_variables(dict())[0]
+                help_data["global_variables"] = self.global_variables()
                 help_data['_last_focus_flow_id'] = self._last_focus_flow_id
                 help_data['_next_help_id'] = self._next_help_id
                 help_data['displayed_help_id'] = self.displayed_help_id
@@ -1146,6 +1146,7 @@ class KivyMainApp(HelpAppBase):
                 activator.ani_value = 0.99
                 self.framework_win.remove_widget(help_layout)
                 help_layout = None
+                self.change_observable('displayed_help_id', '')
 
             if tour_layout:
                 tour_layout.stop_tour()

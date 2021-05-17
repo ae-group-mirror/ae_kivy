@@ -19,7 +19,7 @@
 
 <AppStateSlider>
     help_id: id_of_state_help(self.app_state_name)
-    help_vars: dict(state_name=self.app_state_name, state_value=self.value, self=self)
+    help_vars: dict(app_state_name=self.app_state_name, state_value=self.value, self=self)
     value: app.app_states.get(self.app_state_name, (self.min + self.max) / 2) if self.app_state_name else self.value
     on_value: app.main_app.change_app_state(self.app_state_name, args[1])
     size_hint_y: None
