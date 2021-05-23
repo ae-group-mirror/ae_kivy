@@ -14,7 +14,8 @@ from ae.base import INI_EXT
 from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED, DEBUG_LEVEL_VERBOSE
 from ae.i18n import default_language
 from ae.gui_app import (
-    APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE, flow_key, id_of_flow, replace_flow_action, MainAppBase)
+    APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE, USER_NAME_MAX_LEN, flow_key, id_of_flow, replace_flow_action,
+    MainAppBase)
 from ae.kivy_app import (
     MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN, get_txt,
     KivyMainApp, FrameworkApp)
@@ -144,105 +145,7 @@ skip_gitlab_ci = pytest.mark.skipif(SKIP_EXPRESSION, reason="headless gitlab CI 
 
 
 @skip_gitlab_ci
-class TestCallbacks:
-    def test_default_app_states(self, ini_file, restore_app_env):
-        app = KivyMainApp(additional_cfg_files=(ini_file,))
-        assert getattr(app, TST_VAR) == def_app_states[TST_VAR]
-
-    def test_retrieve_app_states(self, restore_app_env):
-        app = KivyMainApp()
-        assert app.retrieve_app_states() == dict()
-
-    def test_init(self, restore_app_env):
-        app = KivyAppTest()
-        assert app.on_init_called
-
-    def test_run(self, ini_file, restore_app_env):
-        app = KivyAppTest()
-        assert app.framework_app
-        assert not app.on_run_called
-        Clock.schedule_once(app.framework_app.stop)
-        app.run_app()
-        assert app.on_run_called
-        # assert app.framework_app.app_states == def_app_states
-
-    def test_start(self, restore_app_env):
-        app = KivyAppTest()
-        assert not app.on_start_called
-        Clock.schedule_once(app.framework_app.stop)
-        app.run_app()
-        assert app.on_start_called
-
-    def test_flow_id(self, restore_app_env):
-        app = KivyAppTest()
-        assert not app.on_flow_id_called
-        app.change_app_state('flow_id', id_of_flow('tst', 'flow'))
-        assert app.on_flow_id_called
-
-    def test_on_pause(self, restore_app_env):
-        app = KivyAppTest()
-        assert not app.on_pause_called
-        # Clock.schedule_once(lambda dt: Window.do_pause())
-        app.framework_app.dispatch('on_pause')
-        # Clock.schedule_once(app.framework_app.stop)
-        # Clock.schedule_once(lambda dt: stopTouchApp(), 0.9)
-        # app.run_app()
-        assert app.on_pause_called
-
-    def test_on_resume(self, restore_app_env):
-        app = KivyAppTest()
-        assert not app.on_resume_called
-        app.framework_app.dispatch('on_resume')
-        Clock.schedule_once(app.framework_app.stop, 0.6)
-        app.run_app()
-        assert app.on_resume_called
-
-    def test_on_stop(self, restore_app_env):
-        app = KivyAppTest()
-        assert not app.on_stop_called
-        # Clock.schedule_once(app.stop_app)
-        Clock.schedule_once(app.framework_app.stop)
-        app.run_app()
-        assert app.on_stop_called
-
-    def test_on_stop_with_stop_touch_app(self, restore_app_env):
-        app = KivyAppTest()
-        assert not app.on_stop_called
-        Clock.schedule_once(lambda dt: stopTouchApp())
-        app.run_app()
-        assert app.on_stop_called
-
-
-@skip_gitlab_ci
 class TestAppState:
-    def test_retrieve_app_states(self, ini_file, restore_app_env):
-        app = KivyMainApp(additional_cfg_files=(ini_file,))
-        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
-        fas = app.retrieve_app_states()
-        assert all(k in fas and v == fas[k] for k, v in TST_DICT.items())
-
-    def test_load_app_states(self, ini_file, restore_app_env):
-        app = KivyMainApp(additional_cfg_files=(ini_file,))
-        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
-
-        app.load_app_states()
-        assert getattr(app, TST_VAR) == TST_VAL
-        fas = app.framework_app.app_states
-        assert all(k in fas and v == fas[k] for k, v in TST_DICT.items())
-        fas = app.retrieve_app_states()
-        assert all(k in fas and v == fas[k] for k, v in TST_DICT.items())
-
-    def test_setup_app_states(self, ini_file, restore_app_env):
-        assert KivyMainApp.win_rectangle == MainAppBase.win_rectangle   # (0, 0, 800, 600)
-        app = KivyMainApp(additional_cfg_files=(ini_file,))
-        assert getattr(app, TST_VAR) == TST_VAL
-        app.setup_app_states(TST_DICT)
-        assert getattr(app, TST_VAR) == TST_VAL
-        assert app.win_rectangle == def_app_states[TST_VAR]
-        app.setup_app_states(dict(font_size=-12))
-        assert isinstance(app.font_size, (int, float))
-        TST_DICT.pop('font_size')       # remove font_size for the following tests
-
     def test_change_app_state(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
         assert app.save_app_states() == ""
@@ -263,6 +166,27 @@ class TestAppState:
         assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
         assert app.save_app_states() == ""
         assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == chg_val
+
+    def test_default_app_states(self, ini_file, restore_app_env):
+        app = KivyMainApp(additional_cfg_files=(ini_file, ))
+        assert getattr(app, TST_VAR) == def_app_states[TST_VAR]
+
+    def test_load_app_states(self, ini_file, restore_app_env):
+        app = KivyMainApp(additional_cfg_files=(ini_file,))
+        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
+
+        app.load_app_states()
+        assert getattr(app, TST_VAR) == TST_VAL
+        fas = app.framework_app.app_states
+        assert all(k in fas and v == fas[k] for k, v in TST_DICT.items())
+        fas = app.retrieve_app_states()
+        assert all(k in fas and v == fas[k] for k, v in TST_DICT.items())
+
+    def test_retrieve_app_states(self, ini_file, restore_app_env):
+        app = KivyMainApp(additional_cfg_files=(ini_file,))
+        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
+        fas = app.retrieve_app_states()
+        assert all(k in fas and v == fas[k] for k, v in TST_DICT.items())
 
     def test_save_app_states(self, ini_file, restore_app_env):
         global TST_DICT
@@ -297,6 +221,17 @@ class TestAppState:
         app.change_app_state('font_size', font_size)
         assert app.font_size == font_size
         assert app.on_font_size_called
+
+    def test_setup_app_states(self, ini_file, restore_app_env):
+        assert KivyMainApp.win_rectangle == MainAppBase.win_rectangle   # (0, 0, 800, 600)
+        app = KivyMainApp(additional_cfg_files=(ini_file,))
+        assert getattr(app, TST_VAR) == TST_VAL
+        app.setup_app_states(TST_DICT)
+        assert getattr(app, TST_VAR) == TST_VAL
+        assert app.win_rectangle == def_app_states[TST_VAR]
+        app.setup_app_states(dict(font_size=-12))
+        assert isinstance(app.font_size, (int, float))
+        TST_DICT.pop('font_size')       # remove font_size for the following tests
 
 
 @skip_gitlab_ci
@@ -563,6 +498,16 @@ class TestFlow:
 
 @skip_gitlab_ci
 class TestEvents:
+    def test_flow_id(self, restore_app_env):
+        app = KivyAppTest()
+        assert not app.on_flow_id_called
+        app.change_app_state('flow_id', id_of_flow('tst', 'flow'))
+        assert app.on_flow_id_called
+
+    def test_init(self, restore_app_env):
+        app = KivyAppTest()
+        assert app.on_init_called
+
     def test_key_press_text(self, restore_app_env):
         app = KivyAppTest()
         kbd = KeyboardStub()
@@ -622,6 +567,104 @@ class TestEvents:
 
         app.on_light_theme_change('any', dict(light_theme=False))
         assert not app.light_theme
+
+    def test_on_pause(self, restore_app_env):
+        app = KivyAppTest()
+        assert not app.on_pause_called
+        # Clock.schedule_once(lambda dt: Window.do_pause())
+        app.framework_app.dispatch('on_pause')
+        # Clock.schedule_once(app.framework_app.stop)
+        # Clock.schedule_once(lambda dt: stopTouchApp(), 0.9)
+        # app.run_app()
+        assert app.on_pause_called
+
+    def test_on_resume(self, restore_app_env):
+        app = KivyAppTest()
+        assert not app.on_resume_called
+        app.framework_app.dispatch('on_resume')
+        Clock.schedule_once(app.framework_app.stop, 0.6)
+        app.run_app()
+        assert app.on_resume_called
+
+    def test_on_stop(self, restore_app_env):
+        app = KivyAppTest()
+        assert not app.on_stop_called
+        # Clock.schedule_once(app.stop_app)
+        Clock.schedule_once(app.framework_app.stop)
+        app.run_app()
+        assert app.on_stop_called
+
+    def test_on_stop_with_stop_touch_app(self, restore_app_env):
+        app = KivyAppTest()
+        assert not app.on_stop_called
+        Clock.schedule_once(lambda dt: stopTouchApp())
+        app.run_app()
+        assert app.on_stop_called
+
+    def test_on_user_add_args(self, restore_app_env):
+        app = KivyAppTest()
+        call_count = 0
+
+        def _callback(*_args, **_kwargs):
+            nonlocal call_count
+            call_count += 1
+        app.show_message = _callback
+
+        def _register_user(u_id, **user_data):
+            app.registered_users[u_id] = user_data
+            return True
+
+        app.register_user = _register_user
+        app.registered_users = dict()
+
+        assert call_count == 0
+        assert not app.on_user_add('', dict())
+        assert call_count == 1
+
+        assert app.on_user_add('x' * USER_NAME_MAX_LEN, dict())
+        assert call_count == 1
+        app.registered_users = dict()
+
+        assert not app.on_user_add('x' * (USER_NAME_MAX_LEN + 1), dict())
+        assert call_count == 2
+
+        assert not app.on_user_add(' ', dict())
+        assert call_count == 3
+
+        assert not app.on_user_add('x y', dict())
+        assert call_count == 4
+
+        assert not app.on_user_add('a.b', dict())
+        assert call_count == 5
+
+        assert not app.on_user_add('3%3', dict())
+        assert call_count == 6
+
+        assert not app.on_user_add('x,y', dict())
+        assert call_count == 7
+
+        assert not app.on_user_add('=xy', dict())
+        assert call_count == 8
+
+        usr_id = 'xy'
+        assert len(app.registered_users) == 0
+        app.registered_users[usr_id] = dict(user_name=usr_id)
+        assert len(app.registered_users) == 1
+
+        assert not app.on_user_add(usr_id, dict(unique_user_name=True))
+        assert call_count == 9
+        assert len(app.registered_users) == 1
+
+        assert app.on_user_add(usr_id, dict())
+        assert call_count == 9
+        assert len(app.registered_users) == 2
+        assert sum(1 for udk, udv in app.registered_users.items() if udv['user_name'] == usr_id) == 2
+
+        assert app.on_user_add(usr_id, dict())  # creates 2nd user with usr_id as name and auto-incrementing user id
+        assert call_count == 9
+        assert len(app.registered_users) == 3
+        assert app.registered_users[usr_id]['user_name'] == usr_id
+        assert sum(1 for udk, udv in app.registered_users.items() if udv['user_name'] == usr_id) == 3
 
     def test_on_user_preferences_open_enabling_debug(self, restore_app_env):
         app = KivyAppTest()
@@ -703,6 +746,19 @@ class TestEvents:
             app.open_popup(TestPopUp, parent=popup, test_attr=True)
             assert passed_pa == popup
 
+    def test_retrieve_app_states(self, restore_app_env):
+        app = KivyMainApp()
+        assert app.retrieve_app_states() == dict()
+
+    def test_run(self, ini_file, restore_app_env):
+        app = KivyAppTest()
+        assert app.framework_app
+        assert not app.on_run_called
+        Clock.schedule_once(app.framework_app.stop)
+        app.run_app()
+        assert app.on_run_called
+        # assert app.framework_app.app_states == def_app_states
+
     def test_show_message(self, restore_app_env):
         def _chg_flow(flow_id, popup_kwargs):
             """ mock of app.change_flow """
@@ -712,6 +768,13 @@ class TestEvents:
         app = KivyAppTest()
         app.change_flow = _chg_flow
         app.show_message('tst msg', 'tst tit')
+
+    def test_start(self, restore_app_env):
+        app = KivyAppTest()
+        assert not app.on_start_called
+        Clock.schedule_once(app.framework_app.stop)
+        app.run_app()
+        assert app.on_start_called
 
 
 called_bound = False
@@ -746,7 +809,8 @@ class TestI18N:
         get_txt.funbind('any', bound)
         assert not get_txt.observers
 
-    def test_switch_lang(self):
+    def test_switch_lang(self, restore_app_env):
+        _app = KivyAppTest()  # switch_lang() needs framework app instance
         old_lang = default_language()
         get_txt.switch_lang('xx')
         assert default_language() == 'xx'
@@ -758,7 +822,8 @@ class TestI18N:
     def test_translate_with_count(self):
         assert get_txt("text with {count} to translate", count=69) == "text with 69 to translate"
 
-    def test_update(self):
+    def test_update(self, restore_app_env):
+        _app = KivyAppTest()  # switch_lang() needs framework app instance
         get_txt.fbind('_', bound, ('arg0', ))
         assert not called_bound
         get_txt.switch_lang('yy')

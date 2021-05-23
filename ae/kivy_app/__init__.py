@@ -35,7 +35,7 @@ to be available for your app:
 * :class:`ImageButton`: button widget based on :class:`~kivy.uix.behaviors.ButtonBehavior` with an additional image.
 * :class:`MessageShowPopup`: simple message box widget based on :class:`FlowPopup`.
 * :class:`OptionalButton`: dynamic kivy widget based on :class:`FlowButton` which can be dynamically hidden.
-
+* :class:`UserNameEditorPopup`: popup window used e.g. to enter new user, finally registered in the app config files.
 
 kivy app classes
 ----------------
@@ -119,7 +119,7 @@ import kivy.uix.textinput                                                       
 from kivy.uix.textinput import TextInput, TextInputCutCopyPaste as _TextInputCutCopyPaste   # type: ignore
 from kivy.uix.widget import Widget                                                          # type: ignore
 
-from ae.base import os_platform                                                             # type: ignore
+from ae.base import norm_name, os_platform                                                  # type: ignore
 from ae.files import CachedFile                                                             # type: ignore
 from ae.paths import app_docs_path                                                          # type: ignore
 from ae.i18n import default_language, get_f_string                                          # type: ignore
@@ -127,7 +127,7 @@ from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                           
 
 # id_of_flow not used here - added for easier import in app project
 from ae.gui_app import (                                                                    # type: ignore
-    APP_STATE_SECTION_NAME,
+    APP_STATE_SECTION_NAME, USER_NAME_MAX_LEN,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
     ensure_tap_kwargs_refs, id_of_flow, replace_flow_action
 )
@@ -139,7 +139,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.1.87'
+__version__ = '0.1.88'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -161,6 +161,7 @@ CRITICAL_VIBRATE_PATTERN = (0.00, 0.12, 0.12, 0.12, 0.12, 0.12,
                             0.12, 0.24, 0.12, 0.24, 0.12, 0.24,
                             0.12, 0.12, 0.12, 0.12, 0.12, 0.12)
 """ very long/~2.4s vibrate pattern for critical error notification (sending SOS to the mobile world;) """
+
 
 # load/declare base widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size)
 Builder.load_file(os.path.join(os.path.dirname(__file__), "widgets.kv"))
@@ -733,7 +734,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
         self.container.clear_widgets()
         self.container.add_widget(value)
 
-    def on_dismiss(self):
+    def on_dismiss(self) -> Optional[bool]:
         """ dismiss/close event handler. """
 
     def on_open(self):
@@ -1231,6 +1232,45 @@ class KivyMainApp(HelpAppBase):
         """ theme app-state-change-event-handler. """
         self.vpo(f"KivyMainApp.on_light_theme: theme got changed to {self.light_theme}")
         self.change_light_theme(self.light_theme)
+
+    def on_user_add(self, user_id: str, event_kwargs: Dict[str, Any]) -> bool:
+        """ enable debug mode after clicking 3 times within 6 seconds.
+
+        :param user_id:         new user id.
+        :param event_kwargs:    optionally pass True in the `unique_user_name` key to prevent duplicate user names.
+        :return:                True if user got registered else False.
+        """
+        if not user_id:
+            self.show_message(get_txt("please enter your user or nick name"))
+            return False
+        if len(user_id) > USER_NAME_MAX_LEN:
+            self.show_message(get_txt("please shorten your user name to not more than {USER_NAME_MAX_LEN} characters",
+                                      glo_vars=globals()))
+            return False
+
+        chk_id = norm_name(user_id)
+        if user_id != chk_id:
+            self.show_message(get_txt("please remove spaces and the characters "
+                                      "'{''.join(ch for ch in user_id if ch not in chk_id)}' from your user name",
+                                      glo_vars=locals().copy()))
+            return False
+
+        user_data = dict()
+        if user_id in self.registered_users:
+            if event_kwargs.get('unique_user_name', False) and \
+                    any(usr for usr in self.registered_users.values() if usr.get('user_name') == user_id):
+                self.show_message(get_txt("user name {user_id} already exists", glo_vars=locals().copy()))
+                return False
+
+            user_data['user_name'] = user_id
+            idx = 1
+            while True:
+                user_id = f'usr_id_{idx}'
+                if user_id not in self.registered_users:
+                    break
+                idx += 1
+
+        return self.register_user(user_id, **user_data)
 
     def on_user_preferences_open(self, _flow_id: str, _event_kwargs: Dict[str, Any]) -> bool:
         """ enable debug mode after clicking 3 times within 6 seconds.

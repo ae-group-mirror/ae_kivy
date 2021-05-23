@@ -7,6 +7,7 @@
 
 #: import Window kivy.core.window.Window
 
+#: import USER_NAME_MAX_LEN ae.gui_app.USER_NAME_MAX_LEN
 #: import flow_action ae.gui_app.flow_action
 #: import flow_key ae.gui_app.flow_key
 #: import flow_key_split ae.gui_app.flow_key_split
@@ -25,7 +26,7 @@
     size_hint_y: None
     height: app.button_height
     cursor_size: app.button_height, app.button_height
-    padding: int(min(app.app_states['font_size'] * 2.4, sp(18)))
+    padding: min(app.app_states['font_size'] * 2.4, sp(18))
     value_track: True
     value_track_color: app.font_color[:3] + (0.39, )
     canvas.before:
@@ -258,11 +259,9 @@
     guessed_text_size: app.main_app.text_size_guess(root.message)
     optimal_content_width: max(msg_txt_box.texture_size[0], self.guessed_text_size[0])
     optimal_content_height: max(msg_txt_box.texture_size[1], self.guessed_text_size[1])
-    Label:
+    ImageLabel:
         id: msg_txt_box
         text: root.message
-        color: app.font_color
-        font_size: app.main_app.font_size
         text_size: min(root._max_width, root.optimal_content_width), None
         size_hint: None, None
         size: self.texture_size
@@ -271,3 +270,30 @@
             size: msg_txt_box.size
             background_color: 0, 0, 0, 0
             on_release: root.close()
+
+
+<UserNameEditorPopup@FlowPopup>
+    title: _("create new user account")
+    optimal_content_height: 2.1 * input_box.padding[0] + (1.2 if app.landscape else 2.1) * app.button_height
+    query_data_maps:
+        [dict(kwargs=dict(
+        tap_flow_id=id_of_flow('add', 'user', user_name_input.text), \
+        tap_kwargs=update_tap_kwargs(self, popups_to_close=(root, )), \
+        text=_("add user"), \
+        relief_square_inner_colors=relief_colors(), \
+        relief_square_inner_lines=sp(12), \
+        relief_ellipse_inner_offset=-1, \
+        ))]
+    BoxLayout:
+        id: input_box
+        orientation: 'horizontal' if app.landscape else 'vertical'
+        padding: sp(9)
+        ImageLabel:
+            size_hint_max_x: (USER_NAME_MAX_LEN + 3) * app.main_app.text_size_guess('X')[0]
+            text: _("user name")
+        FlowInput:
+            id: user_name_input
+            size_hint_max_x: (USER_NAME_MAX_LEN + 3) * app.main_app.text_size_guess('X')[0]
+            size_hint_y: None
+            height: app.button_height
+            focus: True
