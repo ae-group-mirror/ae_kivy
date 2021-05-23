@@ -127,7 +127,7 @@ from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                           
 
 # id_of_flow not used here - added for easier import in app project
 from ae.gui_app import (                                                                    # type: ignore
-    APP_STATE_SECTION_NAME, USER_NAME_MAX_LEN,
+    APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE, USER_NAME_MAX_LEN,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
     ensure_tap_kwargs_refs, id_of_flow, replace_flow_action
 )
@@ -139,7 +139,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.1.88'
+__version__ = '0.1.89'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -802,25 +802,23 @@ class FrameworkApp(App):
     """ kivy framework app class proxy redirecting events and callbacks to the main app class instance. """
 
     app_states = DictProperty()                         #: duplicate of MainAppBase app state for events/binds
-    displayed_help_id = StringProperty()                #: help id of the currently explained/help-target widget
-    help_layout = ObjectProperty(allownone=True)        #: layout widget if help mode is active else None
-    tour_layout = ObjectProperty(allownone=True)        #: overlay layout widget if tour is active else None
-
     button_height = NumericProperty('45sp')             #: default button height, dynamically calculated from font size
+    displayed_help_id = StringProperty()                #: help id of the currently explained/help-target widget
     font_color = ObjectProperty(THEME_DARK_FONT_COLOR)  #: rgba color of the font used for labels/buttons/...
+    help_layout = ObjectProperty(allownone=True)        #: layout widget if help mode is active else None
     landscape = BooleanProperty()                       #: True if app win width is bigger than the app win height
+    max_font_size = NumericProperty(MAX_FONT_SIZE)      #: maximum font size in pixels bound to window size
+    min_font_size = NumericProperty(MIN_FONT_SIZE)      #: minimum - " -
     mixed_back_ink = ListProperty((.69, .69, .69, 1.))  #: background color mixed from available back inks
+    tour_layout = ObjectProperty(allownone=True)        #: overlay layout widget if tour is active else None
 
     def __init__(self, main_app: 'KivyMainApp', **kwargs):
         """ init kivy app """
-        self.main_app = main_app                        #: set reference to KivyMainApp instance
-        self.title = main_app.app_title                 #: set kivy.app.App.title
-        self.icon = os.path.join("img", "app_icon.png")  #: set kivy.app.App.icon
+        self.main_app = main_app                            #: set reference to KivyMainApp instance
+        self.title = main_app.app_title                     #: set kivy.app.App.title
+        self.icon = os.path.join("img", "app_icon.png")     #: set kivy.app.App.icon
 
         super().__init__(**kwargs)
-
-        self.bind(app_states=lambda *args: setattr(self, 'button_height', round(self.main_app.font_size * 1.5))
-                  if self.button_height != round(self.main_app.font_size * 1.5) else None)
 
     def build(self) -> Widget:
         """ kivy build app callback.
@@ -835,6 +833,12 @@ class FrameworkApp(App):
                     top=self.win_pos_size_change,
                     on_key_down=self.key_press_from_kivy,
                     on_key_up=self.key_release_from_kivy)
+
+        def _set_button_height(*_args):
+            new_height = round(self.main_app.font_size * 1.5)
+            if self.button_height != new_height:
+                self.button_height = new_height
+        self.bind(app_states=_set_button_height)
 
         self.main_app.framework_root = root = Factory.Main()
         self.main_app.call_method('on_app_built')
@@ -912,6 +916,9 @@ class FrameworkApp(App):
 
     def win_pos_size_change(self, *_):
         """ resize handler updates: :attr:`~ae.gui_app.MainAppBase.win_rectangle`, :attr:`~FrameworkApp.landscape`. """
+        min_len = min(Window.width, Window.height)
+        self.max_font_size = min(round(min_len / 24.6), MAX_FONT_SIZE)  # exclusive feature of ae.kivy_app (not gui_app)
+        self.min_font_size = max(round(min_len / 48.9), MIN_FONT_SIZE)
         self.main_app.win_pos_size_change(Window.left, Window.top, Window.width, Window.height)
 
 
@@ -1186,6 +1193,8 @@ class KivyMainApp(HelpAppBase):
         get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
         Window.softinput_mode = self.kbd_input_mode
+        Window.minimum_width = self.get_var('win_min_width', default_value=405)
+        Window.minimum_height = self.get_var('win_min_height', default_value=303)
 
         if os_platform not in ('android', 'ios'):  # ignore last win pos on android/iOS, use always the full screen
             win_rect = self.win_rectangle
@@ -1372,12 +1381,14 @@ class KivyMainApp(HelpAppBase):
 
         return popup_instance
 
-    def text_size_guess(self, text: str, font_size: float = 0.0) -> Tuple[float, float]:
+    def text_size_guess(self, text: str, font_size: float = 0.0, padding: Tuple[float, float] = (0.0, 0.0)
+                        ) -> Tuple[float, float]:
         """ quickly roughly pre-calculate texture size of a multi-line string without rendering.
 
         :param text:            text string which can contain line feed characters.
         :param font_size:       the font size to pseudo-render the passed text; using the value of
                                 :attr:`~ae.gui_app.MainAppBase.font_size` as default if not passed.
+        :param padding:         optional padding in pixels for x and y coordinate (totals for left+right/top+bottom).
         :return:                roughly the size (width, height) to display the string passed into :paramref:`.text`.
                                 More exactly size would need to use internal render methods of Kivy, like e.g.
                                 :meth:`~kivy.uix.textinput.TextInput._get_text_width` and
@@ -1395,7 +1406,7 @@ class KivyMainApp(HelpAppBase):
                 max_width = line_width
             lines_height += line_height
 
-        return max_width, lines_height
+        return max_width + (padding[0] if text else 0.0), lines_height + (padding[1] if text else 0.0)
 
     def widget_children(self, wid: Any, only_visible: bool = False) -> List:
         """ determine the children of widget or its container (if exists) in z-order (top-most last).
