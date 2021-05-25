@@ -2,15 +2,26 @@
 main application classes and widgets for GUIApp-conform Kivy apps
 =================================================================
 
-This ae portion is providing some useful constants, various enhanced widget classes, two application classes
-(:class:`FrameworkApp` and :class:`KivyMainApp`) and a i18n wrapper (:func:`get_txt`) adding translatable f-strings to
-the python and kv code of your app.
+This ae portion is providing additional :ref:`config-variables` and some useful constants, various enhanced widget
+classes, two application classes (:class:`FrameworkApp` and :class:`KivyMainApp`) and a i18n wrapper (:func:`get_txt`),
+adding translatable f-strings to the python and kv code of your app.
 
 
-kivy app constants
-------------------
+kivy app constants and config variables
+---------------------------------------
 
-More information on each constants you find in the constant declaration section starting with :data:`MAIN_KV_FILE_NAME`.
+With the optional :ref:`config-variables` `win_min_width` and `win_min_height`, added by this portion, you can restrict
+the minimum size of the kivy main window of your app. Their default values are set on app startup in the method
+:meth:`~KivyMainApp.on_app_start`.
+
+More constants provided by this portion are in the constant declaration section starting with :data:`MAIN_KV_FILE_NAME`.
+
+Additionally, all the :ref:`config-variables` and app constants inherited from the base app classes are available.
+
+.. hint::
+    Please see the documentation of the namespace portions/modules :mod:`ae.console` and :mod:`ae.gui_app` for more
+    detailed information on all the inherited :ref:`config-variables`, :ref:`config-options`, :ref:`config-files` and
+    :ref:`app-state-constants`.
 
 
 enhanced widget classes
@@ -36,6 +47,7 @@ to be available for your app:
 * :class:`MessageShowPopup`: simple message box widget based on :class:`FlowPopup`.
 * :class:`OptionalButton`: dynamic kivy widget based on :class:`FlowButton` which can be dynamically hidden.
 * :class:`UserNameEditorPopup`: popup window used e.g. to enter new user, finally registered in the app config files.
+
 
 kivy app classes
 ----------------
@@ -87,7 +99,6 @@ unit tests need at least V 2.0 of OpenGL and the kivy framework installed.
 .. note::
     unit tests does have 100 % coverage but are currently not passing the gitlab CI tests because we failing in setup
     a proper running window system on the python image that all ae portions are using.
-
 """
 import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
@@ -139,7 +150,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.1.89'
+__version__ = '0.1.90'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -916,9 +927,6 @@ class FrameworkApp(App):
 
     def win_pos_size_change(self, *_):
         """ resize handler updates: :attr:`~ae.gui_app.MainAppBase.win_rectangle`, :attr:`~FrameworkApp.landscape`. """
-        min_len = min(Window.width, Window.height)
-        self.max_font_size = min(round(min_len / 24.6), MAX_FONT_SIZE)  # exclusive feature of ae.kivy_app (not gui_app)
-        self.min_font_size = max(round(min_len / 48.9), MIN_FONT_SIZE)
         self.main_app.win_pos_size_change(Window.left, Window.top, Window.width, Window.height)
 
 
