@@ -150,7 +150,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.1.90'
+__version__ = '0.1.91'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -425,6 +425,8 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
 
         super().__init__(**kwargs)
 
+        self.main_app = App.get_running_app().main_app
+
         if not FlowInput._ac_dropdown:
             FlowInput._ac_dropdown = FlowDropDown()  # widget instances cannot be created in class var declaration
 
@@ -498,6 +500,11 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
 
         return super().keyboard_on_key_down(window, keycode, text, modifiers)
 
+    def keyboard_on_textinput(self, window, text):
+        """ overridden to suppress any user input if tour is running/active. """
+        if not self.main_app.tour_layout:
+            super().keyboard_on_textinput(window, text)
+
     def on_focus(self, _self, focus: bool):
         """ change flow on text input change of focus.
 
@@ -508,7 +515,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
             flow_id = self.focus_flow_id or id_of_flow('edit')
         else:
             flow_id = self.unfocus_flow_id or id_of_flow('close')
-        App.get_running_app().main_app.change_flow(flow_id)
+        self.main_app.change_flow(flow_id)
 
     def on_text(self, _self, text: str):
         """ TextInput.text change event handler.
@@ -529,7 +536,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
                 cdm.append(dict(cls='FlowButton', kwargs=dict(text=txt, on_release=self._select_ac_text)))
             self._ac_dropdown.child_data_maps[:] = cdm
             if not self._ac_dropdown.attach_to:
-                App.get_running_app().main_app.change_flow(replace_flow_action(self.focus_flow_id, 'suggest'))
+                self.main_app.change_flow(replace_flow_action(self.focus_flow_id, 'suggest'))
                 self._ac_dropdown.open(self)
             self._change_selector_index(0)
             # suggestion_text will be removed in Kivy 2.1.0 - see PR #7437
@@ -1132,13 +1139,21 @@ class KivyMainApp(HelpAppBase):
         return sp(1.0)
 
     def ensure_top_most_z_index(self, widget: Widget):
-        """ ensure visibility of the passed widget to be the top most in the z index/order
+        """ ensure visibility of the passed widget to be the top most in the z index/order.
 
         :param widget:          widget to check and possibly correct to be the top most one.
+
+        if other dropdown/popup opened after the passed widget/layout, then only correct z index/order to show this
+        widget/layout in front (as top-most widget). if the passed widget has a method named `activate_modal` (like e.g.
+        :meth:`ae.kivy_help.ModalBehavior.activate_modal`) then its `activate_modal` method will be called instead.
         """
-        if self.framework_win.children[0] != widget:  # if other dropdown/popup opened after help layout
-            self.framework_win.remove_widget(widget)  # then correct z index/order to show help text in front
-            self.framework_win.add_widget(widget)
+        if self.framework_win.children[0] != widget:
+            reactivate_modal = getattr(widget, 'activate_modal', None)
+            if callable(reactivate_modal):
+                reactivate_modal()
+            else:
+                self.framework_win.remove_widget(widget)
+                self.framework_win.add_widget(widget)
 
     def help_activation_toggle(self):  # pragma: no cover
         """ button tapped event handler to switch help mode between active and inactive (also inactivating tour). """

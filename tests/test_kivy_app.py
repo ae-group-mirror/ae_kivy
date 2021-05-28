@@ -296,11 +296,18 @@ class TestHelperMethods:
         app.ensure_top_most_z_index(wid)
         assert app.framework_win.children[0] == wid
 
+        wid.activate_modal = None
         wid2 = MagicMock()
         app.framework_win.add_widget(wid2)
         assert app.framework_win.children[0] != wid
         app.ensure_top_most_z_index(wid)
         assert app.framework_win.children[0] == wid
+
+        wid.activate_modal = lambda: setattr(wid, '_activate_modal_called', True)
+        wid3 = MagicMock()
+        app.framework_win.add_widget(wid3)
+        app.ensure_top_most_z_index(wid)
+        assert getattr(wid, '_activate_modal_called', False) is True
 
     def test_main_kv_load(self, restore_app_env):
         try:
