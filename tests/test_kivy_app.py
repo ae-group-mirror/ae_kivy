@@ -396,13 +396,13 @@ class TestHelperMethods:
         app = KivyMainApp()
 
         assert app.text_size_guess("") == (0.0, 0.0)
-        assert app.text_size_guess("tst") == (3 * app.font_size / 1.8, app.font_size * 1.2)
-        assert app.text_size_guess("tst\nWWW") == (3 * app.font_size / 1.8, app.font_size * 2 * 1.2)
+        assert app.text_size_guess("tst") == (3 * app.font_size / 1.77, app.font_size * 1.2)
+        assert app.text_size_guess("tst\nWWW") == (3 * app.font_size / 1.77, app.font_size * 2 * 1.2)
 
         font_size = 99
         assert app.text_size_guess("", font_size=font_size) == (0.0, 0.0)
-        assert app.text_size_guess("tst", font_size=font_size) == (3 * font_size / 1.8, font_size * 1.2)
-        assert app.text_size_guess("tst\nWWW", font_size=font_size) == (3 * font_size / 1.8, font_size * 2 * 1.2)
+        assert app.text_size_guess("tst", font_size=font_size) == (3 * font_size / 1.77, font_size * 1.2)
+        assert app.text_size_guess("tst\nWWW", font_size=font_size) == (3 * font_size / 1.77, font_size * 2 * 1.2)
 
     def test_widget_children(self, restore_app_env):
         app = KivyMainApp()

@@ -150,7 +150,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.1.91'
+__version__ = '0.1.92'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -939,7 +939,8 @@ class FrameworkApp(App):
 
 class MessageShowPopup(FlowPopup):
     """ flow popup to display info or error messages. """
-    message = StringProperty()  #: popup window label text (message to display)
+    message = StringProperty()  #: popup window message text to display
+    title = StringProperty()    #: popup window title text to display
 
 
 class _GetTextBinder(Observable):
@@ -1420,7 +1421,7 @@ class KivyMainApp(HelpAppBase):
         if not font_size:
             font_size = self.font_size
 
-        char_width = font_size / 1.8
+        char_width = font_size / 1.77
         line_height = font_size * 1.2 if text else 0
         max_width = lines_height = 0.0
         for line in text.split("\n"):
