@@ -114,7 +114,7 @@ from kivy.core.window import Window                                             
 from kivy.factory import Factory, FactoryException                                          # type: ignore
 from kivy.input import MotionEvent                                                          # type: ignore
 from kivy.lang import Builder, Observable, global_idmap                                     # type: ignore
-from kivy.metrics import sp                                                                 # type: ignore
+from kivy.metrics import dp, sp                                                             # type: ignore
 # pylint: disable=no-name-in-module
 from kivy.properties import (                                                               # type: ignore
     BooleanProperty, ColorProperty, DictProperty, ListProperty, NumericProperty, ObjectProperty, StringProperty)
@@ -150,7 +150,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.1.92'
+__version__ = '0.1.93'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -162,17 +162,19 @@ ANI_SINE_DEEPER_REPEAT3 = \
 """ sine 3 x deeper repeating animation, used e.g. to animate help layout (ae.kivy_help.Tooltip) """
 ANI_SINE_DEEPER_REPEAT3.repeat = True
 
-LOVE_VIBRATE_PATTERN = (0.0, 0.12, 0.12, 0.21, 0.03, 0.12, 0.12, 0.12)
-""" short/~1.2s vibrate pattern for fun/love notification. """
-
-ERROR_VIBRATE_PATTERN = (0.0, 0.09, 0.09, 0.18, 0.18, 0.27, 0.18, 0.36, 0.27, 0.45)
-""" long/~2s vibrate pattern for error notification. """
-
 CRITICAL_VIBRATE_PATTERN = (0.00, 0.12, 0.12, 0.12, 0.12, 0.12,
                             0.12, 0.24, 0.12, 0.24, 0.12, 0.24,
                             0.12, 0.12, 0.12, 0.12, 0.12, 0.12)
 """ very long/~2.4s vibrate pattern for critical error notification (sending SOS to the mobile world;) """
 
+ERROR_VIBRATE_PATTERN = (0.0, 0.09, 0.09, 0.18, 0.18, 0.27, 0.18, 0.36, 0.27, 0.45)
+""" long/~2s vibrate pattern for error notification. """
+
+LOVE_VIBRATE_PATTERN = (0.0, 0.12, 0.12, 0.21, 0.03, 0.12, 0.12, 0.12)
+""" short/~1.2s vibrate pattern for fun/love notification. """
+
+TOUCH_VIBRATE_PATTERN = (0.0, 0.12, 0.12, 0.21, 0.03, 0.12, 0.12, 0.12)
+""" very short/~1.2s vibrate pattern for fun/love notification. """
 
 # load/declare base widgets with integrated app flow and observers ensuring change of app states (e.g. theme and size)
 Builder.load_file(os.path.join(os.path.dirname(__file__), "widgets.kv"))
@@ -229,6 +231,9 @@ class ImageButton(ButtonBehavior, ImageLabel):  # pragma: no cover
             # pylint: disable=maybe-no-member
             touch.ud['long_touch_handler'] = long_touch_handler = lambda dt: self.dispatch('on_long_tap', touch)
             Clock.schedule_once(long_touch_handler, 0.99)
+            main_app = App.get_running_app().main_app
+            main_app.play_vibrate(TOUCH_VIBRATE_PATTERN)
+            main_app.play_sound('touched')
         return super().on_touch_down(touch)  # does touch.grab(self)
 
     @staticmethod
@@ -813,6 +818,9 @@ class FlowToggler(HelpBehavior, ToggleButtonBehavior, ImageLabel):  # pragma: no
             self._touch_x, self._touch_y = touch.pos
             # pylint: disable=no-member # suppress center_x/y false positives
             Animation(_touch_anim=1.0, _touch_x=self.center_x, _touch_y=self.center_y, t='out_quad', d=0.39).start(self)
+            main_app = App.get_running_app().main_app
+            main_app.play_vibrate(TOUCH_VIBRATE_PATTERN)
+            main_app.play_sound('touched')
         return super().on_touch_down(touch)
 
 
@@ -1136,8 +1144,8 @@ class KivyMainApp(HelpAppBase):
 
     @staticmethod
     def dpi_factor() -> float:
-        """ dpi scaling factor - overwrite if the used GUI framework supports dpi scaling. """
-        return sp(1.0)
+        """ dpi scaling factor - overridden to use Kivy's dpi scaling. """
+        return dp(1.0)
 
     def ensure_top_most_z_index(self, widget: Widget):
         """ ensure visibility of the passed widget to be the top most in the z index/order.
@@ -1195,12 +1203,14 @@ class KivyMainApp(HelpAppBase):
         super().load_sounds()  # load from sound file paths all files into :class:`~ae.files.RegisteredFile` instances
         self.sound_files.reclassify(object_loader=lambda f: SoundLoader.load(f.path))  # :class:`~ae.files.CachedFile`
 
+    def on_app_build(self):
+        """ kivy App build event handler called at the begin of :meth:`kivy.app.App.build`. """
+        super().on_app_build()
+        self.vpo("KivyMainApp.on_app_build - reload image resources from kv file late imports, e.g. ae.kivy_user_prefs")
+        self.load_images()
+
     def on_app_built(self):
         """ kivy App build event handler called at the end of :meth:`kivy.app.App.build`. """
-        self.vpo("KivyMainApp.on_app_built default/fallback event handler called")
-
-    def on_app_init(self):
-        """ setup loaded app states within the now available framework app and its widgets. """
         self.vpo("KivyMainApp.on_app_built default/fallback event handler called")
 
     def on_app_pause(self):
@@ -1212,8 +1222,10 @@ class KivyMainApp(HelpAppBase):
         self.vpo("KivyMainApp.on_app_resume default/fallback event handler called")
 
     def on_app_start(self):  # pragma: no cover
-        """ app start event handler - used to set the window pos and size. """
+        """ app start event handler - used to set the user preference app states and initial window pos and size. """
         super().on_app_start()
+        self.vpo("KivyMainApp.on_app_start - setting lang, theme, win-pos/-size and softinput mode")
+
         get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
         Window.softinput_mode = self.kbd_input_mode
