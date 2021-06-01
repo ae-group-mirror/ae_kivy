@@ -14,7 +14,7 @@ from ae.base import INI_EXT
 from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED, DEBUG_LEVEL_VERBOSE
 from ae.i18n import default_language
 from ae.gui_app import (
-    APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE, USER_NAME_MAX_LEN, flow_key, id_of_flow, replace_flow_action,
+    APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE, flow_key, id_of_flow, replace_flow_action,
     MainAppBase)
 from ae.kivy_app import (
     MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN, get_txt,
@@ -608,71 +608,6 @@ class TestEvents:
         app.run_app()
         assert app.on_stop_called
 
-    def test_on_user_add_args(self, restore_app_env):
-        app = KivyAppTest()
-        call_count = 0
-
-        def _callback(*_args, **_kwargs):
-            nonlocal call_count
-            call_count += 1
-        app.show_message = _callback
-
-        def _register_user(u_id, **user_data):
-            app.registered_users[u_id] = user_data
-            return True
-
-        app.register_user = _register_user
-        app.registered_users = dict()
-
-        assert call_count == 0
-        assert not app.on_user_add('', dict())
-        assert call_count == 1
-
-        assert app.on_user_add('x' * USER_NAME_MAX_LEN, dict())
-        assert call_count == 1
-        app.registered_users = dict()
-
-        assert not app.on_user_add('x' * (USER_NAME_MAX_LEN + 1), dict())
-        assert call_count == 2
-
-        assert not app.on_user_add(' ', dict())
-        assert call_count == 3
-
-        assert not app.on_user_add('x y', dict())
-        assert call_count == 4
-
-        assert not app.on_user_add('a.b', dict())
-        assert call_count == 5
-
-        assert not app.on_user_add('3%3', dict())
-        assert call_count == 6
-
-        assert not app.on_user_add('x,y', dict())
-        assert call_count == 7
-
-        assert not app.on_user_add('=xy', dict())
-        assert call_count == 8
-
-        usr_id = 'xy'
-        assert len(app.registered_users) == 0
-        app.registered_users[usr_id] = dict(user_name=usr_id)
-        assert len(app.registered_users) == 1
-
-        assert not app.on_user_add(usr_id, dict(unique_user_name=True))
-        assert call_count == 9
-        assert len(app.registered_users) == 1
-
-        assert app.on_user_add(usr_id, dict())
-        assert call_count == 9
-        assert len(app.registered_users) == 2
-        assert sum(1 for udk, udv in app.registered_users.items() if udv['user_name'] == usr_id) == 2
-
-        assert app.on_user_add(usr_id, dict())  # creates 2nd user with usr_id as name and auto-incrementing user id
-        assert call_count == 9
-        assert len(app.registered_users) == 3
-        assert app.registered_users[usr_id]['user_name'] == usr_id
-        assert sum(1 for udk, udv in app.registered_users.items() if udv['user_name'] == usr_id) == 3
-
     def test_on_user_preferences_open_enabling_debug(self, restore_app_env):
         app = KivyAppTest()
 
@@ -765,16 +700,6 @@ class TestEvents:
         app.run_app()
         assert app.on_run_called
         # assert app.framework_app.app_states == def_app_states
-
-    def test_show_message(self, restore_app_env):
-        def _chg_flow(flow_id, popup_kwargs):
-            """ mock of app.change_flow """
-            assert flow_id == id_of_flow('show', 'message')
-            assert popup_kwargs['message'] == 'tst msg'
-            assert popup_kwargs['title'] == 'tst tit'
-        app = KivyAppTest()
-        app.change_flow = _chg_flow
-        app.show_message('tst msg', 'tst tit')
 
     def test_start(self, restore_app_env):
         app = KivyAppTest()
