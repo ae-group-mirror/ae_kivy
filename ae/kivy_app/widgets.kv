@@ -255,7 +255,7 @@
 
 
 <MessageShowPopup>
-    title: _("error")
+    title: "error"              # _("error") overwrites title value specified as kwarg in self.__init__()
     guessed_text_size: app.main_app.text_size_guess(root.message)
     optimal_content_width: max(msg_txt_box.texture_size[0], self.guessed_text_size[0])
     optimal_content_height: max(msg_txt_box.texture_size[1], self.guessed_text_size[1])
@@ -265,6 +265,7 @@
         text_size: min(root._max_width, root.optimal_content_width), None
         size_hint: None, None
         size: self.texture_size
+        markup: True
         Button:     # invisible button to close popup on message text click
             pos: msg_txt_box.pos
             size: msg_txt_box.size

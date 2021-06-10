@@ -146,7 +146,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.1.94'
+__version__ = '0.2.94'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -1113,7 +1113,8 @@ class KivyMainApp(HelpAppBase):
     def call_method_delayed(self, delay: float, callback: Union[Callable, str], *args, **kwargs) -> Any:
         """ delayed call of passed callable/method with args/kwargs catching and logging exceptions preventing app exit.
 
-        :param delay:           delay in seconds when to call the callable/method specified by :paramref:`.callback`.
+        :param delay:           delay in seconds before calling the callable/method specified by
+                                :paramref:`~call_method_delayed.callback`.
         :param callback:        either callable or name of the main app method to call.
         :param args:            args passed to the callable/main-app-method to be called.
         :param kwargs:          kwargs passed to the callable/main-app-method to be called.
@@ -1365,9 +1366,9 @@ class KivyMainApp(HelpAppBase):
         :param font_size:       the font size to pseudo-render the passed text; using the value of
                                 :attr:`~ae.gui_app.MainAppBase.font_size` as default if not passed.
         :param padding:         optional padding in pixels for x and y coordinate (totals for left+right/top+bottom).
-        :return:                roughly the size (width, height) to display the string passed into :paramref:`.text`.
-                                More exactly size would need to use internal render methods of Kivy, like e.g.
-                                :meth:`~kivy.uix.textinput.TextInput._get_text_width` and
+        :return:                roughly the size (width, height) to display the string passed into
+                                :paramref:`~text_size_guess.text`. more exactly size would need to use internal render
+                                methods of Kivy, like e.g. :meth:`~kivy.uix.textinput.TextInput._get_text_width` and
                                 :meth:`~kivy.core.text.LabelBase.get_extents`.
         """
         if not font_size:

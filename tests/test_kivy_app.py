@@ -10,6 +10,8 @@ from kivy.lang import Builder, Observable
 from kivy.properties import BooleanProperty
 from kivy.uix.popup import Popup
 
+from de.core import TESTS_FOLDER
+
 from ae.base import INI_EXT
 from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED, DEBUG_LEVEL_VERBOSE
 from ae.i18n import default_language
@@ -344,7 +346,7 @@ class TestHelperMethods:
         sound_file = 'tst_snd_file'
         try:
             os.mkdir(sound_dir)
-            shutil.copy(os.path.join('tests', 'tst.wav'), os.path.join(sound_dir, sound_file + '.wav'))
+            shutil.copy(os.path.join(TESTS_FOLDER, 'tst.wav'), os.path.join(sound_dir, sound_file + '.wav'))
             app = KivyMainApp()
             app.load_sounds()
             app.play_sound(sound_file)
