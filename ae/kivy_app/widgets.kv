@@ -64,6 +64,17 @@
         Ellipse:
             pos: self.ellipse_fill_pos or self.secondary_pos or self.pos
             size: self.ellipse_fill_size or self.secondary_size or self.size
+    Image:
+        id: themeLabelImage
+        source: root.source
+        allow_stretch: True
+        keep_ratio: False
+        opacity: 1 if self.source else 0
+        pos: self.parent.image_pos or self.parent.secondary_pos or self.parent.pos
+        # size_hint: None, None not needed because parent is no layout
+        size: self.parent.image_size or self.parent.secondary_size or self.parent.size
+
+<TouchableBehavior>
     canvas.after:
         StencilPush
         Rectangle:
@@ -82,15 +93,7 @@
             pos: self.pos
             size: self.size
         StencilPop
-    Image:
-        id: themeLabelImage
-        source: root.source
-        allow_stretch: True
-        keep_ratio: False
-        opacity: 1 if self.source else 0
-        pos: self.parent.image_pos or self.parent.secondary_pos or self.parent.pos
-        # size_hint: None, None not needed because parent is no layout
-        size: self.parent.image_size or self.parent.secondary_size or self.parent.size
+
 
 <FlowInput>
     help_id: id_of_flow_help(self.focus_flow_id)

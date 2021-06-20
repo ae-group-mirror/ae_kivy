@@ -35,16 +35,16 @@ The following widgets provided by this portion will be registered in the kivy wi
 to be available for your app:
 
 * :class:`AppStateSlider`: :class:`~kivy.uix.slider.Slider` changing the value of :ref:`app-state-variables`.
-* :class:`FlowButton`: :class:`ImageButton` to change the application flow.
+* :class:`FlowButton`: button to change the application flow.
 * :class:`FlowDropDown`: attachable popup, based on :class:`~kivy.uix.dropdown.DropDown`.
 * :class:`FlowInput`: dynamic kivy widget based on :class:`~kivy.uix.textinput.TextInput` with application flow support.
 * :class:`FlowPopup`: dynamic auto-content-sizing popup to query user input or to show messages.
 * :class:`FlowToggler`: toggle button based on :class:`ImageLabel` and :class:`~kivy.uix.behaviors.ToggleButtonBehavior`
   to change the application flow or any flag or application state.
 * :class:`ImageLabel`: dynamic kivy widget extending the Kivy :class:`~kivy.uix.label.Label` widget with an image.
-* :class:`ImageButton`: button widget based on :class:`~kivy.uix.behaviors.ButtonBehavior` with an additional image.
 * :class:`MessageShowPopup`: simple message box widget based on :class:`FlowPopup`.
 * :class:`OptionalButton`: dynamic kivy widget based on :class:`FlowButton` which can be dynamically hidden.
+* :class:`TouchableBehavior`: extends toggle-/touch-behavior of :class:`~kivy.uix.behaviors.ButtonBehavior`.
 * :class:`UserNameEditorPopup`: popup window used e.g. to enter new user, finally registered in the app config files.
 
 
@@ -108,6 +108,7 @@ from kivy.clock import Clock                                                    
 from kivy.core.audio import SoundLoader                                                     # type: ignore
 from kivy.core.window import Window                                                         # type: ignore
 from kivy.factory import Factory, FactoryException                                          # type: ignore
+from kivy.graphics import Ellipse                                                           # type: ignore
 from kivy.input import MotionEvent                                                          # type: ignore
 from kivy.lang import Builder, Observable, global_idmap                                     # type: ignore
 from kivy.metrics import dp, sp                                                             # type: ignore
@@ -139,14 +140,14 @@ from ae.gui_app import (                                                        
     ensure_tap_kwargs_refs, id_of_flow, replace_flow_action
 )
 from ae.gui_help import layout_ps_hints, HelpAppBase                                        # type: ignore
-from ae.kivy_glsl import ShadersMixin                                                       # type: ignore
+from ae.kivy_glsl import ShaderIdType, ShadersMixin                                         # type: ignore
 from ae.kivy_auto_width import ContainerChildrenAutoWidthBehavior                           # type: ignore
 from ae.kivy_dyn_chi import DynamicChildrenBehavior                                         # type: ignore
 from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, TourOverlay     # type: ignore
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.2.94'
+__version__ = '0.2.95'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -182,14 +183,17 @@ class AppStateSlider(HelpBehavior, Slider, ShadersMixin):
 
 
 class ImageLabel(ReliefCanvas, Label, ShadersMixin):
-    """ base label used for all labels and buttons. """
-    _touch_anim = NumericProperty(1.0)  #: internally used by :class:`ImageButton` for widget-got-touched-animation
-    _touch_x = NumericProperty()        #: internally used by :class:`ImageButton` as x pos moving from touch to center
-    _touch_y = NumericProperty()        #: internally used by :class:`ImageButton` as y pos moving from touch to center
+    """ base label used for all labels and buttons - declared in widgets.kv and also in this module to inherit from.
+
+    .. note::
+        hide-able label needs extra handling, because even setting width/height to zero the text can still be visible,
+        especially in dark mode and even with having the text color.alpha==0. to fully hide the texture in all cases,
+        set either the text to an empty string or the opacity to zero.
+    """
 
 
-class ImageButton(ButtonBehavior, ImageLabel):  # pragma: no cover
-    """ theme-able button base class with additional events for double/triple/long touches.
+class TouchableBehavior:  # pragma: no cover
+    """ touch-/toggle-button mix-in class with shaders, animations and additional events for double/triple/long touches.
 
     :Events:
         `on_double_tap`:
@@ -200,12 +204,45 @@ class ImageButton(ButtonBehavior, ImageLabel):  # pragma: no cover
             Fired with the touch down MotionEvent instance arg when a button get tapped more than 2.4 seconds.
         `on_alt_tap`:
             Fired with the touch down MotionEvent instance arg when a button get either double, triple or long tapped.
-
-    .. note::
-        unit tests are still missing for this widget.
-
     """
+    # abstracts of mixing-in class; e.g. from :class:`~kivy.widget.Widget`, :class:`~ae.kivy_glsl.ShadersMixin`
+    # and :class:`~kivy.uix.behaviors.ButtonBehavior`
+    add_shader: Callable
+    center_x: float
+    center_y: float
+    collide_point: Callable
+    del_shader: Callable
+    disabled: bool
+    dispatch: Callable
+    state: str
+
+    # Kivy properties and events
+    down_shader = DictProperty(dict(shader_code='=fire_storm', render_shape=Ellipse))
+    normal_shader = DictProperty(dict(shader_code='=plunge_waves', render_shape=Ellipse, add_to='before',
+                                      alpha=0.6, contrast=0.012, tex_col_mix=0.87))
+
+    _touch_anim = NumericProperty(1.0)  #: widget-got-touched-animation
+    _touch_x = NumericProperty()        #: x pos moving from touch to center pos
+    _touch_y = NumericProperty()        #: y pos moving from touch to center pos
+
     __events__ = ('on_alt_tap', 'on_double_tap', 'on_long_tap', 'on_triple_tap')
+
+    def __init__(self, **kwargs):
+        """ set normal pressed state shader on widget initialization. """
+        # noinspection PyUnresolvedReferences
+        super().__init__(**kwargs)      # pylint: disable=no-member
+        self._state_shader_id: ShaderIdType = dict()
+        self.on_state(self, self.state)
+
+    def on_state(self, _widget: Any, value: str):
+        """ button pressed state changed event handler, switching between `'normal'` and `'down'` state shader.
+
+        :param _widget:         button widget (is self).
+        :param value:           new state value (either 'normal' or 'down').
+        """
+        if self._state_shader_id:
+            self.del_shader(self._state_shader_id)
+        self._state_shader_id = self.add_shader(**(self.down_shader if value == 'down' else self.normal_shader))
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
         """ check for additional events added by this class.
@@ -230,10 +267,11 @@ class ImageButton(ButtonBehavior, ImageLabel):  # pragma: no cover
             main_app = App.get_running_app().main_app
             main_app.play_vibrate(TOUCH_VIBRATE_PATTERN)
             main_app.play_sound('touched')
-        return super().on_touch_down(touch)  # does touch.grab(self)
+        # noinspection PyUnresolvedReferences
+        return super().on_touch_down(touch)  # type: ignore # pylint: disable=no-member; does touch.grab(self)
 
     @staticmethod
-    def _cancel_long_touch_clock(touch) -> bool:
+    def _cancel_long_touch_clock(touch: MotionEvent) -> bool:
         long_touch_handler = touch.ud.pop('long_touch_handler', None)
         if long_touch_handler:
             Clock.unschedule(long_touch_handler)  # alternatively: long_touch_handler.cancel()
@@ -249,7 +287,8 @@ class ImageButton(ButtonBehavior, ImageLabel):  # pragma: no cover
         # Vector.distance(Vector(ref.sx, ref.sy), Vector(touch.osx, touch.osy)) > 0.009
         if abs(touch.ox - touch.x) > 9 and abs(touch.oy - touch.y) > 9 and self.collide_point(touch.x, touch.y):
             self._cancel_long_touch_clock(touch)
-        return super().on_touch_move(touch)
+        # noinspection PyUnresolvedReferences
+        return super().on_touch_move(touch)     # type: ignore # pylint: disable=no-member
 
     def on_touch_up(self, touch: MotionEvent) -> bool:
         """ disable long touch on mouse/finger up.
@@ -261,7 +300,8 @@ class ImageButton(ButtonBehavior, ImageLabel):  # pragma: no cover
             if not self._cancel_long_touch_clock(touch):
                 touch.ungrab(self)
                 return True                 # prevent popup/dropdown dismiss
-        return super().on_touch_up(touch)   # does touch.ungrab(self)
+        # noinspection PyUnresolvedReferences
+        return super().on_touch_up(touch)   # type: ignore # pylint: disable=no-member; does touch.ungrab(self)
 
     def on_alt_tap(self, touch: MotionEvent):
         """ default handler for alternative tap (double, triple or long tap/click).
@@ -297,8 +337,8 @@ class ImageButton(ButtonBehavior, ImageLabel):  # pragma: no cover
         self.dispatch('on_alt_tap', touch)  # pylint: disable=no-member
 
 
-class FlowButton(HelpBehavior, ImageButton):  # pragma: no cover
-    """ has to be declared after the declaration of the ImageButton widget class """
+class FlowButton(HelpBehavior, ButtonBehavior, TouchableBehavior, ImageLabel):  # pragma: no cover
+    """ button to change the application flow. """
     tap_flow_id = StringProperty()  #: the new flow id that will be set when this button get tapped
     tap_kwargs = ObjectProperty()   #: kwargs dict passed to event handler (change_flow) when button get tapped
 
@@ -501,12 +541,12 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
 
         return super().keyboard_on_key_down(window, keycode, text, modifiers)
 
-    def keyboard_on_textinput(self, window, text):
+    def keyboard_on_textinput(self, window: Window, text: str):
         """ overridden to suppress any user input if tour is running/active. """
         if not self.main_app.tour_layout:
             super().keyboard_on_textinput(window, text)
 
-    def on_focus(self, _self, focus: bool):
+    def on_focus(self, _self: Widget, focus: bool):
         """ change flow on text input change of focus.
 
         :param _self:           unused dup ref to self.
@@ -518,7 +558,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
             flow_id = self.unfocus_flow_id or id_of_flow('close')
         self.main_app.change_flow(flow_id)
 
-    def on_text(self, _self, text: str):
+    def on_text(self, _self: Widget, text: str):
         """ TextInput.text change event handler.
 
         :param _self:           unneeded duplicate reference to TextInput/self.
@@ -697,7 +737,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
 
         super().__init__(**kwargs)
 
-    def add_widget(self, widget, index=0, canvas=None):
+    def add_widget(self, widget: Widget, index: int = 0, canvas: Optional[str] = None):
         """ add container and content widgets (first call set container from kv rule, 2nd the content, 3rd raise error).
 
         :param widget:          widget instance to be added.
@@ -742,12 +782,12 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
 
     dismiss = close     #: alias method of :meth:`~FlowPopup.close`
 
-    def on__anim_alpha(self, _instance, value):
+    def on__anim_alpha(self, _instance: Widget, value: float):
         """ _anim_alpha changed event handler. """
         if value == 0.0 and self._window is not None:
             self.deactivate_modal()
 
-    def on_content(self, _instance, value):
+    def on_content(self, _instance: Widget, value: Widget):
         """ optional single widget (to be added to the container layout) set directly or via FlowPopup kwargs. """
         self.fw_app.main_app.vpo(f"FlowPopup.on_content adding content {value} to container {self.container}")
         self.container.clear_widgets()
@@ -794,30 +834,15 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
             self.dispatch('on_open')                                            # pylint: disable=no-member
 
 
-class FlowToggler(HelpBehavior, ToggleButtonBehavior, ImageLabel):  # pragma: no cover
+class FlowToggler(HelpBehavior, ToggleButtonBehavior, TouchableBehavior, ImageLabel):  # pragma: no cover
     """ toggle button changing flow id. """
+    down_shader = DictProperty(dict(shader_code='=circled_alpha', render_shape=Ellipse))
     tap_flow_id = StringProperty()  #: the new flow id that will be set when this toggle button get released
     tap_kwargs = DictProperty()     #: kwargs dict passed to event handler (change_flow) when button get tapped
 
     def __init__(self, **kwargs):
         ensure_tap_kwargs_refs(kwargs, self)
         super().__init__(**kwargs)
-
-    def on_touch_down(self, touch: MotionEvent) -> bool:
-        """ touch animation.
-
-        :param touch:           motion/touch event data.
-        :return:                True if event got processed/used.
-        """
-        if not self.disabled and self.collide_point(touch.x, touch.y):  # pylint: disable=no-member
-            self._touch_anim = 0.0
-            self._touch_x, self._touch_y = touch.pos
-            # pylint: disable=no-member # suppress center_x/y false positives
-            Animation(_touch_anim=1.0, _touch_x=self.center_x, _touch_y=self.center_y, t='out_quad', d=0.39).start(self)
-            main_app = App.get_running_app().main_app
-            main_app.play_vibrate(TOUCH_VIBRATE_PATTERN)
-            main_app.play_sound('touched')
-        return super().on_touch_down(touch)
 
 
 class FrameworkApp(App):
