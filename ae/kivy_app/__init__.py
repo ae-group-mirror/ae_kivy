@@ -147,7 +147,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.2.95'
+__version__ = '0.2.96'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -204,6 +204,10 @@ class TouchableBehavior:  # pragma: no cover
             Fired with the touch down MotionEvent instance arg when a button get tapped more than 2.4 seconds.
         `on_alt_tap`:
             Fired with the touch down MotionEvent instance arg when a button get either double, triple or long tapped.
+
+    .. note::
+        has to be inherited (to be in the MRO) before :class:`~kivy.uix.behaviors.ButtonBehavior`, respectively
+        :class:`~kivy.uix.behaviors.ToggleButtonBehavior`, for the touch event get grabbed properly.
     """
     # abstracts of mixing-in class; e.g. from :class:`~kivy.widget.Widget`, :class:`~ae.kivy_glsl.ShadersMixin`
     # and :class:`~kivy.uix.behaviors.ButtonBehavior`
@@ -217,9 +221,8 @@ class TouchableBehavior:  # pragma: no cover
     state: str
 
     # Kivy properties and events
-    down_shader = DictProperty(dict(shader_code='=fire_storm', render_shape=Ellipse))
-    normal_shader = DictProperty(dict(shader_code='=plunge_waves', render_shape=Ellipse, add_to='before',
-                                      alpha=0.6, contrast=0.012, tex_col_mix=0.87))
+    down_shader = DictProperty()        #: shader running if button is in pressed state `'down'`
+    normal_shader = DictProperty()      #: shader running if button is in pressed state `'normal'`
 
     _touch_anim = NumericProperty(1.0)  #: widget-got-touched-animation
     _touch_x = NumericProperty()        #: x pos moving from touch to center pos
@@ -231,8 +234,53 @@ class TouchableBehavior:  # pragma: no cover
         """ set normal pressed state shader on widget initialization. """
         # noinspection PyUnresolvedReferences
         super().__init__(**kwargs)      # pylint: disable=no-member
+
+        self._app = App.get_running_app()
+        self.down_shader = dict(shader_code='=fire_storm', render_shape=Ellipse,
+                                tint_ink=self._app.main_app.flow_path_ink)
+        self.normal_shader = dict(shader_code='=plunge_waves', render_shape=Ellipse, add_to='before',
+                                  alpha=0.6, contrast=0.09, tex_col_mix=0.87,  tint_ink=self._app.main_app.flow_id_ink)
         self._state_shader_id: ShaderIdType = dict()
+
         self.on_state(self, self.state)
+
+    @staticmethod
+    def _cancel_long_touch_clock(touch: MotionEvent) -> bool:
+        long_touch_handler = touch.ud.pop('long_touch_handler', None)
+        if long_touch_handler:
+            Clock.unschedule(long_touch_handler)  # alternatively: long_touch_handler.cancel()
+        return bool(long_touch_handler)
+
+    def on_alt_tap(self, touch: MotionEvent):
+        """ default handler for alternative tap (double, triple or long tap/click).
+
+        :param touch:           motion/touch event data with the touched widget in `touch.grab_current`.
+        """
+
+    def on_double_tap(self, touch: MotionEvent):
+        """ double tap/click default handler.
+
+        :param touch:           motion/touch event data with the touched widget in `touch.grab_current`.
+        """
+
+    def on_long_tap(self, touch: MotionEvent):
+        """ long tap/click default handler.
+
+        :param touch:           motion/touch event data with the touched widget in `touch.grab_current`.
+        """
+        # to prevent dismiss via super().on_touch_up: exclusive receive of this touch up event in self.on_touch_up
+        touch.grab(self, exclusive=True)
+
+        # remove 'long_touch_handler' key from touch.ud dict although just fired to signalize that
+        # the long tap event got handled in self.on_touch_up (to return True)
+        self._cancel_long_touch_clock(touch)
+
+        # also dispatch as alternative tap
+        self.dispatch('on_alt_tap', touch)  # pylint: disable=no-member
+
+        # reset button state to normal - if state is still down (to replace down_shader with normal_shader)
+        if self.state == 'down':
+            self.state = 'normal'
 
     def on_state(self, _widget: Any, value: str):
         """ button pressed state changed event handler, switching between `'normal'` and `'down'` state shader.
@@ -242,10 +290,14 @@ class TouchableBehavior:  # pragma: no cover
         """
         if self._state_shader_id:
             self.del_shader(self._state_shader_id)
-        self._state_shader_id = self.add_shader(**(self.down_shader if value == 'down' else self.normal_shader))
+            self._state_shader_id = dict()
+
+        add_shader_kwargs = self.down_shader if value == 'down' else self.normal_shader
+        if add_shader_kwargs:
+            self._state_shader_id = self.add_shader(**add_shader_kwargs)
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
-        """ check for additional events added by this class.
+        """ check for additional double/triple/alt touch events and add sound, vibration and animation.
 
         :param touch:           motion/touch event data.
         :return:                True if event got processed/used.
@@ -264,18 +316,11 @@ class TouchableBehavior:  # pragma: no cover
             # pylint: disable=maybe-no-member
             touch.ud['long_touch_handler'] = long_touch_handler = lambda dt: self.dispatch('on_long_tap', touch)
             Clock.schedule_once(long_touch_handler, 0.99)
-            main_app = App.get_running_app().main_app
+            main_app = self._app.main_app
             main_app.play_vibrate(TOUCH_VIBRATE_PATTERN)
             main_app.play_sound('touched')
         # noinspection PyUnresolvedReferences
         return super().on_touch_down(touch)  # type: ignore # pylint: disable=no-member; does touch.grab(self)
-
-    @staticmethod
-    def _cancel_long_touch_clock(touch: MotionEvent) -> bool:
-        long_touch_handler = touch.ud.pop('long_touch_handler', None)
-        if long_touch_handler:
-            Clock.unschedule(long_touch_handler)  # alternatively: long_touch_handler.cancel()
-        return bool(long_touch_handler)
 
     def on_touch_move(self, touch: MotionEvent) -> bool:
         """ disable long touch on mouse/finger moves.
@@ -303,41 +348,14 @@ class TouchableBehavior:  # pragma: no cover
         # noinspection PyUnresolvedReferences
         return super().on_touch_up(touch)   # type: ignore # pylint: disable=no-member; does touch.ungrab(self)
 
-    def on_alt_tap(self, touch: MotionEvent):
-        """ default handler for alternative tap (double, triple or long tap/click).
-
-        :param touch:           motion/touch event data with the touched widget in `touch.grab_current`.
-        """
-
-    def on_double_tap(self, touch: MotionEvent):
-        """ double tap/click default handler.
-
-        :param touch:           motion/touch event data with the touched widget in `touch.grab_current`.
-        """
-
     def on_triple_tap(self, touch: MotionEvent):
         """ triple tap/click default handler.
 
         :param touch:           motion/touch event data with the touched widget in `touch.grab_current`.
         """
 
-    def on_long_tap(self, touch: MotionEvent):
-        """ long tap/click default handler.
 
-        :param touch:           motion/touch event data with the touched widget in `touch.grab_current`.
-        """
-        # to prevent dismiss via super().on_touch_up: exclusive receive of this touch up event in self.on_touch_up
-        touch.grab(self, exclusive=True)
-
-        # remove 'long_touch_handler' key from touch.ud dict although just fired to signalize that
-        # the long tap event got handled in self.on_touch_up (to return True)
-        self._cancel_long_touch_clock(touch)
-
-        # also dispatch as alternative tap
-        self.dispatch('on_alt_tap', touch)  # pylint: disable=no-member
-
-
-class FlowButton(HelpBehavior, ButtonBehavior, TouchableBehavior, ImageLabel):  # pragma: no cover
+class FlowButton(HelpBehavior, TouchableBehavior, ButtonBehavior, ImageLabel):  # pragma: no cover
     """ button to change the application flow. """
     tap_flow_id = StringProperty()  #: the new flow id that will be set when this button get tapped
     tap_kwargs = ObjectProperty()   #: kwargs dict passed to event handler (change_flow) when button get tapped
@@ -834,15 +852,15 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
             self.dispatch('on_open')                                            # pylint: disable=no-member
 
 
-class FlowToggler(HelpBehavior, ToggleButtonBehavior, TouchableBehavior, ImageLabel):  # pragma: no cover
+class FlowToggler(HelpBehavior, TouchableBehavior, ToggleButtonBehavior, ImageLabel):  # pragma: no cover
     """ toggle button changing flow id. """
-    down_shader = DictProperty(dict(shader_code='=circled_alpha', render_shape=Ellipse))
     tap_flow_id = StringProperty()  #: the new flow id that will be set when this toggle button get released
     tap_kwargs = DictProperty()     #: kwargs dict passed to event handler (change_flow) when button get tapped
 
     def __init__(self, **kwargs):
         ensure_tap_kwargs_refs(kwargs, self)
         super().__init__(**kwargs)
+        self.down_shader = dict(shader_code='=circled_alpha', render_shape=Ellipse)
 
 
 class FrameworkApp(App):

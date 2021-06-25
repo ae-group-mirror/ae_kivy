@@ -82,7 +82,7 @@
             size: self.size
         StencilUse
         Color:
-            rgba: 0.99, 0.96, 0.09, 1.0 - self._touch_anim
+            rgba: app.main_app.flow_id_ink[:3] + (1.0 - self._touch_anim, )
         Ellipse:
             pos:
                 round(self._touch_x - self.width * self._touch_anim / 2.01), \
