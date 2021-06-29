@@ -137,8 +137,7 @@ from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                           
 from ae.gui_app import (                                                                    # type: ignore
     APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
-    ensure_tap_kwargs_refs, id_of_flow, replace_flow_action
-)
+    ensure_tap_kwargs_refs, replace_flow_action)
 from ae.gui_help import layout_ps_hints, HelpAppBase                                        # type: ignore
 from ae.kivy_glsl import ShaderIdType, ShadersMixin                                         # type: ignore
 from ae.kivy_auto_width import ContainerChildrenAutoWidthBehavior                           # type: ignore
@@ -147,7 +146,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.2.96'
+__version__ = '0.2.97'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -239,7 +238,8 @@ class TouchableBehavior:  # pragma: no cover
         self.down_shader = dict(shader_code='=fire_storm', render_shape=Ellipse,
                                 tint_ink=self._app.main_app.flow_path_ink)
         self.normal_shader = dict(shader_code='=plunge_waves', render_shape=Ellipse, add_to='before',
-                                  alpha=0.6, contrast=0.09, tex_col_mix=0.87,  tint_ink=self._app.main_app.flow_id_ink)
+                                  alpha=0.36, contrast=0.09, tex_col_mix=0.87,  time=lambda: -Clock.get_boottime(),
+                                  tint_ink=self._app.main_app.flow_id_ink)
         self._state_shader_id: ShaderIdType = dict()
 
         self.on_state(self, self.state)
@@ -570,11 +570,9 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
         :param _self:           unused dup ref to self.
         :param focus:           True if this text input got focus, False on unfocus.
         """
-        if focus:
-            flow_id = self.focus_flow_id or id_of_flow('edit')
-        else:
-            flow_id = self.unfocus_flow_id or id_of_flow('close')
-        self.main_app.change_flow(flow_id)
+        flow_id = self.focus_flow_id if focus else self.unfocus_flow_id
+        if flow_id:
+            self.main_app.change_flow(flow_id)
 
     def on_text(self, _self: Widget, text: str):
         """ TextInput.text change event handler.
