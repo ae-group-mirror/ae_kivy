@@ -424,6 +424,21 @@ class TestHelperMethods:
         wid.width = 0
         assert app.widget_children(app.framework_win, only_visible=True) == []
 
+    def test_widget_pos(self, restore_app_env):
+        app = KivyMainApp()
+        tst_pos = (36, 99)
+
+        class Widget:
+            """ dummy widget """
+            pos = tst_pos
+
+            @staticmethod
+            def to_window(*pos_args):
+                """ dummy win coordinate convert to absolute """
+                return pos_args
+
+        assert app.widget_pos(Widget()) == tst_pos
+
 
 @skip_gitlab_ci
 class TestFlow:
@@ -744,7 +759,7 @@ class TestI18N:
         assert not get_txt.observers
 
     def test_switch_lang(self, restore_app_env):
-        _app = KivyAppTest()  # switch_lang() needs framework app instance
+        KivyAppTest()  # switch_lang() needs framework app instance
         old_lang = default_language()
         get_txt.switch_lang('xx')
         assert default_language() == 'xx'
@@ -757,7 +772,7 @@ class TestI18N:
         assert get_txt("text with {count} to translate", count=69) == "text with 69 to translate"
 
     def test_update(self, restore_app_env):
-        _app = KivyAppTest()  # switch_lang() needs framework app instance
+        KivyAppTest()  # switch_lang() needs framework app instance
         get_txt.fbind('_', bound, ('arg0', ))
         assert not called_bound
         get_txt.switch_lang('yy')

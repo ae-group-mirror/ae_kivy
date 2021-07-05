@@ -2,7 +2,7 @@
 main application classes and widgets for GUIApp-conform Kivy apps
 =================================================================
 
-This ae portion is providing additional :ref:`config-variables` and some useful constants, various enhanced widget
+this ae portion is providing additional :ref:`config-variables` and some useful constants, various enhanced widget
 classes, two application classes (:class:`FrameworkApp` and :class:`KivyMainApp`) and a i18n wrapper (:func:`get_txt`),
 adding translatable f-strings to the python and kv code of your app.
 
@@ -10,16 +10,16 @@ adding translatable f-strings to the python and kv code of your app.
 kivy app constants and config variables
 ---------------------------------------
 
-With the optional :ref:`config-variables` `win_min_width` and `win_min_height`, added by this portion, you can restrict
-the minimum size of the kivy main window of your app. Their default values are set on app startup in the method
+with the optional :ref:`config-variables` `win_min_width` and `win_min_height`, added by this portion, you can restrict
+the minimum size of the kivy main window of your app. their default values are set on app startup in the method
 :meth:`~KivyMainApp.on_app_start`.
 
-More constants provided by this portion are in the constant declaration section starting with :data:`MAIN_KV_FILE_NAME`.
+more constants provided by this portion are in the constant declaration section starting with :data:`MAIN_KV_FILE_NAME`.
 
-Additionally, all the :ref:`config-variables` and app constants inherited from the base app classes are available.
+additionally, all the :ref:`config-variables` and app constants inherited from the base app classes are available.
 
 .. hint::
-    Please see the documentation of the namespace portions/modules :mod:`ae.console` and :mod:`ae.gui_app` for more
+    please see the documentation of the namespace portions/modules :mod:`ae.console` and :mod:`ae.gui_app` for more
     detailed information on all the inherited :ref:`config-variables`, :ref:`config-options`, :ref:`config-files` and
     :ref:`app-state-constants`.
 
@@ -27,11 +27,11 @@ Additionally, all the :ref:`config-variables` and app constants inherited from t
 enhanced widget classes
 -----------------------
 
-The widgets provided by this portion are based on the kivy widgets and are respecting the :ref:`app-state-variables`
-specifying the desired app style (dark or light) and font size. Most of them also change automatically the
+the widgets provided by this portion are based on the kivy widgets and are respecting the :ref:`app-state-variables`
+specifying the desired app style (dark or light) and font size. most of them also change automatically the
 :ref:`application flow`.
 
-The following widgets provided by this portion will be registered in the kivy widget class maps by importing this module
+the following widgets provided by this portion will be registered in the kivy widget class maps by importing this module
 to be available for your app:
 
 * :class:`AppStateSlider`: :class:`~kivy.uix.slider.Slider` changing the value of :ref:`app-state-variables`.
@@ -51,7 +51,7 @@ to be available for your app:
 kivy app classes
 ----------------
 
-The class :class:`KivyMainApp` is implementing a main app class that is reducing the amount of code needed to create
+the class :class:`KivyMainApp` is implementing a main app class that is reducing the amount of code needed to create
 a Python application based on the `kivy framework <https://kivy.org>`_.
 
 :class:`KivyMainApp` is based on the following classes:
@@ -61,17 +61,17 @@ a Python application based on the `kivy framework <https://kivy.org>`_.
 * :class:`~ae.console.ConsoleApp` is adding :ref:`config-files`, :ref:`config-variables` and :ref:`config-options`.
 * :class:`~ae.core.AppBase` is adding :ref:`application logging` and :ref:`application debugging`.
 
-This namespace portion is also encapsulating the :class:`Kivy App class <kivy.app.App>` within the :class:`FrameworkApp`
-class. This Kivy app class instance can be directly accessed from the main app class instance via the
+this namespace portion is also encapsulating the :class:`Kivy App class <kivy.app.App>` within the :class:`FrameworkApp`
+class. this Kivy app class instance can be directly accessed from the main app class instance via the
 :attr:`~ae.gui_app.MainAppBase.framework_app` attribute.
 
 
 kivy application events
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-This portion is firing :ref:`application events` additional to the ones provided by :class:`~ae.gui_app.MainAppBase` by
+this portion is firing :ref:`application events` additional to the ones provided by :class:`~ae.gui_app.MainAppBase` by
 redirecting events of Kivy's :class:`~kivy.app.App` class (the Kivy event/callback-method name is given in brackets).
-These framework app events get fired after :meth:`~ae.gui_app.MainAppBase.on_app_run` in the following order:
+these framework app events get fired after :meth:`~ae.gui_app.MainAppBase.on_app_run` in the following order:
 
 * on_app_build (kivy.app.App.build, after the main kv file get loaded).
 * on_app_built (kivy.app.App.build, after the root widget get build).
@@ -84,7 +84,7 @@ These framework app events get fired after :meth:`~ae.gui_app.MainAppBase.on_app
 i18n support
 ------------
 
-Translatable f-strings are provided via the helper function :func:`get_txt` and the :class:`_GetTextBinder` class.
+translatable f-strings are provided via the helper function :func:`get_txt` and the :class:`_GetTextBinder` class.
 
 
 unit tests
@@ -126,6 +126,7 @@ import kivy.uix.textinput                                                       
 # noinspection PyProtectedMember
 from kivy.uix.textinput import TextInput, TextInputCutCopyPaste as _TextInputCutCopyPaste   # type: ignore
 from kivy.uix.widget import Widget                                                          # type: ignore
+from kivy.utils import escape_markup, get_hex_from_color                                    # type: ignore
 
 from ae.base import os_platform                                                             # type: ignore
 from ae.files import CachedFile                                                             # type: ignore
@@ -146,7 +147,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.2.97'
+__version__ = '0.2.98'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -196,13 +197,13 @@ class TouchableBehavior:  # pragma: no cover
 
     :Events:
         `on_double_tap`:
-            Fired with the touch down MotionEvent instance arg when a button get tapped twice within short time.
+            fired with the touch down MotionEvent instance arg when a button get tapped twice within short time.
         `on_triple_tap`:
-            Fired with the touch down MotionEvent instance arg when a button get tapped three times within short time.
+            fired with the touch down MotionEvent instance arg when a button get tapped three times within short time.
         `on_long_tap`:
-            Fired with the touch down MotionEvent instance arg when a button get tapped more than 2.4 seconds.
+            fired with the touch down MotionEvent instance arg when a button get tapped more than 2.4 seconds.
         `on_alt_tap`:
-            Fired with the touch down MotionEvent instance arg when a button get either double, triple or long tapped.
+            fired with the touch down MotionEvent instance arg when a button get either double, triple or long tapped.
 
     .. note::
         has to be inherited (to be in the MRO) before :class:`~kivy.uix.behaviors.ButtonBehavior`, respectively
@@ -341,10 +342,9 @@ class TouchableBehavior:  # pragma: no cover
         :param touch:           motion/touch event data.
         :return:                True if event got processed/used.
         """
-        if touch.grab_current is self:
-            if not self._cancel_long_touch_clock(touch):
-                touch.ungrab(self)
-                return True                 # prevent popup/dropdown dismiss
+        if touch.grab_current is self and not self._cancel_long_touch_clock(touch):
+            touch.ungrab(self)
+            return True                 # prevent popup/dropdown dismiss
         # noinspection PyUnresolvedReferences
         return super().on_touch_up(touch)   # type: ignore # pylint: disable=no-member; does touch.ungrab(self)
 
@@ -402,7 +402,7 @@ class ExtTextInputCutCopyPaste(_TextInputCutCopyPaste):  # pragma: no cover
     def __init__(self, **kwargs):
         """ create :class:`~kivy.uix.Bubble` instance to display the cut/copy/paste options.
 
-        The monkey patch of :class:`~kivy.uix.textinput.TextInputCutCopyPaste` which was done in
+        the monkey patch of :class:`~kivy.uix.textinput.TextInputCutCopyPaste` which was done in
         :meth:`FlowInput._show_cut_copy_paste` has to be temporarily reset before the super() call below, to prevent
         endless recursion because else the other super(cls, instance) call (in python2 style within
         :meth:`TextInputCutCopyPaste.__init__`) results in the same instance (instead of the overwritten instance).
@@ -445,8 +445,8 @@ class ExtTextInputCutCopyPaste(_TextInputCutCopyPaste):  # pragma: no cover
 class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
     """ text input/edit widget with optional autocompletion.
 
-    Until version 0.1.43 of this portion the background and text color of :class:`FlowInput` did automatically
-    get switched by a change of the light_theme app state. Now all colors left unchanged (before only the ones
+    until version 0.1.43 of this portion the background and text color of :class:`FlowInput` did automatically
+    get switched by a change of the light_theme app state. now all colors left unchanged (before only the ones
     with <unchanged>)::
 
     * background_color: Window.clearcolor            # default: 1, 1, 1, 1
@@ -456,13 +456,13 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
     * hint_text_color: <unchanged>                   # default: 0.5, 0.5, 0.5, 1.0
     * selection_color: <unchanged>                   # default: 0.1843, 0.6549, 0.8313, .5
 
-    To implement a dark background for the dark theme we would need also to change the images in the properties:
+   to implement a dark background for the dark theme we would need also to change the images in the properties:
     background_active, background_disabled_normal and self.background_normal.
 
-    Also the images/colors of the bubble that is showing e.g. on long press of the TextInput widget (cut/copy/paste/...)
-    kept unchanged - only the font_size get adapted and the bubble button texts get translated. For that the class
+    also the images/colors of the bubble that is showing e.g. on long press of the TextInput widget (cut/copy/paste/...)
+    kept unchanged - only the font_size get adapted and the bubble button texts get translated. for that the class
     :class:`ExtTextInputCutCopyPaste` provided by this portion inherits from the original bubble class
-    :class:`~kivy.uix.textinput.TextInputCutCopyPaste`. Additionally the original bubble class gets monkey patched
+    :class:`~kivy.uix.textinput.TextInputCutCopyPaste`. additionally the original bubble class gets monkey patched
     shortly/temporarily in the moment of the instantiation to translate the bubble menu options, change the font
     sizes and add additional menu options to memorize/forget auto-completion texts.
     """
@@ -493,7 +493,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
         """ change/update/set the index of the matching texts in the opened autocompletion dropdown.
 
         :param delta:           index delta value between old and new index (e.g. pass +1 to increment index).
-                                Set index to zero if the old/last index was on the last item in the matching list.
+                                set index to zero if the old/last index was on the last item in the matching list.
         """
         cnt = len(self._matching_ac_texts)
         if cnt:
@@ -615,8 +615,8 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
 class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout):                   # pragma: no cover
     """ popup for dynamic and auto-content-sizing dialogs and other top-most or modal windows.
 
-    The scrollable :attr:`container` (a :class:`~kivy.uix.scrollview.ScrollView` instance) can only have one children,
-    the content. Use a layout as content to display multiple widgets. Set :attr:`content_optimal_width` and/or
+    the scrollable :attr:`container` (a :class:`~kivy.uix.scrollview.ScrollView` instance) can only have one children,
+    the content. use a layout as content to display multiple widgets. set :attr:`content_optimal_width` and/or
     :attr:`content_optimal_height` to make the popup size as small as possible, using e.g. `minimum_width` respectively
     `minimum_height` if the content is a layout that is providing and updating this property, or
     :meth:`~KivyMainApp.text_size_guess` if the content is a label or button widget.
@@ -625,7 +625,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
         :attr:`~kivy.uix.label.Label.texture_size` could provide a more accurate content size than
         :meth:`~KivyMainApp.text_size_guess`, but should be used with care to prevent recursive property change loops.
 
-    This class is compatible to :class:`~kivy.uix.popup.Popup` and can be used as replacement, unsupported are only
+    this class is compatible to :class:`~kivy.uix.popup.Popup` and can be used as replacement, unsupported are only
     the following attributes of :class:`~kivy.uix.popup.Popup` and :class:`~kivy.uix.modalview.ModalView`:
 
     * :attr:`~kivy.uix.modalview.ModalView.background`: FlowPopup has no :class:`BorderImage`.
@@ -637,27 +637,27 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
 
     :Events:
         `on_pre_open`:
-            Fired before the FlowPopup is opened and got added to the main window.
+            fired before the FlowPopup is opened and got added to the main window.
         `on_open`:
-            Fired when the FlowPopup is opened.
+            fired when the FlowPopup is opened.
         `on_pre_dismiss`:
-            Fired before the FlowPopup is closed.
+            fired before the FlowPopup is closed.
         `on_dismiss`:
-            Fired when the FlowPopup is closed. If the callback returns True, the dismiss will be canceled.
+            fired when the FlowPopup is closed. if the callback returns True, the dismiss will be canceled.
 
     """
 
     background_color = ColorProperty()
     """ background ink tuple in the format (red, green, blue, alpha).
 
-    The :attr:`background_color` is a :class:`~kivy.properties.ColorProperty` and defaults to
+    the :attr:`background_color` is a :class:`~kivy.properties.ColorProperty` and defaults to
     :attr:`~kivy.core.window.Window.clearcolor`.
     """
 
     close_kwargs = DictProperty()
     """ kwargs passed to all close action flow change event handlers.
 
-    :attr:`close_kwargs` is a :class:`~kivy.properties.DictProperty`. The default depends the action of the penultimate
+    :attr:`close_kwargs` is a :class:`~kivy.properties.DictProperty`. the default depends the action of the penultimate
     flow id in the :attr:`ae.gui_app.flow_path`: is empty or 'enter' dict then it defaults to an empty flow, else to an
     empty dict.
     """
@@ -678,7 +678,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
     optimal_content_width = NumericProperty()
     """ width of the content to be fully displayed/visible.
 
-    :attr:`optimal_content_width` is a :class:`~kivy.properties.NumericProperty`. If `0` or `None` or not explicitly set
+    :attr:`optimal_content_width` is a :class:`~kivy.properties.NumericProperty`. if `0` or `None` or not explicitly set
     then it defaults to the main window width and - in landscape orientation - minus the :attr:`side_spacing` and the
     width needed by the :attr:`query_data_maps` widgets.
     """
@@ -686,7 +686,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
     optimal_content_height = NumericProperty()
     """ height of the content to be fully displayed/visible.
 
-    :attr:`optimal_content_height` is a :class:`~kivy.properties.NumericProperty`. If `0` or `None` or not explicitly
+    :attr:`optimal_content_height` is a :class:`~kivy.properties.NumericProperty`. if `0` or `None` or not explicitly
     set then it defaults to the main window height minus the height of :attr:`title` and - in portrait orientation -
     minus the :attr:`side_spacing` and the height needed by the :attr:`query_data_maps` widgets.
     """
@@ -877,11 +877,13 @@ class FrameworkApp(App):
 
     def __init__(self, main_app: 'KivyMainApp', **kwargs):
         """ init kivy app """
+        super().__init__(**kwargs)
+
         self.main_app = main_app                            #: set reference to KivyMainApp instance
+
         self.title = main_app.app_title                     #: set kivy.app.App.title
         self.icon = os.path.join("img", "app_icon.png")     #: set kivy.app.App.icon
-
-        super().__init__(**kwargs)
+        self.use_kivy_settings = main_app.debug             #: set kivy.app.App.use_kivy_settings
 
     def build(self) -> Widget:
         """ kivy build app callback.
@@ -932,7 +934,7 @@ class FrameworkApp(App):
     def on_pause(self) -> bool:
         """ app pause event automatically saving the app states.
 
-        Emits the `on_app_pause` event.
+        emits the `on_app_pause` event.
 
         :return:                True.
         """
@@ -944,7 +946,7 @@ class FrameworkApp(App):
     def on_resume(self) -> bool:
         """ app resume event automatically loading the app states.
 
-        Emits the `on_app_resume` event.
+        emits the `on_app_resume` event.
 
         :return:                True.
         """
@@ -956,11 +958,11 @@ class FrameworkApp(App):
     def on_start(self):
         """ kivy app start event.
 
-        Called after :meth:`~ae.gui_app.MainAppBase.run_app` method and :meth:`~ae.gui_app.MainAppBase.on_app_start`
+        called after :meth:`~ae.gui_app.MainAppBase.run_app` method and :meth:`~ae.gui_app.MainAppBase.on_app_start`
         event and after Kivy created the main layout (by calling its :meth:`~kivy.app.App.build` method) and has
         attached it to the main window.
 
-        Emits the `on_app_started` event.
+        emits the `on_app_started` event.
        """
         self.main_app.vpo("FrameworkApp.on_start")
         self.main_app.framework_win = self.root.parent
@@ -970,7 +972,7 @@ class FrameworkApp(App):
     def on_stop(self):
         """ quit app event automatically saving the app states.
 
-        Emits the `on_app_stopped` event whereas the method :meth:`~ae.gui_app.MainAppBase.stop_app`
+        emits the `on_app_stopped` event whereas the method :meth:`~ae.gui_app.MainAppBase.stop_app`
         emits the `on_app_stop` event.
         """
         self.main_app.vpo("FrameworkApp.on_stop")
@@ -994,11 +996,11 @@ class _GetTextBinder(Observable):
     kivy currently only support a single one automatic binding in kv files for all function names ending with `_`
     (see `watched_keys` extension in kivy/lang/parser.py line 201; e.g. `f_` would get recognized by the lang_tr
     re pattern, but kivy will only add the `_` symbol to watched_keys and therefore `f_` not gets bound.)
-    To allow both - f-strings and simple get_text messages - this module binds :func:`ae.i18n.get_f_string`
+    to allow both - f-strings and simple get_text messages - this module binds :func:`ae.i18n.get_f_string`
     to the `get_txt` symbol (instead of :func:`ae.i18n.get_text`).
 
     :data:`get_txt` can be used as translation callable, but also to switch the current default language.
-    Additionally :data:`get_txt` is implemented as an observer that automatically updates any translations
+    additionally :data:`get_txt` is implemented as an observer that automatically updates any translations
     messages of all active/visible kv rules on switch of the language at app run-time.
 
     inspired by (see also discussion at https://github.com/kivy/kivy/issues/1664):
@@ -1075,7 +1077,7 @@ class _GetTextBinder(Observable):
         :param count:           optional count for pluralization.
         :param language:        language code to translate the passed text to (def=current default language).
         :param loc_vars:        local variables used in the conversion of the f-string expression to a string.
-                                The `count` item of this dict will be overwritten by the value of the
+                                the `count` item of this dict will be overwritten by the value of the
                                 :paramref:`~_GetTextBinder.__call__.count` parameter (if this argument got passed).
         :param kwargs:          extra kwargs (e.g. :paramref:`~ae.i18n.get_f_string.glo_vars` or
                                 :paramref:`~ae.i18n.get_f_string.key_suffix` - see :func:`~ae.i18n.get_f_string`).
@@ -1202,6 +1204,10 @@ class KivyMainApp(HelpAppBase):
                 self.framework_win.remove_widget(widget)
                 self.framework_win.add_widget(widget)
 
+    def global_variables(self, **patches) -> Dict[str, Any]:
+        """ overridden to add Kivy-specific globals. """
+        return super().global_variables(escape_markup=escape_markup, get_hex_from_color=get_hex_from_color, **patches)
+
     def help_activation_toggle(self):  # pragma: no cover
         """ button tapped event handler to switch help mode between active and inactive (also inactivating tour). """
         activator = self.help_activator
@@ -1278,8 +1284,8 @@ class KivyMainApp(HelpAppBase):
 
     def on_app_started(self):
         """ kivy :meth:`~kivy.app.App.on_start` event handler (called after on_app_build/on_app_built). """
-        self.vpo("KivyMainApp.on_app_started default/fallback event handler called")
-        super().on_app_started()    # check onboarding tour start in ae.gui_help.HelpAppBase
+        self.vpo("KivyMainApp.on_app_started event handler called - calling ae.gui_help.HelpAppBase.on_app_started")
+        super().on_app_started()    # check user registration/onboarding tour start in ae.gui_help.HelpAppBase
 
     def on_app_stopped(self):
         """ kivy :meth:`~kivy.app.App.on_stop` event handler (called after on_app_stop). """
@@ -1371,17 +1377,17 @@ class KivyMainApp(HelpAppBase):
         """ determine all popup-like container widgets that are currently opened.
 
         :param classes:         optional class filter - if not passed then only the widgets underneath win/root with an
-                                `open` method will be yielded. Pass tuple to restrict found popup widgets to certain
+                                `open` method will be yielded. pass tuple to restrict found popup widgets to certain
                                 classes. like e.g. by passing `(Popup, DropDown, FlowPopup)` to get all popups of an
                                 ae/Kivy app.
         :return:                list of opened/visible popup class instances that are children of either the
                                 root layout or the app window, ordered by their z-coordinate (most upfront widget last).
-                                Overwritten because the children z-order is reversed in Kivy (topmost widget first).
+                                overwritten because the children z-order is reversed in Kivy (topmost widget first).
         """
         return list(reversed(super().popups_opened(classes=classes)))
 
     def open_popup(self, popup_class: Type[Union[FlowPopup, Popup, DropDown]], **popup_kwargs) -> Widget:
-        """ open Popup or DropDown using the `open` method. Overwriting the main app class method.
+        """ open Popup or DropDown using the `open` method. overwriting the main app class method.
 
         :param popup_class:     class of the Popup or DropDown widget.
         :param popup_kwargs:    args to be set as attributes of the popup class instance plus an optional
@@ -1434,3 +1440,12 @@ class KivyMainApp(HelpAppBase):
         :return:                list of children widgets of the passed widget.
         """
         return list(reversed(super().widget_children(wid, only_visible=only_visible)))
+
+    @staticmethod
+    def widget_pos(wid) -> Tuple[float, float]:
+        """ return widget's window x/y position (overridden for absolute coordinates relative/scrollable layouts).
+
+        :param wid:             widget to determine the position of.
+        :return:                tuple of x and y screen coordinate.
+        """
+        return wid.to_window(*wid.pos)
