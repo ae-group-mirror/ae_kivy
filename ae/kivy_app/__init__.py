@@ -66,6 +66,8 @@ class. this Kivy app class instance can be directly accessed from the main app c
 :attr:`~ae.gui_app.MainAppBase.framework_app` attribute.
 
 
+.. _kivy application events:
+
 kivy application events
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -139,7 +141,7 @@ from ae.gui_app import (                                                        
     APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
     ensure_tap_kwargs_refs, replace_flow_action)
-from ae.gui_help import layout_ps_hints, HelpAppBase                                        # type: ignore
+from ae.gui_help import HelpAppBase                                                         # type: ignore
 from ae.kivy_glsl import ShaderIdType, ShadersMixin                                         # type: ignore
 from ae.kivy_auto_width import ContainerChildrenAutoWidthBehavior                           # type: ignore
 from ae.kivy_dyn_chi import DynamicChildrenBehavior                                         # type: ignore
@@ -147,7 +149,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.2.98'
+__version__ = '0.2.99'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -377,7 +379,7 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
         :param args:            args to be passed to DropDown.dismiss().
         """
         app = App.get_running_app()
-        if app.help_layout is None or not isinstance(app.help_layout.explained_widget, HelpToggler):
+        if app.help_layout is None or not isinstance(app.help_layout.targeted_widget, HelpToggler):
             super().dismiss(*args)
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
@@ -782,7 +784,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
             return
 
         app = self.fw_app
-        if app.help_layout is not None and isinstance(app.help_layout.explained_widget, HelpToggler):
+        if app.help_layout is not None and isinstance(app.help_layout.targeted_widget, HelpToggler):
             return
 
         self.dispatch('on_pre_dismiss')                                                     # pylint: disable=no-member
@@ -1218,9 +1220,7 @@ class KivyMainApp(HelpAppBase):
         help_vars = dict()
         if activate:
             target, help_id = self.help_target_and_id(help_vars)
-            help_layout = Tooltip(explained_widget=target,
-                                  ps_hints=layout_ps_hints(*target.to_window(*target.pos), *target.size,
-                                                           self.framework_win.width, self.framework_win.height))
+            help_layout = Tooltip(targeted_widget=target)
             self.framework_win.add_widget(help_layout)
         else:
             if help_layout:

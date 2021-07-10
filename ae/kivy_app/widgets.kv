@@ -71,7 +71,6 @@
         keep_ratio: False
         opacity: 1 if self.source else 0
         pos: self.parent.image_pos or self.parent.secondary_pos or self.parent.pos
-        # size_hint: None, None not needed because parent is no layout
         size: self.parent.image_size or self.parent.secondary_size or self.parent.size
 
 <TouchableBehavior>
@@ -186,7 +185,6 @@
             min(self.top - self.secondary_size[1] * 0.102, Window.height - self.secondary_size[1])
         ellipse_fill_ink: 1.0, 0.0, 0.0, 0.69
         relief_pos_size: (*self.secondary_pos, *self.secondary_size)
-        #relief_ellipse_inner_colors: relief_colors(self.ellipse_fill_ink)
         relief_ellipse_inner_colors: relief_colors()
         relief_ellipse_inner_lines: round(self.height / 3.6)
         optimal_width:
