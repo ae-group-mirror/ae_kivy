@@ -149,7 +149,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.2.99'
+__version__ = '0.2.100'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -860,7 +860,7 @@ class FlowToggler(HelpBehavior, TouchableBehavior, ToggleButtonBehavior, ImageLa
     def __init__(self, **kwargs):
         ensure_tap_kwargs_refs(kwargs, self)
         super().__init__(**kwargs)
-        self.down_shader = dict(shader_code='=circled_alpha', render_shape=Ellipse)
+        self.down_shader = dict(add_to='before', shader_code='=circled_alpha', render_shape=Ellipse)
 
 
 class FrameworkApp(App):
