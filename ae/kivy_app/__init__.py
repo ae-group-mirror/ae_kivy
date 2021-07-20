@@ -66,8 +66,6 @@ class. this Kivy app class instance can be directly accessed from the main app c
 :attr:`~ae.gui_app.MainAppBase.framework_app` attribute.
 
 
-.. _kivy application events:
-
 kivy application events
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -149,7 +147,7 @@ from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, Tour
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.2.100'
+__version__ = '0.2.101'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -908,6 +906,7 @@ class FrameworkApp(App):
         self.bind(app_states=_set_button_height)
 
         self.main_app.framework_root = root = Factory.Main()
+        self.main_app.framework_win = Window
         self.main_app.call_method('on_app_built')
         return root
 
@@ -967,7 +966,6 @@ class FrameworkApp(App):
         emits the `on_app_started` event.
        """
         self.main_app.vpo("FrameworkApp.on_start")
-        self.main_app.framework_win = self.root.parent
         self.win_pos_size_change()  # init. app./self.landscape (on app startup and after build)
         self.main_app.call_method('on_app_started')
 

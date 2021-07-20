@@ -40,19 +40,20 @@
     ellipse_fill_ink: 1.0, 1.0, 1.0, 0.0
     ellipse_fill_pos: ()
     ellipse_fill_size: ()
-    secondary_pos: self.secondary_pos or self.pos
-    secondary_size: self.secondary_size or self.size
     image_pos: ()
     image_size: ()
+    secondary_pos: self.secondary_pos or self.pos
+    secondary_size: self.secondary_size or self.size
     source: themeLabelImage.source
     square_fill_ink: 1.0, 1.0, 1.0, 0.0
     square_fill_pos: ()
     square_fill_size: ()
+    color: app.font_color
+    font_size: app.app_states['font_size']
+    markup: True
     size_hint_y: None
     size_hint_min_x: self.height
     height: app.button_height
-    font_size: app.app_states['font_size']
-    color: app.font_color
     canvas.before:
         Color:
             rgba: self.square_fill_ink
@@ -266,7 +267,6 @@
         text_size: min(root._max_width, root.optimal_content_width), None
         size_hint: None, None
         size: self.texture_size
-        markup: True
         Button:     # invisible button to close popup on message text click
             pos: msg_txt_box.pos
             size: msg_txt_box.size
