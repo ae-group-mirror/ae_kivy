@@ -143,21 +143,15 @@ from ae.gui_help import HelpAppBase                                             
 from ae.kivy_glsl import ShaderIdType, ShadersMixin                                         # type: ignore
 from ae.kivy_auto_width import ContainerChildrenAutoWidthBehavior                           # type: ignore
 from ae.kivy_dyn_chi import DynamicChildrenBehavior                                         # type: ignore
-from ae.kivy_help import HelpBehavior, HelpToggler, ModalBehavior, Tooltip, TourOverlay     # type: ignore
+from ae.kivy_help import (                                                                  # type: ignore
+    ANI_SINE_DEEPER_REPEAT3, HelpBehavior, HelpToggler, ModalBehavior, Tooltip, TourOverlay)
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.2.101'
+__version__ = '0.2.102'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
-
-ANI_SINE_DEEPER_REPEAT3 = \
-    Animation(ani_value=0.99, t='in_out_sine', d=0.9) + Animation(ani_value=0.87, t='in_out_sine', d=1.2) + \
-    Animation(ani_value=0.96, t='in_out_sine', d=1.5) + Animation(ani_value=0.75, t='in_out_sine', d=1.2) + \
-    Animation(ani_value=0.90, t='in_out_sine', d=0.9) + Animation(ani_value=0.45, t='in_out_sine', d=0.6)
-""" sine 3 x deeper repeating animation, used e.g. to animate help layout (ae.kivy_help.Tooltip) """
-ANI_SINE_DEEPER_REPEAT3.repeat = True
 
 CRITICAL_VIBRATE_PATTERN = (0.00, 0.12, 0.12, 0.12, 0.12, 0.12,
                             0.12, 0.24, 0.12, 0.24, 0.12, 0.24,
@@ -900,13 +894,13 @@ class FrameworkApp(App):
                     on_key_up=self.key_release_from_kivy)
 
         def _set_button_height(*_args):
-            new_height = round(self.main_app.font_size * 1.5)
+            new_height = round(self.main_app.font_size * 1.95)
             if self.button_height != new_height:
                 self.button_height = new_height
         self.bind(app_states=_set_button_height)
 
         self.main_app.framework_root = root = Factory.Main()
-        self.main_app.framework_win = Window
+        self.main_app.framework_win = Window    # == root.parent (after the calling method has finished)
         self.main_app.call_method('on_app_built')
         return root
 
@@ -1222,10 +1216,9 @@ class KivyMainApp(HelpAppBase):
             self.framework_win.add_widget(help_layout)
         else:
             if help_layout:
+                activator.ani_stop()
                 ANI_SINE_DEEPER_REPEAT3.stop(help_layout)
                 help_layout.ani_value = 0.99
-                ANI_SINE_DEEPER_REPEAT3.stop(activator)
-                activator.ani_value = 0.99
                 self.framework_win.remove_widget(help_layout)
                 help_layout = None
                 self.change_observable('displayed_help_id', '')
@@ -1238,7 +1231,7 @@ class KivyMainApp(HelpAppBase):
         if activate:
             self.help_display(help_id, help_vars)  # show found/initial help text (after self.help_layout got set)
             ANI_SINE_DEEPER_REPEAT3.start(help_layout)
-            ANI_SINE_DEEPER_REPEAT3.start(activator)
+            activator.ani_start()
 
     def load_sounds(self):
         """ override to pre-load audio sounds from app folder snd into sound file cache. """
@@ -1275,10 +1268,9 @@ class KivyMainApp(HelpAppBase):
         Window.minimum_height = self.get_var('win_min_height', default_value=303)
 
         if os_platform not in ('android', 'ios'):  # ignore last win pos on android/iOS, use always the full screen
-            win_rect = self.win_rectangle
-            if win_rect:  # is empty tuple at very first app start
-                Window.left, Window.top = win_rect[:2]
-                Window.size = win_rect[2:]
+            win_rect = self.win_rectangle or KivyMainApp.win_rectangle  # self val is empty tuple on first app start
+            Window.left, Window.top = win_rect[:2]
+            Window.size = win_rect[2:]
 
     def on_app_started(self):
         """ kivy :meth:`~kivy.app.App.on_start` event handler (called after on_app_build/on_app_built). """
