@@ -148,7 +148,7 @@ from ae.kivy_help import (                                                      
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.2.102'
+__version__ = '0.2.103'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -230,14 +230,12 @@ class TouchableBehavior:  # pragma: no cover
         super().__init__(**kwargs)      # pylint: disable=no-member
 
         self._app = App.get_running_app()
+        self._state_shader_id: ShaderIdType = dict()
         self.down_shader = dict(shader_code='=fire_storm', render_shape=Ellipse,
                                 tint_ink=self._app.main_app.flow_path_ink)
         self.normal_shader = dict(shader_code='=plunge_waves', render_shape=Ellipse, add_to='before',
                                   alpha=0.36, contrast=0.09, tex_col_mix=0.87,  time=lambda: -Clock.get_boottime(),
                                   tint_ink=self._app.main_app.flow_id_ink)
-        self._state_shader_id: ShaderIdType = dict()
-
-        self.on_state(self, self.state)
 
     @staticmethod
     def _cancel_long_touch_clock(touch: MotionEvent) -> bool:
@@ -258,24 +256,32 @@ class TouchableBehavior:  # pragma: no cover
         :param touch:           motion/touch event data with the touched widget in `touch.grab_current`.
         """
 
+    def on_down_shader(self, *_args):
+        """ button down state shader changed event handler. """
+        self.on_state(self, self.state)
+
     def on_long_tap(self, touch: MotionEvent):
         """ long tap/click default handler.
 
         :param touch:           motion/touch event data with the touched widget in `touch.grab_current`.
         """
-        # to prevent dismiss via super().on_touch_up: exclusive receive of this touch up event in self.on_touch_up
-        touch.grab(self, exclusive=True)
-
         # remove 'long_touch_handler' key from touch.ud dict although just fired to signalize that
         # the long tap event got handled in self.on_touch_up (to return True)
         self._cancel_long_touch_clock(touch)
 
-        # also dispatch as alternative tap
-        self.dispatch('on_alt_tap', touch)  # pylint: disable=no-member
-
         # reset button state to normal - if state is still down (to replace down_shader with normal_shader)
         if self.state == 'down':
             self.state = 'normal'
+
+        # to prevent dismiss via super().on_touch_up: exclusive receive of this touch up event in self.on_touch_up
+        touch.grab(self, exclusive=True)
+
+        # also dispatch as alternative tap
+        self.dispatch('on_alt_tap', touch)  # pylint: disable=no-member
+
+    def on_normal_shader(self, *_args):
+        """ button normal state shader changed event handler. """
+        self.on_state(self, self.state)
 
     def on_state(self, _widget: Any, value: str):
         """ button pressed state changed event handler, switching between `'normal'` and `'down'` state shader.
@@ -338,7 +344,7 @@ class TouchableBehavior:  # pragma: no cover
         """
         if touch.grab_current is self and not self._cancel_long_touch_clock(touch):
             touch.ungrab(self)
-            return True                 # prevent popup/dropdown dismiss
+            return True                     # prevent popup/dropdown dismiss
         # noinspection PyUnresolvedReferences
         return super().on_touch_up(touch)   # type: ignore # pylint: disable=no-member; does touch.ungrab(self)
 
