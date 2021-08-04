@@ -148,7 +148,7 @@ from ae.kivy_help import (                                                      
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.2.103'
+__version__ = '0.2.104'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -258,7 +258,7 @@ class TouchableBehavior:  # pragma: no cover
 
     def on_down_shader(self, *_args):
         """ button down state shader changed event handler. """
-        self.on_state(self, self.state)
+        self._update_shader()
 
     def on_long_tap(self, touch: MotionEvent):
         """ long tap/click default handler.
@@ -281,21 +281,15 @@ class TouchableBehavior:  # pragma: no cover
 
     def on_normal_shader(self, *_args):
         """ button normal state shader changed event handler. """
-        self.on_state(self, self.state)
+        self._update_shader()
 
-    def on_state(self, _widget: Any, value: str):
+    def on_state(self, _widget: Any, _value: str):
         """ button pressed state changed event handler, switching between `'normal'` and `'down'` state shader.
 
         :param _widget:         button widget (is self).
-        :param value:           new state value (either 'normal' or 'down').
+        :param _value:          new state value (either 'normal' or 'down').
         """
-        if self._state_shader_id:
-            self.del_shader(self._state_shader_id)
-            self._state_shader_id = dict()
-
-        add_shader_kwargs = self.down_shader if value == 'down' else self.normal_shader
-        if add_shader_kwargs:
-            self._state_shader_id = self.add_shader(**add_shader_kwargs)
+        self._update_shader()
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
         """ check for additional double/triple/alt touch events and add sound, vibration and animation.
@@ -353,6 +347,16 @@ class TouchableBehavior:  # pragma: no cover
 
         :param touch:           motion/touch event data with the touched widget in `touch.grab_current`.
         """
+
+    def _update_shader(self):
+        """ update shader on changed shader or button state. """
+        if self._state_shader_id:
+            self.del_shader(self._state_shader_id)
+            self._state_shader_id = dict()
+
+        add_shader_kwargs = self.down_shader if self.state == 'down' else self.normal_shader
+        if add_shader_kwargs:
+            self._state_shader_id = self.add_shader(**add_shader_kwargs)
 
 
 class FlowButton(HelpBehavior, TouchableBehavior, ButtonBehavior, ImageLabel):  # pragma: no cover
