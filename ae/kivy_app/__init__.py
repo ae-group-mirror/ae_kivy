@@ -124,7 +124,7 @@ from kivy.uix.popup import Popup                                                
 from kivy.uix.slider import Slider                                                          # type: ignore
 import kivy.uix.textinput                                                                   # type: ignore
 # noinspection PyProtectedMember
-from kivy.uix.textinput import TextInput, TextInputCutCopyPaste as _TextInputCutCopyPaste   # type: ignore
+from kivy.uix.textinput import TextInput, TextInputCutCopyPaste as OriTextInputCutCopyPaste
 from kivy.uix.widget import Widget                                                          # type: ignore
 from kivy.utils import escape_markup, get_hex_from_color                                    # type: ignore
 
@@ -148,7 +148,7 @@ from ae.kivy_help import (                                                      
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.2.104'
+__version__ = '0.3.104'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -230,7 +230,7 @@ class TouchableBehavior:  # pragma: no cover
         super().__init__(**kwargs)      # pylint: disable=no-member
 
         self._app = App.get_running_app()
-        self._state_shader_id: ShaderIdType = dict()
+        self._state_shader_id: ShaderIdType = {}
         self.down_shader = dict(shader_code='=fire_storm', render_shape=Ellipse,
                                 tint_ink=self._app.main_app.flow_path_ink)
         self.normal_shader = dict(shader_code='=plunge_waves', render_shape=Ellipse, add_to='before',
@@ -352,7 +352,7 @@ class TouchableBehavior:  # pragma: no cover
         """ update shader on changed shader or button state. """
         if self._state_shader_id:
             self.del_shader(self._state_shader_id)
-            self._state_shader_id = dict()
+            self._state_shader_id = {}
 
         add_shader_kwargs = self.down_shader if self.state == 'down' else self.normal_shader
         if add_shader_kwargs:
@@ -401,7 +401,7 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
         super()._reposition(*args)
 
 
-class ExtTextInputCutCopyPaste(_TextInputCutCopyPaste):  # pragma: no cover
+class ExtTextInputCutCopyPaste(OriTextInputCutCopyPaste):  # pragma: no cover
     """ overwrite/extend :class:`kivy.uix.textinput.TextInputCutCopyPaste` w/ translatable and autocomplete options. """
     def __init__(self, **kwargs):
         """ create :class:`~kivy.uix.Bubble` instance to display the cut/copy/paste options.
@@ -411,7 +411,7 @@ class ExtTextInputCutCopyPaste(_TextInputCutCopyPaste):  # pragma: no cover
         endless recursion because else the other super(cls, instance) call (in python2 style within
         :meth:`TextInputCutCopyPaste.__init__`) results in the same instance (instead of the overwritten instance).
         """
-        kivy.uix.textinput.TextInputCutCopyPaste = _TextInputCutCopyPaste
+        kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste
         self.fw_app = App.get_running_app()
         super().__init__(**kwargs)
 
@@ -478,12 +478,12 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
     """ color and alpha used to highlight the currently selected text of all matching autocompletion texts """
 
     _ac_dropdown: Any = None                #: singleton FlowDropDown instance for all TextInput instances
-    _matching_ac_texts: List[str] = list()  #: one list instance for all TextInput instances is enough
+    _matching_ac_texts: List[str] = []      #: one list instance for all TextInput instances is enough
     _matching_ac_index: int = 0             #: index of selected text in the drop down matching texts list
 
     def __init__(self, **kwargs):
         # changed to kivy properties so no need to pop them from kwargs:
-        # self.auto_complete_texts = kwargs.pop('auto_complete_texts', list())
+        # self.auto_complete_texts = kwargs.pop('auto_complete_texts', [])
         # self.auto_complete_selector_index_ink = kwargs.pop('auto_complete_selector_index_ink', (0.69, 0.69, 0.69, 1))
 
         super().__init__(**kwargs)
@@ -514,7 +514,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
             ac_text = self._matching_ac_texts[self._matching_ac_index]
         if ac_text in self.auto_complete_texts:
             self.auto_complete_texts.remove(ac_text)
-            self.on_text(self, self.text)  # type: ignore  # redraw autocompletion dropdown
+            self.on_text(self, self.text)   # redraw autocompletion dropdown
 
     def delete_text_from_ac(self, *_args):
         """ check if current text is in autocompletion list and if yes then remove it.
@@ -587,12 +587,12 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
         if text:
             matching = [txt for txt in self.auto_complete_texts if txt[:-1].startswith(text)]
         else:
-            matching = list()
+            matching = []
         self._matching_ac_texts[:] = matching
         self._matching_ac_index = 0
 
         if matching:
-            cdm = list()
+            cdm = []
             for txt in matching:
                 cdm.append(dict(cls='FlowButton', kwargs=dict(text=txt, on_release=self._select_ac_text)))
             self._ac_dropdown.child_data_maps[:] = cdm
@@ -613,7 +613,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
     def _show_cut_copy_paste(self, *args, **kwargs):    # pylint: disable=signature-differs
         kivy.uix.textinput.TextInputCutCopyPaste = ExtTextInputCutCopyPaste  # reset in ExtTextInputCutCopyPaste.__init_
         super()._show_cut_copy_paste(*args, **kwargs)
-        kivy.uix.textinput.TextInputCutCopyPaste = _TextInputCutCopyPaste  # reset here too if already instantiated
+        kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste  # reset here too if already instantiated
 
 
 class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout):                   # pragma: no cover
@@ -1089,7 +1089,7 @@ class _GetTextBinder(Observable):
         """
         if count is not None:
             if loc_vars is None:
-                loc_vars = dict()
+                loc_vars = {}
             loc_vars['count'] = count
         return get_f_string(text, language=language, loc_vars=loc_vars, **kwargs)
 
@@ -1145,12 +1145,12 @@ class KivyMainApp(HelpAppBase):
                 app_states_data["framework app states"] = self.framework_app.app_states
                 app_states_data['kbd_input_mode'] = self.kbd_input_mode
 
-                help_data = dict()
-                help_data["global_variables"] = self.global_variables()
-                help_data['_last_focus_flow_id'] = self._last_focus_flow_id
-                help_data['_next_help_id'] = self._next_help_id
-                help_data['displayed_help_id'] = self.displayed_help_id
-                app_env_info['help data'] = help_data
+                app_env_info['help data'] = {
+                    'displayed_help_id': self.displayed_help_id,
+                    'global_variables': self.global_variables(),
+                    '_last_focus_flow_id': self._last_focus_flow_id,
+                    '_next_help_id': self._next_help_id,
+                }
 
                 app_env_info['app data']['documents_root_path'] = self.documents_root_path
             app_env_info['app states data'] = app_states_data
@@ -1219,7 +1219,7 @@ class KivyMainApp(HelpAppBase):
         tour_layout = self.tour_layout
         activate = help_layout is None and tour_layout is None
         help_id = ''
-        help_vars = dict()
+        help_vars = {}
         if activate:
             target, help_id = self.help_target_and_id(help_vars)
             help_layout = Tooltip(targeted_widget=target)
@@ -1335,7 +1335,7 @@ class KivyMainApp(HelpAppBase):
         if not self.debug:
             self._debug_enable_clicks += 1
             if self._debug_enable_clicks >= 3:
-                self.on_debug_level_change(DEBUG_LEVELS[DEBUG_LEVEL_ENABLED], dict())  # also enable for all sub-apps
+                self.on_debug_level_change(DEBUG_LEVELS[DEBUG_LEVEL_ENABLED], {})  # also enable for all sub-apps
                 self._debug_enable_clicks = 0
             elif self._debug_enable_clicks == 1:
                 Clock.schedule_once(_timeout_reset, 6.0)

@@ -10,9 +10,7 @@ from kivy.lang import Builder, Observable
 from kivy.properties import BooleanProperty
 from kivy.uix.popup import Popup
 
-from de.core import TESTS_FOLDER
-
-from ae.base import INI_EXT
+from ae.base import INI_EXT, TESTS_FOLDER, write_file
 from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED, DEBUG_LEVEL_VERBOSE
 from ae.i18n import default_language
 from ae.gui_app import (
@@ -289,7 +287,7 @@ class TestHelperMethods:
     def test_ensure_top_most_z_index(self, restore_app_env):
         app = KivyAppTest()
         app.framework_win = MagicMock()
-        app.framework_win.children = list()
+        app.framework_win.children = []
         app.framework_win.add_widget = lambda child: app.framework_win.children.insert(0, child)
 
         wid = MagicMock()
@@ -313,8 +311,7 @@ class TestHelperMethods:
 
     def test_main_kv_load(self, restore_app_env):
         try:
-            with open(MAIN_KV_FILE_NAME, 'w') as fp:
-                fp.write(MAIN_KV_LAYOUT)
+            write_file(MAIN_KV_FILE_NAME, MAIN_KV_LAYOUT)
             app = KivyMainApp()
             assert app.framework_app.kv_file == MAIN_KV_FILE_NAME
         finally:
@@ -358,8 +355,7 @@ class TestHelperMethods:
         sound_file = 'tst_snd_file'
         try:
             os.mkdir(sound_dir)
-            with open(os.path.join(sound_dir, sound_file + '.mp3'), 'w') as fp:
-                fp.write('invalid sound file content')
+            write_file(os.path.join(sound_dir, sound_file + '.mp3'), 'invalid sound file content')
             app = KivyMainApp()
             app.load_sounds()
             app.play_sound(sound_file)
@@ -377,9 +373,9 @@ class TestHelperMethods:
     def test_popups_opened(self, restore_app_env):
         app = KivyAppTest()
         app.framework_win = MagicMock()
-        app.framework_win.children = list()
+        app.framework_win.children = []
         app.framework_root = MagicMock()
-        app.framework_root.children = list()
+        app.framework_root.children = []
 
         class _Popup:
             """ dummy popup """
@@ -411,7 +407,7 @@ class TestHelperMethods:
 
         class _Widget:
             """ dummy widget """
-            children = list()
+            children = []
             width = 99
             height = 99
         parent = _Widget()
@@ -445,7 +441,7 @@ class TestFlow:
     def test_flow_enter(self, restore_app_env):
         app = KivyAppTest()
         app.framework_win = MagicMock()
-        app.framework_win.children = list()
+        app.framework_win.children = []
         assert len(app.flow_path) == 0
         flow1 = id_of_flow('enter', 'first_flow')
         app.change_flow(flow1)
@@ -455,7 +451,7 @@ class TestFlow:
     def test_flow_enter_next_id(self, restore_app_env):
         app = KivyAppTest()
         app.framework_win = MagicMock()
-        app.framework_win.children = list()
+        app.framework_win.children = []
         assert len(app.flow_path) == 0
         assert app.flow_id == ""
         flow1 = id_of_flow('enter', 'first_flow')
@@ -468,7 +464,7 @@ class TestFlow:
     def test_flow_leave(self, restore_app_env):
         app = KivyAppTest()
         app.framework_win = MagicMock()
-        app.framework_win.children = list()
+        app.framework_win.children = []
         flow1 = id_of_flow('enter', 'first_flow', 'tst_key')
         app.change_flow(flow1)
         assert len(app.flow_path) == 1
@@ -484,7 +480,7 @@ class TestFlow:
     def test_flow_leave_next_id(self, restore_app_env):
         app = KivyAppTest()
         app.framework_win = MagicMock()
-        app.framework_win.children = list()
+        app.framework_win.children = []
         flow1 = id_of_flow('enter', 'first_flow', 'tst_key')
         flow2 = id_of_flow('action', '2nd_flow', 'tst_key2')
         flow3 = id_of_flow('leave', '3rd_flow')
@@ -574,14 +570,14 @@ class TestEvents:
         app = KivyAppTest()
         old_mode = app.kbd_input_mode
 
-        app.on_kbd_input_mode_change('', dict())
+        app.on_kbd_input_mode_change('', {})
         assert app.kbd_input_mode == ''
 
-        app.on_kbd_input_mode_change('below_target', dict())
+        app.on_kbd_input_mode_change('below_target', {})
         assert app.kbd_input_mode == 'below_target'
 
         # app.kbd_input_mode = old_mode
-        assert app.on_kbd_input_mode_change(old_mode, dict())
+        assert app.on_kbd_input_mode_change(old_mode, {})
 
     def test_on_light_theme_change(self, restore_app_env):
         app = KivyAppTest()
@@ -630,16 +626,16 @@ class TestEvents:
 
         app.debug_level = DEBUG_LEVEL_ENABLED
         assert app._debug_enable_clicks == 0
-        assert not app.on_user_preferences_open('', dict())
+        assert not app.on_user_preferences_open('', {})
 
         app.debug_level = DEBUG_LEVEL_DISABLED
-        assert not app.on_user_preferences_open('', dict())
-        assert not app.on_user_preferences_open('', dict())
-        assert not app.on_user_preferences_open('', dict())
+        assert not app.on_user_preferences_open('', {})
+        assert not app.on_user_preferences_open('', {})
+        assert not app.on_user_preferences_open('', {})
         assert app.debug_level == DEBUG_LEVEL_ENABLED
 
         app.debug_level = DEBUG_LEVEL_DISABLED
-        assert not app.on_user_preferences_open('', dict())
+        assert not app.on_user_preferences_open('', {})
         assert app._debug_enable_clicks == 1
         # using Clock.schedule_once(_delayed_test, 6.9) and the commented sub-function underneath -> get never executed:
         # def _delayed_test(dt: float):
@@ -707,7 +703,7 @@ class TestEvents:
 
     def test_retrieve_app_states(self, restore_app_env):
         app = KivyMainApp()
-        assert app.retrieve_app_states() == dict()
+        assert app.retrieve_app_states() == {}
 
     def test_run(self, ini_file, restore_app_env):
         app = KivyAppTest()
@@ -781,5 +777,5 @@ class TestI18N:
     def test_on_lang_code_change(self, restore_app_env):
         app = KivyAppTest()
 
-        app.on_lang_code_change('zz', dict())
+        app.on_lang_code_change('zz', {})
         assert default_language() == 'zz'

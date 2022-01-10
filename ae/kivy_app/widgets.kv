@@ -1,7 +1,7 @@
 #: import file_lines ae.files.file_lines
 #: import write_file_text ae.files.write_file_text
 
-#: import norm_path ae.paths.norm_path
+#: import normalize ae.paths.normalize
 #: import PATH_PLACEHOLDERS ae.paths.PATH_PLACEHOLDERS
 #: import path_name ae.paths.path_name
 
@@ -134,7 +134,7 @@
 
 <FlowDropDown>
     close_kwargs:
-        dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else dict()
+        dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
     auto_width: False
     # width determined by ContainerChildrenAutoWidthBehavior, so no need for: width: min(Window.width - sp(96), sp(960))
@@ -161,7 +161,7 @@
     width: min(max(title_bar.optimal_width or 90, body_box.optimal_width or 120), self._max_width)
     height: min(title_bar.height + root.separator_height + (body_box.optimal_height or 189), self._max_height)
     close_kwargs:
-        dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else dict()
+        dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
     on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
     canvas:
         Color:
