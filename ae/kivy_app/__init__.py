@@ -148,7 +148,7 @@ from ae.kivy_help import (                                                      
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.3.104'
+__version__ = '0.3.105'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
