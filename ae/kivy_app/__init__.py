@@ -3,7 +3,7 @@ main application classes and widgets for GUIApp-conform Kivy apps
 =================================================================
 
 this ae portion is providing additional :ref:`config-variables` and some useful constants, various enhanced widget
-classes, two application classes (:class:`FrameworkApp` and :class:`KivyMainApp`) and a i18n wrapper (:func:`get_txt`),
+classes, two application classes (:class:`FrameworkApp` and :class:`KivyMainApp`) and an i18n wrapper (:func:`get_txt`),
 adding translatable f-strings to the python and kv code of your app.
 
 
@@ -57,7 +57,7 @@ a Python application based on the `kivy framework <https://kivy.org>`_.
 :class:`KivyMainApp` is based on the following classes:
 
 * the abstract base class :class:`~ae.gui_app.MainAppBase` which adds :ref:`application status`,
-  :ref:`app-state-variables` and :ref:`app-state-constants`), :ref:`application flow` and :ref:`application events`.
+  :ref:`app-state-variables`, :ref:`app-state-constants`, :ref:`application flow` and :ref:`application events`.
 * :class:`~ae.console.ConsoleApp` is adding :ref:`config-files`, :ref:`config-variables` and :ref:`config-options`.
 * :class:`~ae.core.AppBase` is adding :ref:`application logging` and :ref:`application debugging`.
 
@@ -93,7 +93,7 @@ unit tests
 unit tests need at least V 2.0 of OpenGL and the kivy framework installed.
 
 .. note::
-    unit tests does have 100 % coverage but are currently not passing the gitlab CI tests because we failing in setup
+    unit tests does have 100 % coverage but are currently not passing the gitlab CI tests because were failing in set up
     a proper running window system on the python image that all ae portions are using.
 """
 import os
@@ -148,7 +148,7 @@ from ae.kivy_help import (                                                      
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.3.105'
+__version__ = '0.3.106'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -181,7 +181,7 @@ class ImageLabel(ReliefCanvas, Label, ShadersMixin):
 
     .. note::
         hide-able label needs extra handling, because even setting width/height to zero the text can still be visible,
-        especially in dark mode and even with having the text color.alpha==0. to fully hide the texture in all cases,
+        especially in dark mode and even with having the text-color-alpha==0. to fully hide the texture in all cases,
         set either the text to an empty string or the opacity to zero.
     """
 
@@ -371,9 +371,9 @@ class FlowButton(HelpBehavior, TouchableBehavior, ButtonBehavior, ImageLabel):  
 
 class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, ReliefCanvas,
                    DropDown):  # pragma: no cover
-    """ drop down widget used for user selections from a list of items (represented by the children-widgets). """
+    """ dropdown widget used for user selections from a list of items (represented by the children-widgets). """
     close_kwargs = DictProperty()               #: kwargs passed to all close action flow change event handlers
-    parent_popup_to_close = ObjectProperty()    #: parent popup widget instance to be closed if this drop down closes
+    parent_popup_to_close = ObjectProperty()    #: parent popup widget instance to be closed if this dropdown closes
 
     def dismiss(self, *args):
         """ override DropDown method to prevent dismiss of any dropdown/popup while clicking on activator widget.
@@ -385,7 +385,7 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
             super().dismiss(*args)
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
-        """ prevent the processing of a touch on the help activator widget by this drop down.
+        """ prevent the processing of a touch on the help activator widget by this dropdown.
 
         :param touch:           motion/touch event data.
         :return:                True if event got processed/used.
@@ -463,12 +463,14 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
    to implement a dark background for the dark theme we would need also to change the images in the properties:
     background_active, background_disabled_normal and self.background_normal.
 
-    also the images/colors of the bubble that is showing e.g. on long press of the TextInput widget (cut/copy/paste/...)
+    the images/colors of the bubble that is showing e.g. on long press of the TextInput widget (cut/copy/paste/...)
     kept unchanged - only the font_size get adapted and the bubble button texts get translated. for that the class
     :class:`ExtTextInputCutCopyPaste` provided by this portion inherits from the original bubble class
-    :class:`~kivy.uix.textinput.TextInputCutCopyPaste`. additionally the original bubble class gets monkey patched
-    shortly/temporarily in the moment of the instantiation to translate the bubble menu options, change the font
-    sizes and add additional menu options to memorize/forget auto-completion texts.
+    :class:`~kivy.uix.textinput.TextInputCutCopyPaste`.
+
+    the original bubble class is getting monkey patched shortly/temporarily in the moment of the instantiation to
+    translate the bubble menu options, change the font sizes and add additional menu options to memorize/forget
+    auto-completion texts.
     """
     focus_flow_id = StringProperty()        #: flow id that will be set when this widget get focus
     unfocus_flow_id = StringProperty()      #: flow id that will be set when this widget lost focus
@@ -479,7 +481,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
 
     _ac_dropdown: Any = None                #: singleton FlowDropDown instance for all TextInput instances
     _matching_ac_texts: List[str] = []      #: one list instance for all TextInput instances is enough
-    _matching_ac_index: int = 0             #: index of selected text in the drop down matching texts list
+    _matching_ac_index: int = 0             #: index of selected text in the dropdown matching texts list
 
     def __init__(self, **kwargs):
         # changed to kivy properties so no need to pop them from kwargs:
@@ -619,7 +621,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
 class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout):                   # pragma: no cover
     """ popup for dynamic and auto-content-sizing dialogs and other top-most or modal windows.
 
-    the scrollable :attr:`container` (a :class:`~kivy.uix.scrollview.ScrollView` instance) can only have one children,
+    the scrollable :attr:`container` (a :class:`~kivy.uix.scrollview.ScrollView` instance) can only have one child,
     the content. use a layout as content to display multiple widgets. set :attr:`content_optimal_width` and/or
     :attr:`content_optimal_height` to make the popup size as small as possible, using e.g. `minimum_width` respectively
     `minimum_height` if the content is a layout that is providing and updating this property, or
@@ -647,7 +649,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
         `on_pre_dismiss`:
             fired before the FlowPopup is closed.
         `on_dismiss`:
-            fired when the FlowPopup is closed. if the callback returns True, the dismiss will be canceled.
+            fired when the FlowPopup is closed. if the callback returns True, the popup will stay opened.
 
     """
 
@@ -1082,7 +1084,7 @@ class _GetTextBinder(Observable):
         :param language:        language code to translate the passed text to (def=current default language).
         :param loc_vars:        local variables used in the conversion of the f-string expression to a string.
                                 the `count` item of this dict will be overwritten by the value of the
-                                :paramref:`~_GetTextBinder.__call__.count` parameter (if this argument got passed).
+                                :paramref:`~_GetTextBinder.__call__.count` parameter (if this argument got specified).
         :param kwargs:          extra kwargs (e.g. :paramref:`~ae.i18n.get_f_string.glo_vars` or
                                 :paramref:`~ae.i18n.get_f_string.key_suffix` - see :func:`~ae.i18n.get_f_string`).
         :return:                translated text.
@@ -1095,7 +1097,7 @@ class _GetTextBinder(Observable):
 
 
 get_txt = _GetTextBinder()              #: instantiate global i18n translation callable and language switcher helper
-get_txt.__qualname__ = 'GetTextBinder'  # hide sphinx build warning (build crashes if get_txt get documented)
+get_txt.__qualname__ = 'GetTextBinder'  # hide sphinx build warning (build crashes if the get_txt var get documented)
 global_idmap['_'] = get_txt             # bind as function/callable with the name `_` to be used in kv files
 
 
@@ -1244,12 +1246,12 @@ class KivyMainApp(HelpAppBase):
             activator.ani_start()
 
     def load_sounds(self):
-        """ override to pre-load audio sounds from app folder snd into sound file cache. """
+        """ override to preload audio sounds from app folder snd into sound file cache. """
         super().load_sounds()  # load from sound file paths all files into :class:`~ae.files.RegisteredFile` instances
         self.sound_files.reclassify(object_loader=lambda f: SoundLoader.load(f.path))  # :class:`~ae.files.CachedFile`
 
     def on_app_build(self):
-        """ kivy App build event handler called at the begin of :meth:`kivy.app.App.build`. """
+        """ kivy App build event handler called at the beginning of :meth:`kivy.app.App.build`. """
         super().on_app_build()
         self.vpo("KivyMainApp.on_app_build - reload image resources from kv file late imports, e.g. ae.kivy_user_prefs")
         self.load_images()
@@ -1366,7 +1368,7 @@ class KivyMainApp(HelpAppBase):
         """ play vibrate pattern. """
         self.vpo(f"KivyMainApp.play_vibrate {pattern}")
         if self.framework_app.app_states.get('vibration_volume', 1.):  # no volume available, at least disable if 0.0
-            try:  # added because is crashing with current plyer version (master should work)
+            try:  # added because it's crashing with current plyer version (master should work)
                 vibrator.pattern(pattern)
             # except jnius.jnius.JavaException as ex:
             #    self.po(f"KivyMainApp.play_vibrate JavaException {ex}, update plyer to git/master")
@@ -1392,8 +1394,8 @@ class KivyMainApp(HelpAppBase):
         :param popup_class:     class of the Popup or DropDown widget.
         :param popup_kwargs:    args to be set as attributes of the popup class instance plus an optional
                                 `parent` kwarg that will be passed as the popup parent widget arg
-                                to the popup.open method; if parent does not get passed then the root widget/layout
-                                of self.framework_app will passed into the popup.open method as the widget argument.
+                                to the popup.open() method; if parent gets not specified then the root widget/layout
+                                of self.framework_app will be passed into popup.open() as the widget argument.
         :return:                created and displayed/opened popup class instance.
         """
         self.dpo(f"KivyMainApp.open_popup {popup_class} {popup_kwargs}")
