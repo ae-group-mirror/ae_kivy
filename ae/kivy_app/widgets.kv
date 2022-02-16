@@ -28,7 +28,7 @@
     cursor_size: app.button_height, app.button_height
     padding: min(app.app_states['font_size'] * 2.4, sp(18))
     value_track: True
-    value_track_color: app.font_color[:3] + (0.39, )
+    value_track_color: app.font_color[:3] + [0.39]
     canvas.before:
         Color:
             rgba: Window.clearcolor
@@ -82,7 +82,7 @@
             size: self.size
         StencilUse
         Color:
-            rgba: app.main_app.flow_id_ink[:3] + (1.0 - self._touch_anim, )
+            rgba: app.main_app.flow_id_ink[:3] + [1.0 - self._touch_anim]
         Ellipse:
             pos:
                 round(self._touch_x - self.width * self._touch_anim / 2.01), \
@@ -220,7 +220,7 @@
             always_overscroll: False        # workaround to kivy scrollview bug (viewport kept at bottom)
             bar_width: sp(9)
             bar_color: app.font_color
-            bar_inactive_color: app.font_color[:3] + (0.69, )
+            bar_inactive_color: app.font_color[:3] + [0.69]
             optimal_width: root.optimal_content_width
             size_hint_x:
                 container.optimal_width / (container.optimal_width + query_box.optimal_width) \
