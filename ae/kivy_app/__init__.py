@@ -138,7 +138,7 @@ from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                           
 from ae.gui_app import (                                                                    # type: ignore
     APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
-    ensure_tap_kwargs_refs, replace_flow_action)
+    ColorOrInk, ensure_tap_kwargs_refs, replace_flow_action)
 from ae.gui_help import HelpAppBase                                                         # type: ignore
 from ae.kivy_glsl import ShaderIdType, ShadersMixin                                         # type: ignore
 from ae.kivy_auto_width import ContainerChildrenAutoWidthBehavior                           # type: ignore
@@ -148,7 +148,7 @@ from ae.kivy_help import (                                                      
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.3.106'
+__version__ = '0.3.107'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -476,7 +476,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
     unfocus_flow_id = StringProperty()      #: flow id that will be set when this widget lost focus
 
     auto_complete_texts: List[str] = ListProperty()  #: list of autocompletion texts
-    auto_complete_selector_index_ink: Tuple[float, float, float, float] = ListProperty((0.69, 0.69, 0.69, 1))
+    auto_complete_selector_index_ink: ColorOrInk = ListProperty([0.69, 0.69, 0.69, 1])
     """ color and alpha used to highlight the currently selected text of all matching autocompletion texts """
 
     _ac_dropdown: Any = None                #: singleton FlowDropDown instance for all TextInput instances
@@ -486,7 +486,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
     def __init__(self, **kwargs):
         # changed to kivy properties so no need to pop them from kwargs:
         # self.auto_complete_texts = kwargs.pop('auto_complete_texts', [])
-        # self.auto_complete_selector_index_ink = kwargs.pop('auto_complete_selector_index_ink', (0.69, 0.69, 0.69, 1))
+        # self.auto_complete_selector_index_ink = kwargs.pop('auto_complete_selector_index_ink', [0.69, 0.69, 0.69, 1.])
 
         super().__init__(**kwargs)
 
@@ -752,7 +752,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
 
         clr_ink = Window.clearcolor
         self.background_color = clr_ink
-        self.overlay_color = tuple(clr_ink[:3]) + (.6, )
+        self.overlay_color = clr_ink[:3] + [0.6]
         self.relief_square_outer_colors = relief_colors(app.font_color)
         self.relief_square_outer_lines = sp(9)
         self.separator_color = app.font_color
@@ -878,7 +878,7 @@ class FrameworkApp(App):
     landscape = BooleanProperty()                       #: True if app win width is bigger than the app win height
     max_font_size = NumericProperty(MAX_FONT_SIZE)      #: maximum font size in pixels bound to window size
     min_font_size = NumericProperty(MIN_FONT_SIZE)      #: minimum - " -
-    mixed_back_ink = ListProperty((.69, .69, .69, 1.))  #: background color mixed from available back inks
+    mixed_back_ink = ListProperty([.69, .69, .69, 1.])  #: background color mixed from available back inks
     tour_layout = ObjectProperty(allownone=True)        #: overlay layout widget if tour is active else None
 
     def __init__(self, main_app: 'KivyMainApp', **kwargs):
