@@ -2,6 +2,7 @@
 import os
 import pytest
 import shutil
+from conftest import skip_gitlab_ci
 from unittest.mock import MagicMock, patch
 
 from kivy.base import stopTouchApp
@@ -125,7 +126,7 @@ class KivyAppTest(KivyMainApp):
         return True
 
 
-# some basic constant tests (running also on github ci image, because pytest returns exit code 5 if all tests skip)
+# some basic constant tests (running also on gitlab ci image, because pytest returns exit code 5 if all tests skip)
 def test_vibrate_pattern_types():
     assert isinstance(LOVE_VIBRATE_PATTERN, tuple)
     assert isinstance(ERROR_VIBRATE_PATTERN, tuple)
@@ -138,10 +139,6 @@ def test_kv_default_file_name():
 
 def test_main_app_class_abstracts():
     assert hasattr(MainAppBase, 'init_app')
-
-
-SKIP_EXPRESSION = "'CI_PROJECT_ID' in os.environ"
-skip_gitlab_ci = pytest.mark.skipif(SKIP_EXPRESSION, reason="headless gitlab CI python 3.6 image lacks window system")
 
 
 @skip_gitlab_ci
@@ -214,7 +211,10 @@ class TestAppState:
 
     def test_set_font_size(self, ini_file, restore_app_env):
         app = KivyAppTest(additional_cfg_files=(ini_file,))
-        assert app.font_size == MIN_FONT_SIZE
+        assert app.font_size == MainAppBase.font_size
+
+        assert MIN_FONT_SIZE <= app.font_size <= MAX_FONT_SIZE
+
         assert not app.on_font_size_called
 
         font_size = MAX_FONT_SIZE
@@ -671,7 +671,7 @@ class TestEvents:
         assert popup.test_attr is True
 
         # noinspection PyTypeChecker
-        app.open_popup(TestPopUp, parent=popup, test_attr=True)
+        app.open_popup(TestPopUp, opener=popup, test_attr=True)
         assert passed_pa == popup
 
     def test_open_popup_like_android(self, restore_app_env):
@@ -698,7 +698,7 @@ class TestEvents:
             assert popup.test_attr is True
 
             # noinspection PyTypeChecker
-            app.open_popup(TestPopUp, parent=popup, test_attr=True)
+            app.open_popup(TestPopUp, opener=popup, test_attr=True)
             assert passed_pa == popup
 
     def test_retrieve_app_states(self, restore_app_env):

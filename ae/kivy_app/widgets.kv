@@ -22,7 +22,6 @@
     help_id: id_of_state_help(self.app_state_name)
     help_vars: dict(app_state_name=self.app_state_name, state_value=self.value, self=self)
     value: app.app_states.get(self.app_state_name, (self.min + self.max) / 2) if self.app_state_name else self.value
-    on_value: app.main_app.change_app_state(self.app_state_name, args[1])
     size_hint_y: None
     height: app.button_height
     cursor_size: app.button_height, app.button_height
@@ -108,7 +107,6 @@
     help_id: id_of_flow_help(self.tap_flow_id)
     help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
     icon_name: ""
-    on_release: app.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
     source:
         app.main_app.img_file(self.icon_name or flow_key_split(self.tap_flow_id)[0], \
         app.app_states['font_size'], app.app_states['light_theme'])
@@ -126,7 +124,6 @@
     help_id: id_of_flow_help(self.tap_flow_id)
     help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
     icon_name: ""
-    on_release: app.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
     source:
         app.main_app.img_file(self.icon_name or flow_key_split(self.tap_flow_id)[0], \
         app.app_states['font_size'], app.app_states['light_theme'])
@@ -135,7 +132,6 @@
 <FlowDropDown>
     close_kwargs:
         dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
-    on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
     auto_width: False
     # width determined by ContainerChildrenAutoWidthBehavior, so no need for: width: min(Window.width - sp(96), sp(960))
     canvas.before:
@@ -162,12 +158,18 @@
     height: min(title_bar.height + root.separator_height + (body_box.optimal_height or 189), self._max_height)
     close_kwargs:
         dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
-    on_dismiss: app.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
     canvas:
         Color:
             rgba: root.overlay_color[:3] + [root.overlay_color[-1] * self._anim_alpha]
         Rectangle:
-            size: self._window.size if self._window else (0, 0)
+            size:
+                Window.width if self.is_modal else 0, \
+                Window.height - app.main_app.help_activator.height if self.is_modal else 0
+        Rectangle:
+            pos: app.main_app.help_activator.right, app.main_app.help_activator.y
+            size:
+                Window.width - app.main_app.help_activator.width if self.is_modal else 0, \
+                app.main_app.help_activator.height
         Color:
             rgba: root.background_color
         Rectangle:

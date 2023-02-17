@@ -1,12 +1,12 @@
-<!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project ae.ae V0.3.87 -->
-<!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.tpl_namespace_root V0.3.9 -->
-# kivy_app 0.3.107
+<!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project ae.ae V0.3.90 -->
+<!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.tpl_namespace_root V0.3.12 -->
+# kivy_app 0.3.108
 
 [![GitLab develop](https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy_app/develop?logo=python)](
     https://gitlab.com/ae-group/ae_kivy_app)
 [![LatestPyPIrelease](
-    https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy_app/release0.3.106?logo=python)](
-    https://gitlab.com/ae-group/ae_kivy_app/-/tree/release0.3.106)
+    https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy_app/release0.3.107?logo=python)](
+    https://gitlab.com/ae-group/ae_kivy_app/-/tree/release0.3.107)
 [![PyPIVersions](https://img.shields.io/pypi/v/ae_kivy_app)](
     https://pypi.org/project/ae-kivy-app/#history)
 
@@ -71,5 +71,5 @@ https://gitlab.com/ae-group/ae_kivy_app/-/blob/develop/CONTRIBUTING.rst)
 
 information on the features and usage of this portion are available at
 [ReadTheDocs](
-https://ae.readthedocs.io/en/latest/_autosummary/ae.kivy_app.html#module-ae.kivy_app
+https://ae.readthedocs.io/en/latest/_autosummary/ae.kivy_app.html
 "ae_kivy_app documentation").

@@ -36,14 +36,16 @@ to be available for your app:
 
 * :class:`AppStateSlider`: :class:`~kivy.uix.slider.Slider` changing the value of :ref:`app-state-variables`.
 * :class:`FlowButton`: button to change the application flow.
-* :class:`FlowDropDown`: attachable popup, based on :class:`~kivy.uix.dropdown.DropDown`.
+* :class:`FlowDropDown`: attachable menu-like popup, based on :class:`~kivy.uix.dropdown.DropDown`.
 * :class:`FlowInput`: dynamic kivy widget based on :class:`~kivy.uix.textinput.TextInput` with application flow support.
 * :class:`FlowPopup`: dynamic auto-content-sizing popup to query user input or to show messages.
+* :class:`FlowSelector`: attachable popup used for dynamic elliptic auto-spreading menus and toolbars.
 * :class:`FlowToggler`: toggle button based on :class:`ImageLabel` and :class:`~kivy.uix.behaviors.ToggleButtonBehavior`
   to change the application flow or any flag or application state.
 * :class:`ImageLabel`: dynamic kivy widget extending the Kivy :class:`~kivy.uix.label.Label` widget with an image.
 * :class:`MessageShowPopup`: simple message box widget based on :class:`FlowPopup`.
 * :class:`OptionalButton`: dynamic kivy widget based on :class:`FlowButton` which can be dynamically hidden.
+* :class:`ShortenedButton`: dynamic kivy widget based on :class:`FlowButton` shortening the button text.
 * :class:`TouchableBehavior`: extends toggle-/touch-behavior of :class:`~kivy.uix.behaviors.ButtonBehavior`.
 * :class:`UserNameEditorPopup`: popup window used e.g. to enter new user, finally registered in the app config files.
 
@@ -134,21 +136,20 @@ from ae.paths import app_docs_path                                              
 from ae.i18n import default_language, get_f_string                                          # type: ignore
 from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                                       # type: ignore
 
-# id_of_flow not used here - added for easier import in app project
 from ae.gui_app import (                                                                    # type: ignore
     APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE,
     THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR, THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR,
-    ColorOrInk, ensure_tap_kwargs_refs, replace_flow_action)
+    ColorOrInk, ensure_tap_kwargs_refs, id_of_flow, replace_flow_action, update_tap_kwargs)
 from ae.gui_help import HelpAppBase                                                         # type: ignore
 from ae.kivy_glsl import ShaderIdType, ShadersMixin                                         # type: ignore
 from ae.kivy_auto_width import ContainerChildrenAutoWidthBehavior                           # type: ignore
 from ae.kivy_dyn_chi import DynamicChildrenBehavior                                         # type: ignore
 from ae.kivy_help import (                                                                  # type: ignore
-    ANI_SINE_DEEPER_REPEAT3, HelpBehavior, HelpToggler, ModalBehavior, Tooltip, TourOverlay)
+    ANI_SINE_DEEPER_REPEAT3, HelpBehavior, HelpToggler, ModalBehavior, SlideSelectBehavior, Tooltip, TourOverlay)
 from ae.kivy_relief_canvas import relief_colors, ReliefCanvas                               # type: ignore
 
 
-__version__ = '0.3.107'
+__version__ = '0.3.108'
 
 
 MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file
@@ -171,12 +172,23 @@ TOUCH_VIBRATE_PATTERN = (0.0, 0.09, 0.09, 0.06, 0.03, 0.03)
 Builder.load_file(os.path.join(os.path.dirname(__file__), "widgets.kv"))
 
 
-class AppStateSlider(HelpBehavior, Slider, ShadersMixin):
+class AppStateSlider(HelpBehavior, ShadersMixin, Slider):                                           # pragma: no cover
     """ slider widget with help text to change app state value. """
     app_state_name = StringProperty()  #: name of the app state to be changed by this slider value
 
+    def __str__(self):
+        """ added for easier debugging. """
+        return f"{self.__class__.__name__}({hex(id(self))} sta={self.app_state_name} val={self.value})"
 
-class ImageLabel(ReliefCanvas, Label, ShadersMixin):
+    def on_value(self, *args):
+        """ value changed event handler.
+
+        :param args:            tuple of instance and new value.
+        """
+        App.get_running_app().main_app.change_app_state(self.app_state_name, args[1])
+
+
+class ImageLabel(ReliefCanvas, ShadersMixin, Label):                                                # pragma: no cover
     """ base label used for all labels and buttons - declared in widgets.kv and also in this module to inherit from.
 
     .. note::
@@ -184,27 +196,31 @@ class ImageLabel(ReliefCanvas, Label, ShadersMixin):
         especially in dark mode and even with having the text-color-alpha==0. to fully hide the texture in all cases,
         set either the text to an empty string or the opacity to zero.
     """
+    def __repr__(self):
+        """ added for easier debugging of :class:`FlowButton` and :class:`FlowToggler` widgets. """
+        flo = f" flo={self.tap_flow_id}" if hasattr(self, 'tap_flow_id') else ""
+        return f"{self.__class__.__name__}({hex(id(self))}{flo} txt={self.text})"
 
 
-class TouchableBehavior:  # pragma: no cover
+class TouchableBehavior:                                                                        # pragma: no cover
     """ touch-/toggle-button mix-in class with shaders, animations and additional events for double/triple/long touches.
 
     :Events:
         `on_double_tap`:
-            fired with the touch down MotionEvent instance arg when a button get tapped twice within short time.
+            fired with the touch-down MotionEvent instance arg when a button get tapped twice within short time.
         `on_triple_tap`:
-            fired with the touch down MotionEvent instance arg when a button get tapped three times within short time.
+            fired with the touch-down MotionEvent instance arg when a button get tapped three times within short time.
         `on_long_tap`:
-            fired with the touch down MotionEvent instance arg when a button get tapped more than 2.4 seconds.
+            fired with the touch-down MotionEvent instance arg when a button get tapped more than 2.4 seconds.
         `on_alt_tap`:
-            fired with the touch down MotionEvent instance arg when a button get either double, triple or long tapped.
+            fired with the touch-down MotionEvent instance arg when a button get either double, triple or long tapped.
 
     .. note::
         has to be inherited (to be in the MRO) before :class:`~kivy.uix.behaviors.ButtonBehavior`, respectively
         :class:`~kivy.uix.behaviors.ToggleButtonBehavior`, for the touch event get grabbed properly.
     """
-    # abstracts of mixing-in class; e.g. from :class:`~kivy.widget.Widget`, :class:`~ae.kivy_glsl.ShadersMixin`
-    # and :class:`~kivy.uix.behaviors.ButtonBehavior`
+    # abstracts of mixing-in class; e.g. from :class:`~kivy.widget.Widget`, :class:`~ae.kivy_glsl.ShadersMixin`,
+    # :class:`~ae.kivy_help.SlideSelectBehavior`, and :class:`~kivy.uix.behaviors.ButtonBehavior`
     add_shader: Callable
     center_x: float
     center_y: float
@@ -212,30 +228,44 @@ class TouchableBehavior:  # pragma: no cover
     del_shader: Callable
     disabled: bool
     dispatch: Callable
+    main_app: Any               # has to be initialized externally, e.g. by :class:`~ae.kivy_help.SlideSelectBehavior`
     state: str
 
     # Kivy properties and events
-    down_shader = DictProperty()        #: shader running if button is in pressed state `'down'`
-    normal_shader = DictProperty()      #: shader running if button is in pressed state `'normal'`
+    down_shader = DictProperty(allownone=True)
+    """ shader running if button is in pressed state `'down'`.
+
+    :attr:`down_shader` is a :class:`~kivy.properties.DictProperty` and defaults to the :data:`firestorm shader
+    <ae.kivy_glsl.FIRE_STORM_SHADER_CODE>`. set to `None` to not render the default shader on button press/down.
+    """
+
+    normal_shader = DictProperty(allownone=True)
+    """ shader running if button is in pressed state `'normal'`.
+
+    :attr:`normal_shader` is a :class:`~kivy.properties.DictProperty` and defaults to the :data:`plunge wave shader
+    <ae.kivy_glsl.PLUNGE_WAVES_SHADER_CODE>`. set to `None` to not render a shader on button release/up.
+    """
 
     _touch_anim = NumericProperty(1.0)  #: widget-got-touched-animation
-    _touch_x = NumericProperty()        #: x pos moving from touch to center pos
-    _touch_y = NumericProperty()        #: y pos moving from touch to center pos
+    _touch_x = NumericProperty()        #: x pos moving in touch animation from initial touch to center pos
+    _touch_y = NumericProperty()        #: y pos moving in touch animation from initial touch to center pos
 
     __events__ = ('on_alt_tap', 'on_double_tap', 'on_long_tap', 'on_triple_tap')
 
     def __init__(self, **kwargs):
         """ set normal pressed state shader on widget initialization. """
+        self._state_shader_id: ShaderIdType = {}
+
         # noinspection PyUnresolvedReferences
         super().__init__(**kwargs)      # pylint: disable=no-member
 
-        self._app = App.get_running_app()
-        self._state_shader_id: ShaderIdType = {}
-        self.down_shader = dict(shader_code='=fire_storm', render_shape=Ellipse,
-                                tint_ink=self._app.main_app.flow_path_ink)
-        self.normal_shader = dict(shader_code='=plunge_waves', render_shape=Ellipse, add_to='before',
-                                  alpha=0.36, contrast=0.09, tex_col_mix=0.87,  time=lambda: -Clock.get_boottime(),
-                                  tint_ink=self._app.main_app.flow_id_ink)
+        if self.down_shader is not None:
+            self.down_shader = dict(shader_code='=fire_storm', render_shape=Ellipse,
+                                    tint_ink=self.main_app.flow_path_ink)
+        if self.normal_shader is not None:
+            self.normal_shader = dict(shader_code='=plunge_waves', render_shape=Ellipse, add_to='before',
+                                      alpha=0.36, contrast=0.09, tex_col_mix=0.87,  time=lambda: -Clock.get_boottime(),
+                                      tint_ink=self.main_app.flow_id_ink)
 
     @staticmethod
     def _cancel_long_touch_clock(touch: MotionEvent) -> bool:
@@ -268,13 +298,14 @@ class TouchableBehavior:  # pragma: no cover
         # remove 'long_touch_handler' key from touch.ud dict although just fired to signalize that
         # the long tap event got handled in self.on_touch_up (to return True)
         self._cancel_long_touch_clock(touch)
+        touch.ud['is_long_tap'] = True
 
         # reset button state to normal - if state is still down (to replace down_shader with normal_shader)
         if self.state == 'down':
             self.state = 'normal'
 
         # to prevent dismiss via super().on_touch_up: exclusive receive of this touch up event in self.on_touch_up
-        touch.grab(self, exclusive=True)
+        # touch.grab(self, exclusive=True) #- commented because is already grabbed/exclusive prevents slide_select-menus
 
         # also dispatch as alternative tap
         self.dispatch('on_alt_tap', touch)  # pylint: disable=no-member
@@ -311,9 +342,9 @@ class TouchableBehavior:  # pragma: no cover
             # pylint: disable=maybe-no-member
             touch.ud['long_touch_handler'] = long_touch_handler = lambda dt: self.dispatch('on_long_tap', touch)
             Clock.schedule_once(long_touch_handler, 0.99)
-            main_app = self._app.main_app
-            main_app.play_vibrate(TOUCH_VIBRATE_PATTERN)
-            main_app.play_sound('touched')
+            self.main_app.play_vibrate(TOUCH_VIBRATE_PATTERN)
+            self.main_app.play_sound('touched')
+
         # noinspection PyUnresolvedReferences
         return super().on_touch_down(touch)  # type: ignore # pylint: disable=no-member; does touch.grab(self)
 
@@ -323,10 +354,11 @@ class TouchableBehavior:  # pragma: no cover
         :param touch:           motion/touch event data.
         :return:                True if event got processed/used.
         """
-        # alternative method to calculate touch.pos distances is (from tripletap.py):
+        # cancel long touch detection if moved, alternative method to calc touch.pos distances is (from tripletap.py):
         # Vector.distance(Vector(ref.sx, ref.sy), Vector(touch.osx, touch.osy)) > 0.009
-        if abs(touch.ox - touch.x) > 9 and abs(touch.oy - touch.y) > 9 and self.collide_point(touch.x, touch.y):
+        if abs(touch.ox - touch.x) > 9 and abs(touch.oy - touch.y) > 9:
             self._cancel_long_touch_clock(touch)
+
         # noinspection PyUnresolvedReferences
         return super().on_touch_move(touch)     # type: ignore # pylint: disable=no-member
 
@@ -336,9 +368,12 @@ class TouchableBehavior:  # pragma: no cover
         :param touch:           motion/touch event data.
         :return:                True if event got processed/used.
         """
-        if touch.grab_current is self and not self._cancel_long_touch_clock(touch):
+        if touch.grab_current is self:
             touch.ungrab(self)
-            return True                     # prevent popup/dropdown dismiss
+            # cancel long touch clock (if still running respectively if not on_long_tap)
+            if not self._cancel_long_touch_clock(touch):
+                return True                     # prevent popup/dropdown dismiss
+
         # noinspection PyUnresolvedReferences
         return super().on_touch_up(touch)   # type: ignore # pylint: disable=no-member; does touch.ungrab(self)
 
@@ -359,30 +394,87 @@ class TouchableBehavior:  # pragma: no cover
             self._state_shader_id = self.add_shader(**add_shader_kwargs)
 
 
-class FlowButton(HelpBehavior, TouchableBehavior, ButtonBehavior, ImageLabel):  # pragma: no cover
+class FlowButton(HelpBehavior, SlideSelectBehavior, TouchableBehavior, ButtonBehavior, ImageLabel):  # pragma: no cover
     """ button to change the application flow. """
-    tap_flow_id = StringProperty()  #: the new flow id that will be set when this button get tapped
-    tap_kwargs = ObjectProperty()   #: kwargs dict passed to event handler (change_flow) when button get tapped
+    long_tap_flow_id = StringProperty()     #: flow id that will be set when this button gets long tap event
+    tap_flow_id = StringProperty()          #: the new flow id that will be set when this button get tapped
+    tap_kwargs = ObjectProperty()           #: kwargs dict passed to event handler (change_flow) when button get tapped
 
     def __init__(self, **kwargs):
         ensure_tap_kwargs_refs(kwargs, self)
         super().__init__(**kwargs)
 
+    def on_long_tap(self, touch: MotionEvent):
+        """ long tap/click default handler.
 
-class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, ReliefCanvas,
+        :param touch:           motion/touch event data with the touched widget in `touch.grab_current`.
+        """
+        super().on_long_tap(touch)
+        if flow_id := self.long_tap_flow_id:
+            self.main_app.change_flow(flow_id, **update_tap_kwargs(self, popup_kwargs=dict(touch_event=touch)))
+
+    def on_release(self):
+        """ overridable touch release event handler. """
+        self.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
+
+
+class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, SlideSelectBehavior, ReliefCanvas,
                    DropDown):  # pragma: no cover
-    """ dropdown widget used for user selections from a list of items (represented by the children-widgets). """
+    """ flow based widget class to implement dynamic menu-like user selections and toolbars. """
     close_kwargs = DictProperty()               #: kwargs passed to all close action flow change event handlers
+    content = ObjectProperty()                  #: layout container
+    menu_items = ObjectProperty()               #: container/content children, like buttons, text inputs or sliders
     parent_popup_to_close = ObjectProperty()    #: parent popup widget instance to be closed if this dropdown closes
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.fw_app = App.get_running_app()
+
+    def __repr__(self):
+        """ added for easier debugging. """
+        return f"{self.__class__.__name__}({hex(id(self))} close={self.close_kwargs} {self.parent_popup_to_close})"
+
+    def _real_dismiss(self, *_args):
+        """ overridden to ensure that return value of on_dismiss-dispatch get recognized. """
+        if self.dispatch('on_dismiss'):
+            return      # dismiss/close cancelled
+        if self.parent:
+            self.parent.remove_widget(self)
+        if self.attach_to:
+            self.attach_to.unbind(pos=self._reposition, size=self._reposition)
+            self.attach_to = None
+        self._layout_finished = True
 
     def dismiss(self, *args):
         """ override DropDown method to prevent dismiss of any dropdown/popup while clicking on activator widget.
 
         :param args:            args to be passed to DropDown.dismiss().
         """
-        app = App.get_running_app()
-        if app.help_layout is None or not isinstance(app.help_layout.targeted_widget, HelpToggler):
-            super().dismiss(*args)
+        if self.attach_to:
+            help_layout = self.fw_app.help_layout
+            if help_layout is None or not isinstance(help_layout.targeted_widget, HelpToggler):
+                self._layout_finished = False
+                super().dismiss(*args)
+
+    close = dismiss
+
+    def on_container(self, instance: Widget, value: Widget):
+        """ sync :attr:`content` widget and :attr:`menu_items` list with container widget.
+
+        :param instance:        self.
+        :param value:           new/changed :attr:`~kivy.uix.dropdown.DropDown.container` widget.
+        """
+        super().on_container(instance, value)
+        self.content = value     # value==self.container
+        self.menu_items = self.content.children
+
+    def on_dismiss(self) -> Optional[bool]:
+        """ default dismiss/close default event handler.
+
+        :return:                True to prevent/cancel the dismiss/close.
+        """
+        return not self.attach_to \
+            or not self.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
         """ prevent the processing of a touch on the help activator widget by this dropdown.
@@ -390,7 +482,7 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
         :param touch:           motion/touch event data.
         :return:                True if event got processed/used.
         """
-        if App.get_running_app().main_app.help_activator.collide_point(*touch.pos):
+        if self.main_app.help_activator.collide_point(*touch.pos):
             return False  # allow help activator button to process this touch down event
         return super().on_touch_down(touch)
 
@@ -446,7 +538,7 @@ class ExtTextInputCutCopyPaste(OriTextInputCutCopyPaste):  # pragma: no cover
         self.size = width, height   # pylint: disable=attribute-defined-outside-init # false positive
 
 
-class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
+class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
     """ text input/edit widget with optional autocompletion.
 
     until version 0.1.43 of this portion the background and text color of :class:`FlowInput` did automatically
@@ -488,12 +580,17 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
         # self.auto_complete_texts = kwargs.pop('auto_complete_texts', [])
         # self.auto_complete_selector_index_ink = kwargs.pop('auto_complete_selector_index_ink', [0.69, 0.69, 0.69, 1.])
 
-        super().__init__(**kwargs)
-
         self.main_app = App.get_running_app().main_app
+
+        super().__init__(**kwargs)
 
         if not FlowInput._ac_dropdown:
             FlowInput._ac_dropdown = FlowDropDown()  # widget instances cannot be created in class var declaration
+
+    def __repr__(self):
+        """ added for easier debugging. """
+        return f"{self.__class__.__name__}({hex(id(self))} {self.focus_flow_id} {self.unfocus_flow_id}" \
+               f" txt={self.text})"
 
     def _change_selector_index(self, delta: int):
         """ change/update/set the index of the matching texts in the opened autocompletion dropdown.
@@ -503,7 +600,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
         """
         cnt = len(self._matching_ac_texts)
         if cnt:
-            chi = list(reversed(self._ac_dropdown.container.children))
+            chi = self._ac_dropdown.container.children[::-1]
             idx = self._matching_ac_index
             chi[idx].square_fill_ink = Window.clearcolor
             self._matching_ac_index = (idx + delta + cnt) % cnt
@@ -577,6 +674,7 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
         :param focus:           True if this text input got focus, False on unfocus.
         """
         flow_id = self.focus_flow_id if focus else self.unfocus_flow_id
+        self.main_app.vpo(f"{self}.on_focus {focus} -> {flow_id}")
         if flow_id:
             self.main_app.change_flow(flow_id)
 
@@ -618,20 +716,22 @@ class FlowInput(HelpBehavior, TextInput, ShadersMixin):  # pragma: no cover
         kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste  # reset here too if already instantiated
 
 
-class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout):                   # pragma: no cover
-    """ popup for dynamic and auto-content-sizing dialogs and other top-most or modal windows.
+class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, ReliefCanvas,
+                BoxLayout):  # pragma: no cover
+    """ popup for dynamic and auto-sizing dialogs and other top-most or modal windows.
 
     the scrollable :attr:`container` (a :class:`~kivy.uix.scrollview.ScrollView` instance) can only have one child,
-    the content. use a layout as content to display multiple widgets. set :attr:`content_optimal_width` and/or
-    :attr:`content_optimal_height` to make the popup size as small as possible, using e.g. `minimum_width` respectively
-    `minimum_height` if the content is a layout that is providing and updating this property, or
-    :meth:`~KivyMainApp.text_size_guess` if the content is a label or button widget.
+    referenced by the :attr:`content` attribute, which can be any widget (e.g. a label). use a layout for
+    :attr:`content` to display multiple widgets. set :attr:`optimal_content_width` and/or
+    :attr:`optimal_content_height` to make the popup size as small as possible, using e.g. `minimum_width`
+    respectively `minimum_height` if :attr:`content` is a layout that is providing and updating this property, or
+    :meth:`~KivyMainApp.text_size_guess` if it is a label or button widget.
 
     .. hint::
-        :attr:`~kivy.uix.label.Label.texture_size` could provide a more accurate content size than
+        :attr:`~kivy.uix.label.Label.texture_size` could provide a more accurate size than
         :meth:`~KivyMainApp.text_size_guess`, but should be used with care to prevent recursive property change loops.
 
-    this class is compatible to :class:`~kivy.uix.popup.Popup` and can be used as replacement, unsupported are only
+    this class is very simular to :class:`~kivy.uix.popup.Popup` and can be used as replacement, incompatible are
     the following attributes of :class:`~kivy.uix.popup.Popup` and :class:`~kivy.uix.modalview.ModalView`:
 
     * :attr:`~kivy.uix.modalview.ModalView.background`: FlowPopup has no :class:`BorderImage`.
@@ -669,24 +769,31 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
     """
 
     container = ObjectProperty()
-    """ popup scrollable layout underneath the title bar and content container (parent widget of :attr:`content`).
+    """ popup scrollable layout underneath the title bar and the parent of the :attr:`content` container.
 
     :attr:`container` is an :class:`~kivy.properties.ObjectProperty` and is read-only.
     """
 
     content = ObjectProperty()
-    """ popup main content, displayed in the scrollable layout :attr:`container`.
+    """ popup main content container, displayed as a child of the scrollable layout :attr:`container`.
 
     :attr:`content` is an :class:`~kivy.properties.ObjectProperty` and has to be specified either in the kv language
     as children or via the `content` kwarg.
     """
 
+    menu_items = ObjectProperty()
+    """ sequence of the content widgets and close button.
+
+    :attr:`menu_items` is an :class:`~kivy.properties.ObjectProperty` and includes by default the content widgets
+    as well as the close button of this popup.
+    """
+
     optimal_content_width = NumericProperty()
     """ width of the content to be fully displayed/visible.
 
-    :attr:`optimal_content_width` is a :class:`~kivy.properties.NumericProperty`. if `0` or `None` or not explicitly set
-    then it defaults to the main window width and - in landscape orientation - minus the :attr:`side_spacing` and the
-    width needed by the :attr:`query_data_maps` widgets.
+    :attr:`optimal_content_width` is a :class:`~kivy.properties.NumericProperty`. if `0` or `None` or not explicitly
+    set then it defaults to the main window width and - in landscape orientation - minus the :attr:`side_spacing` and
+    the width needed by the :attr:`query_data_maps` widgets.
     """
 
     optimal_content_height = NumericProperty()
@@ -730,7 +837,8 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
     """
 
     side_spacing = NumericProperty('192sp')
-    """
+    """ padding in pixels from Window.width in landscape-orientation, and from Window.height in portrait-orientation.
+
     :attr:`side_spacing` is a :class:`~kivy.properties.NumericProperty` and defaults to 192sp.
     """
 
@@ -749,18 +857,24 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
 
     def __init__(self, **kwargs):
         self.fw_app = app = App.get_running_app()
-
         clr_ink = Window.clearcolor
         self.background_color = clr_ink
         self.overlay_color = clr_ink[:3] + [0.6]
         self.relief_square_outer_colors = relief_colors(app.font_color)
+        # noinspection PyTypeChecker
         self.relief_square_outer_lines = sp(9)
         self.separator_color = app.font_color
 
         super().__init__(**kwargs)
 
+    def __repr__(self):
+        """ added for easier debugging. """
+        return f"{self.__class__.__name__}({hex(id(self))} close={self.close_kwargs} {self.parent_popup_to_close})"
+
     def add_widget(self, widget: Widget, index: int = 0, canvas: Optional[str] = None):
-        """ add container and content widgets (first call set container from kv rule, 2nd the content, 3rd raise error).
+        """ add container and content widgets.
+
+        first call set container from kv rule, 2nd the content, 3rd raise error.
 
         :param widget:          widget instance to be added.
         :param index:           index kwarg of :meth:`kivy.uix.widget.Widget`.
@@ -769,11 +883,12 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
         if self.container:      # None until FlowPopup kv rule in widgets.kv is fully built (before user kv rule build)
             if self.content:
                 raise ValueError("FlowPopup has already a children, set via this method, kv or the content property")
-            self.fw_app.main_app.vpo(f"FlowPopup: add content widget {widget} to container", index, canvas)
+            self.main_app.vpo(f"FlowPopup: add content widget {widget} to container", index, canvas)
             self.container.add_widget(widget, index=index)  # ScrollView.add_widget does not have canvas parameter
             self.content = widget
+            self.menu_items = widget.children + [self.ids.title_bar]
         else:
-            self.fw_app.main_app.vpo(f"FlowPopup: add container {widget} from internal kv rule", index, canvas)
+            self.main_app.vpo(f"FlowPopup: add container {widget} from internal kv rule", index, canvas)
             super().add_widget(widget, index=index, canvas=canvas)
 
     def close(self, *_args, **kwargs):
@@ -784,39 +899,46 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
         :param _args:           arguments (to have compatible signature for DropDown/Popup/ModalView widgets).
         :param kwargs:          keyword arguments (compatible signature for DropDown/Popup/ModalView widgets).
         """
-        if self._window is None:
+        if not self.is_modal:
             return
 
-        app = self.fw_app
-        if app.help_layout is not None and isinstance(app.help_layout.targeted_widget, HelpToggler):
+        help_layout = self.fw_app.help_layout
+        if help_layout and isinstance(help_layout.targeted_widget, HelpToggler):
             return
 
         self.dispatch('on_pre_dismiss')                                                     # pylint: disable=no-member
 
-        if self.dispatch('on_dismiss') is True and kwargs.get('force', False) is not True:  # pylint: disable=no-member
-            return
-
-        if kwargs.get('animation', True):
-            Animation(_anim_alpha=0.0, d=self._anim_duration).start(self)
-        else:
-            self._anim_alpha = 0.0
-            self.deactivate_modal()
+        if not self.dispatch('on_dismiss') or kwargs.get('force', False):                   # pylint: disable=no-member
+            if kwargs.get('animation', True):
+                self._layout_finished = False
+                Animation(_anim_alpha=0.0, d=self._anim_duration).start(self)
+            else:
+                self._anim_alpha = 0.0
+                self.deactivate_esc_key_close()
+                self.deactivate_modal()
 
     dismiss = close     #: alias method of :meth:`~FlowPopup.close`
 
     def on__anim_alpha(self, _instance: Widget, value: float):
         """ _anim_alpha changed event handler. """
-        if value == 0.0 and self._window is not None:
+        if value == 0.0 and self.is_modal:
+            self.deactivate_esc_key_close()
             self.deactivate_modal()
+            self._layout_finished = True
 
     def on_content(self, _instance: Widget, value: Widget):
         """ optional single widget (to be added to the container layout) set directly or via FlowPopup kwargs. """
-        self.fw_app.main_app.vpo(f"FlowPopup.on_content adding content {value} to container {self.container}")
+        self.main_app.vpo(f"FlowPopup.on_content adding content {value} to container {self.container}")
         self.container.clear_widgets()
         self.container.add_widget(value)
 
     def on_dismiss(self) -> Optional[bool]:
-        """ dismiss/close event handler. """
+        """ default dismiss/close event handler.
+
+        :return:                return True to prevent/cancel the dismiss/close.
+        """
+        return not self.is_modal \
+            or not self.main_app.change_flow(id_of_flow('close', 'flow_popup'), **self.close_kwargs)
 
     def on_open(self):
         """ open default event handler. """
@@ -846,6 +968,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
         self.center = Window.center
 
         self.dispatch('on_pre_open')                                            # pylint: disable=no-member
+        self.activate_esc_key_close()
         self.activate_modal()
         if kwargs.get('animation', True):
             ani = Animation(_anim_alpha=1.0, d=self._anim_duration)
@@ -856,15 +979,30 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, ReliefCanvas, BoxLayout)
             self.dispatch('on_open')                                            # pylint: disable=no-member
 
 
-class FlowToggler(HelpBehavior, TouchableBehavior, ToggleButtonBehavior, ImageLabel):  # pragma: no cover
+class FlowToggler(HelpBehavior, SlideSelectBehavior, TouchableBehavior, ToggleButtonBehavior,
+                  ImageLabel):                                                                      # pragma: no cover
     """ toggle button changing flow id. """
-    tap_flow_id = StringProperty()  #: the new flow id that will be set when this toggle button get released
-    tap_kwargs = DictProperty()     #: kwargs dict passed to event handler (change_flow) when button get tapped
+    long_tap_flow_id = StringProperty()     #: flow id that will be set when this button gets long tap event
+    tap_flow_id = StringProperty()          #: the new flow id that will be set when this toggle button get released
+    tap_kwargs = DictProperty()             #: kwargs dict passed to event handler (change_flow) when button get tapped
 
     def __init__(self, **kwargs):
         ensure_tap_kwargs_refs(kwargs, self)
         super().__init__(**kwargs)
         self.down_shader = dict(add_to='before', shader_code='=circled_alpha', render_shape=Ellipse)
+
+    def on_long_tap(self, touch: MotionEvent):
+        """ long tap/click default handler.
+
+        :param touch:           motion/touch event data with the touched widget in `touch.grab_current`.
+        """
+        super().on_long_tap(touch)
+        if flow_id := self.long_tap_flow_id:
+            self.main_app.change_flow(flow_id, **update_tap_kwargs(self, popup_kwargs=dict(touch_event=touch)))
+
+    def on_release(self):
+        """ overridable touch release event handler. """
+        self.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
 
 
 class FrameworkApp(App):
@@ -888,7 +1026,7 @@ class FrameworkApp(App):
         self.main_app = main_app                            #: set reference to KivyMainApp instance
 
         self.title = main_app.app_title                     #: set kivy.app.App.title
-        self.icon = os.path.join("img", "app_icon.png")     #: set kivy.app.App.icon
+        self.icon = os.path.join("img", "app_icon.jpg")     #: set kivy.app.App.icon
         self.use_kivy_settings = main_app.debug             #: set kivy.app.App.use_kivy_settings
 
     def build(self) -> Widget:
@@ -1194,21 +1332,24 @@ class KivyMainApp(HelpAppBase):
         return dp(1.0)
 
     def ensure_top_most_z_index(self, widget: Widget):
-        """ ensure visibility of the passed widget to be the top most in the z index/order.
+        """ ensure visibility of the passed widget to be the foremost in the z index/order.
 
-        :param widget:          widget to check and possibly correct to be the top most one.
+        :param widget:          widget to check and possibly correct to be the foremost one.
 
         if other dropdown/popup opened after the passed widget/layout, then only correct z index/order to show this
-        widget/layout in front (as top-most widget). if the passed widget has a method named `activate_modal` (like e.g.
-        :meth:`ae.kivy_help.ModalBehavior.activate_modal`) then its `activate_modal` method will be called instead.
+        widget/layout as popup (in front, as foremost widget). if the passed widget has a method named `activate_modal`
+        (like e.g. :meth:`ae.kivy_help.ModalBehavior.activate_modal`) then its `activate_modal` method will be called.
         """
-        if self.framework_win.children[0] != widget:
-            reactivate_modal = getattr(widget, 'activate_modal', None)
-            if callable(reactivate_modal):
-                reactivate_modal()
-            else:
-                self.framework_win.remove_widget(widget)
-                self.framework_win.add_widget(widget)
+        popups_parent = self.framework_win
+        if widget not in popups_parent.children or popups_parent.children[0] == widget:
+            return
+
+        reactivate_modal = getattr(widget, 'activate_modal', None)
+        if callable(reactivate_modal):
+            reactivate_modal()
+        else:
+            popups_parent.remove_widget(widget)
+            popups_parent.add_widget(widget)
 
     def global_variables(self, **patches) -> Dict[str, Any]:
         """ overridden to add Kivy-specific globals. """
@@ -1375,35 +1516,21 @@ class KivyMainApp(HelpAppBase):
             except Exception as ex:
                 self.po(f"KivyMainApp.play_vibrate exception {ex}")
 
-    def popups_opened(self, classes: Tuple[Widget, ...] = ()) -> List[Widget]:
-        """ determine all popup-like container widgets that are currently opened.
-
-        :param classes:         optional class filter - if not passed then only the widgets underneath win/root with an
-                                `open` method will be yielded. pass tuple to restrict found popup widgets to certain
-                                classes. like e.g. by passing `(Popup, DropDown, FlowPopup)` to get all popups of an
-                                ae/Kivy app.
-        :return:                list of opened/visible popup class instances that are children of either the
-                                root layout or the app window, ordered by their z-coordinate (most upfront widget last).
-                                overwritten because the children z-order is reversed in Kivy (topmost widget first).
-        """
-        return list(reversed(super().popups_opened(classes=classes)))
-
     def open_popup(self, popup_class: Type[Union[FlowPopup, Popup, DropDown]], **popup_kwargs) -> Widget:
         """ open Popup or DropDown using the `open` method. overwriting the main app class method.
 
         :param popup_class:     class of the Popup or DropDown widget.
         :param popup_kwargs:    args to be set as attributes of the popup class instance plus an optional
-                                `parent` kwarg that will be passed as the popup parent widget arg
-                                to the popup.open() method; if parent gets not specified then the root widget/layout
-                                of self.framework_app will be passed into popup.open() as the widget argument.
+                                `opener` kwarg that will pass the popup opener widget to the popup.open() method; if
+                                `opener` gets not specified then the framework window will be used.
         :return:                created and displayed/opened popup class instance.
         """
         self.dpo(f"KivyMainApp.open_popup {popup_class} {popup_kwargs}")
 
-        # framework_win has absolute screen coordinates and lacks x, y properties, therefore use app.root as def parent
-        parent = popup_kwargs.pop('parent', self.framework_root)
+        # framework_win has absolute screen coordinates and lacks x, y properties, therefore use app.root as def opener
+        opener = popup_kwargs.pop('opener', self.framework_win)
         popup_instance = popup_class(**popup_kwargs)
-        popup_instance.open(parent)
+        popup_instance.open(opener)
 
         return popup_instance
 
@@ -1433,15 +1560,6 @@ class KivyMainApp(HelpAppBase):
             lines_height += line_height
 
         return max_width + (padding[0] if text else 0.0), lines_height + (padding[1] if text else 0.0)
-
-    def widget_children(self, wid: Any, only_visible: bool = False) -> List:
-        """ determine the children of widget or its container (if exists) in z-order (top-most last).
-
-        :param wid:             widget to determine the children from.
-        :param only_visible:    pass True to only return visible widgets.
-        :return:                list of children widgets of the passed widget.
-        """
-        return list(reversed(super().widget_children(wid, only_visible=only_visible)))
 
     @staticmethod
     def widget_pos(wid) -> Tuple[float, float]:
