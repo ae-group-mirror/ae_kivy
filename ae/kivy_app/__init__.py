@@ -1500,8 +1500,8 @@ class KivyMainApp(HelpAppBase):
                 sound_obj.volume = (
                     file.properties.get('volume', 1.0) * self.framework_app.app_states.get('sound_volume', 1.))
                 sound_obj.play()
-            except Exception as ex:                                         # pragma: no-cover
-                self.po(f"KivyMainApp.play_sound exception {ex}")           # pragma: no-cover
+            except Exception as ex:                                         # pragma: no cover
+                self.po(f"KivyMainApp.play_sound exception {ex}")
         else:
             self.dpo(f"KivyMainApp.play_sound({sound_name}) not found")
 
