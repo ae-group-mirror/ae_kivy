@@ -1,7 +1,8 @@
-""" test ae.kivy_app portion. """
+""" test ae.kivy.app portion. """
 import os
 import pytest
 import shutil
+
 from conftest import skip_gitlab_ci
 from unittest.mock import MagicMock, patch
 
@@ -17,9 +18,21 @@ from ae.i18n import default_language
 from ae.gui_app import (
     APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE, flow_key, id_of_flow, replace_flow_action,
     MainAppBase)
-from ae.kivy_app import (
-    MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN, get_txt,
-    KivyMainApp, FrameworkApp)
+
+from ae.kivy.i18n import get_txt
+from ae.kivy.widgets import (
+    MAIN_KV_FILE_NAME, LOVE_VIBRATE_PATTERN, ERROR_VIBRATE_PATTERN, CRITICAL_VIBRATE_PATTERN,
+    AbsolutePosSizeBinder, Tooltip, HelpToggler)
+from ae.kivy.tours import TourOverlay
+from ae.kivy.apps import KivyMainApp, FrameworkApp
+
+
+def test_widget_declaration():
+    """ we need at least one test to prevent pytest exit code 5 (no tests collected) """
+    assert AbsolutePosSizeBinder
+    assert Tooltip
+    assert HelpToggler
+    assert TourOverlay
 
 
 TST_VAR = 'win_rectangle'
@@ -690,7 +703,7 @@ class TestEvents:
                 called = True
                 passed_pa = parent
 
-        with patch('ae.kivy_app.os_platform', return_value='android'):
+        with patch('ae.kivy.apps.os_platform', return_value='android'):
             # noinspection PyTypeChecker
             popup = app.open_popup(TestPopUp, test_attr=True)
             assert called

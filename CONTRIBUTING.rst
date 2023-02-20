@@ -52,7 +52,7 @@ using the git repository manager `grm`
    in your console change the working directory to your project's parent folder. then run the following command with
    the <new_feature_or_fix> part replaced by an appropriate branch name, describing shortly your contribution::
 
-      grm fork ae-group/ae_kivy_app
+      grm fork ae-group/ae_kivy
 
    .. note::
       the fork action of ``grm`` will also add the forked repository as the remote ``upstream`` to your local
@@ -96,13 +96,13 @@ using `git` and `Gitlab`
 alternatively to the ``grm`` tool you could directly use the `git command suite <https://git-scm.com/docs>`__ and the
 `Gitlab website <https://gitlab.com>`__ to achieve the same (with a lot more of typing and fiddling ;-):
 
-1. fork the `upstream repository <https://gitlab.com/ae-group/ae_kivy_app>`__ into your user account.
+1. fork the `upstream repository <https://gitlab.com/ae-group/ae_kivy>`__ into your user account.
 
 2. clone your forked repo as ``origin`` remote to your computer, and add an ``upstream`` remote for the destination
    repo by running the following commands in the console of your local machine::
 
-      git clone https://gitlab.com/<YourGitLabUserName>/ae_kivy_app.git
-      git remote add upstream https://gitlab.com/ae-group/ae_kivy_app.git
+      git clone https://gitlab.com/<YourGitLabUserName>/ae_kivy.git
+      git remote add upstream https://gitlab.com/ae-group/ae_kivy.git
 
 3. checkout out a new local feature branch and update it to the latest version of the ``develop`` branch::
 
