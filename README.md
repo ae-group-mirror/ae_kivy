@@ -1,57 +1,57 @@
 <!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project ae.ae V0.3.90 -->
 <!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.tpl_namespace_root V0.3.12 -->
-# kivy_app 0.3.108
+# kivy 0.3.109
 
-[![GitLab develop](https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy_app/develop?logo=python)](
-    https://gitlab.com/ae-group/ae_kivy_app)
+[![GitLab develop](https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy/develop?logo=python)](
+    https://gitlab.com/ae-group/ae_kivy)
 [![LatestPyPIrelease](
-    https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy_app/release0.3.107?logo=python)](
-    https://gitlab.com/ae-group/ae_kivy_app/-/tree/release0.3.107)
-[![PyPIVersions](https://img.shields.io/pypi/v/ae_kivy_app)](
-    https://pypi.org/project/ae-kivy-app/#history)
+    https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy/release?logo=python)](
+    https://gitlab.com/ae-group/ae_kivy/-/tree/release)
+[![PyPIVersions](https://img.shields.io/pypi/v/ae_kivy)](
+    https://pypi.org/project/ae-kivy/#history)
 
->ae namespace package portion kivy_app: main application classes and widgets for GUIApp-conform Kivy apps.
+>ae namespace package portion kivy: core application classes and widgets for GUIApp-conform Kivy apps.
 
-[![Coverage](https://ae-group.gitlab.io/ae_kivy_app/coverage.svg)](
-    https://ae-group.gitlab.io/ae_kivy_app/coverage/index.html)
-[![MyPyPrecision](https://ae-group.gitlab.io/ae_kivy_app/mypy.svg)](
-    https://ae-group.gitlab.io/ae_kivy_app/lineprecision.txt)
-[![PyLintScore](https://ae-group.gitlab.io/ae_kivy_app/pylint.svg)](
-    https://ae-group.gitlab.io/ae_kivy_app/pylint.log)
+[![Coverage](https://ae-group.gitlab.io/ae_kivy/coverage.svg)](
+    https://ae-group.gitlab.io/ae_kivy/coverage/index.html)
+[![MyPyPrecision](https://ae-group.gitlab.io/ae_kivy/mypy.svg)](
+    https://ae-group.gitlab.io/ae_kivy/lineprecision.txt)
+[![PyLintScore](https://ae-group.gitlab.io/ae_kivy/pylint.svg)](
+    https://ae-group.gitlab.io/ae_kivy/pylint.log)
 
-[![PyPIImplementation](https://img.shields.io/pypi/implementation/ae_kivy_app)](
-    https://gitlab.com/ae-group/ae_kivy_app/)
-[![PyPIPyVersions](https://img.shields.io/pypi/pyversions/ae_kivy_app)](
-    https://gitlab.com/ae-group/ae_kivy_app/)
-[![PyPIWheel](https://img.shields.io/pypi/wheel/ae_kivy_app)](
-    https://gitlab.com/ae-group/ae_kivy_app/)
-[![PyPIFormat](https://img.shields.io/pypi/format/ae_kivy_app)](
-    https://pypi.org/project/ae-kivy-app/)
-[![PyPILicense](https://img.shields.io/pypi/l/ae_kivy_app)](
-    https://gitlab.com/ae-group/ae_kivy_app/-/blob/develop/LICENSE.md)
-[![PyPIStatus](https://img.shields.io/pypi/status/ae_kivy_app)](
-    https://libraries.io/pypi/ae-kivy-app)
-[![PyPIDownloads](https://img.shields.io/pypi/dm/ae_kivy_app)](
-    https://pypi.org/project/ae-kivy-app/#files)
+[![PyPIImplementation](https://img.shields.io/pypi/implementation/ae_kivy)](
+    https://gitlab.com/ae-group/ae_kivy/)
+[![PyPIPyVersions](https://img.shields.io/pypi/pyversions/ae_kivy)](
+    https://gitlab.com/ae-group/ae_kivy/)
+[![PyPIWheel](https://img.shields.io/pypi/wheel/ae_kivy)](
+    https://gitlab.com/ae-group/ae_kivy/)
+[![PyPIFormat](https://img.shields.io/pypi/format/ae_kivy)](
+    https://pypi.org/project/ae-kivy/)
+[![PyPILicense](https://img.shields.io/pypi/l/ae_kivy)](
+    https://gitlab.com/ae-group/ae_kivy/-/blob/develop/LICENSE.md)
+[![PyPIStatus](https://img.shields.io/pypi/status/ae_kivy)](
+    https://libraries.io/pypi/ae-kivy)
+[![PyPIDownloads](https://img.shields.io/pypi/dm/ae_kivy)](
+    https://pypi.org/project/ae-kivy/#files)
 
 
 ## installation
 
 
 execute the following command to install the
-ae.kivy_app package
+ae.kivy package
 in the currently active virtual environment:
  
 ```shell script
-pip install ae-kivy-app
+pip install ae-kivy
 ```
 
 if you want to contribute to this portion then first fork
-[the ae_kivy_app repository at GitLab](
-https://gitlab.com/ae-group/ae_kivy_app "ae.kivy_app code repository").
+[the ae_kivy repository at GitLab](
+https://gitlab.com/ae-group/ae_kivy "ae.kivy code repository").
 after that pull it to your machine and finally execute the
 following command in the root folder of this repository
-(ae_kivy_app):
+(ae_kivy):
 
 ```shell script
 pip install -e .[dev]
@@ -64,12 +64,12 @@ respectively.
 
 more detailed explanations on how to contribute to this project
 [are available here](
-https://gitlab.com/ae-group/ae_kivy_app/-/blob/develop/CONTRIBUTING.rst)
+https://gitlab.com/ae-group/ae_kivy/-/blob/develop/CONTRIBUTING.rst)
 
 
 ## namespace portion documentation
 
 information on the features and usage of this portion are available at
 [ReadTheDocs](
-https://ae.readthedocs.io/en/latest/_autosummary/ae.kivy_app.html
-"ae_kivy_app documentation").
+https://ae.readthedocs.io/en/latest/_autosummary/ae.kivy.html
+"ae_kivy documentation").
