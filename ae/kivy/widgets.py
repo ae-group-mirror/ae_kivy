@@ -1,4 +1,63 @@
-""" widgets module """
+"""
+ae.kivy.widgets module
+----------------------
+
+the widgets provided by this module are based on the kivy widgets and are respecting the :ref:`app-state-variables`
+specifying the desired app style (dark or light) and font size. most of them also change automatically the
+:ref:`application flow`.
+
+by importing this module the following generic widgets will be registered in the kivy widget class factory maps,
+to be available for your app:
+
+* :class:`~ae.kivy.widgets.AppStateSlider`: extended version of :class:`~kivy.uix.slider.Slider`, changing the value of
+  :ref:`app-state-variables`.
+* :class:`~ae.kivy.widgets.FlowButton`: button to change the application flow.
+* :class:`~ae.kivy.widgets.FlowDropDown`: attachable menu-like popup, based on :class:`~kivy.uix.dropdown.DropDown`.
+* :class:`~ae.kivy.widgets.FlowInput`: dynamic kivy widget based on :class:`~kivy.uix.textinput.TextInput` with
+  application flow support.
+* :class:`~ae.kivy.widgets.FlowPopup`: dynamic auto-content-sizing popup to query user input or to show messages.
+* :class:`~ae.kivy.widgets.FlowSelector`: attachable popup used for dynamic elliptic auto-spreading menus and toolbars.
+* :class:`~ae.kivy.widgets.FlowToggler`: toggle button based on :class:`~ae.kivy.widgets.ImageLabel` and
+  :class:`~kivy.uix.behaviors.ToggleButtonBehavior` to change the application flow or any flag or application state.
+* :class:`~ae.kivy.widgets.HelpToggler` is a toggle button widget that switches the app's help and tour mode on and off.
+* :class:`~ae.kivy.widgets.ImageLabel`: dynamic kivy widget extending the Kivy :class:`~kivy.uix.label.Label` widget
+  with an image.
+* :class:`~ae.kivy.widgets.MessageShowPopup`: simple message box widget based on :class:`~ae.kivy.widgets.FlowPopup`.
+* :class:`~ae.kivy.widgets.OptionalButton`: dynamic kivy widget based on :class:`~ae.kivy.widgets.FlowButton`
+  which can be dynamically hidden.
+* :class:`~ae.kivy.widgets.ShortenedButton`: dynamic kivy widget based on :class:`~ae.kivy.widgets.FlowButton`
+  shortening the button text.
+* :class:`~ae.kivy.widgets.Tooltip` displays text blocks that are automatically positioned next to any
+  widget to providing e.g. i18n context help texts or app tour/onboarding info.
+* :class:`~ae.kivy.widgets.UserNameEditorPopup`: popup window used e.g. to enter new user, finally registered in the
+  app config files.
+
+
+tooltip popup to display context-sensitive help and app tour texts
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+the tooltip popup widget class :class:`~ae.kivy.widgets.Tooltip` allows you to target any widget by pointing with an
+arrow to it. the position and size of this widget gets automatically calculated from the targeted widget position and
+size and the tooltip text size. and if the screen/window size is not big enough then the tooltip texts get scrollable.
+
+.. hint::
+    use cases of the class :class:`~ae.kivy.widgets.Tooltip` are e.g. the help texts prepared and displayed by the
+    method :meth:`~ae.gui_help.HelpAppBase.help_display` as well as the "explaining widget" tooltips in an app tour.
+
+
+help activation and de-activation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+use the widget class :class:`~ae.kivy.widgets.HelpToggler` provided by this module to toggle
+the active state of the help mode.
+
+.. hint::
+    the :class:`~ae.kivy.widgets.HelpToggler` class is using the low-level touch events to prevent the dispatch of the
+    Kivy events `on_press`, `on_release` and `on_dismiss`, to allow to show help texts for opened dropdowns and popups,
+    without closing/dismissing them.
+
+to attach help texts to your widget instances add the behavior class :class:`~ae.kivy.behaviors.HelpBehavior`.
+"""
 import os
 
 from math import atan, cos, pi, sin, tau
@@ -51,7 +110,7 @@ ANI_SINE_DEEPER_REPEAT3 = \
     Animation(ani_value=0.99, t='in_out_sine', d=0.9) + Animation(ani_value=0.87, t='in_out_sine', d=1.2) + \
     Animation(ani_value=0.96, t='in_out_sine', d=1.5) + Animation(ani_value=0.75, t='in_out_sine', d=1.2) + \
     Animation(ani_value=0.90, t='in_out_sine', d=0.9) + Animation(ani_value=0.45, t='in_out_sine', d=0.6)
-""" sine 3 x deeper repeating animation, used e.g. to animate help layout (ae.kivy_help.Tooltip) """
+""" sine 3 x deeper repeating animation, used e.g. to animate help layout (see :class:`Tooltip` widget) """
 ANI_SINE_DEEPER_REPEAT3.repeat = True
 
 CRITICAL_VIBRATE_PATTERN = (0.00, 0.12, 0.12, 0.12, 0.12, 0.12,
@@ -310,7 +369,7 @@ class FlowButton(HelpBehavior, SlideSelectBehavior, TouchableBehavior, ButtonBeh
         """
         super().on_long_tap(touch)
         if flow_id := self.long_tap_flow_id:
-            self.main_app.change_flow(flow_id, **update_tap_kwargs(self, popup_kwargs=dict(touch_event=touch)))
+            self.main_app.change_flow(flow_id, **update_tap_kwargs(self, popup_kwargs={'touch_event': touch}))
 
     def on_release(self):
         """ overridable touch release event handler. """
@@ -402,7 +461,7 @@ class ExtTextInputCutCopyPaste(OriTextInputCutCopyPaste):  # pragma: no cover
         endless recursion because else the other super(cls, instance) call (in python2 style within
         :meth:`TextInputCutCopyPaste.__init__`) results in the same instance (instead of the overwritten instance).
         """
-        kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste
+        kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste     # pylint: disable=no-member
         self.fw_app = App.get_running_app()
         super().__init__(**kwargs)
 
@@ -545,7 +604,7 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
             if key_name in ('enter', 'right') and len(self._matching_ac_texts) > self._matching_ac_index:
                 # suggestion_text will be removed in Kivy 2.1.0 - see PR #7437
                 # self.suggestion_text = ""
-                self.text = self._matching_ac_texts[self._matching_ac_index]
+                self.text = self._matching_ac_texts[self._matching_ac_index]    # pylint: disable=W0201
                 self._ac_dropdown.close()
                 return True
 
@@ -593,7 +652,7 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
         if matching:
             cdm = []
             for txt in matching:
-                cdm.append(dict(cls='FlowButton', kwargs=dict(text=txt, on_release=self._select_ac_text)))
+                cdm.append({'cls': 'FlowButton', 'kwargs': {'text': txt, 'on_release': self._select_ac_text}})
             self._ac_dropdown.child_data_maps[:] = cdm
             if not self._ac_dropdown.attach_to:
                 self.main_app.change_flow(replace_flow_action(self.focus_flow_id, 'suggest'))
@@ -606,13 +665,14 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
 
     def _select_ac_text(self, selector: Widget):
         """ put selected autocompletion text into text input and close _ac_dropdown """
-        self.text = selector.text
+        self.text = selector.text                                           # pylint: disable=W0201
         self._ac_dropdown.close()
 
     def _show_cut_copy_paste(self, *args, **kwargs):    # pylint: disable=signature-differs
-        kivy.uix.textinput.TextInputCutCopyPaste = ExtTextInputCutCopyPaste  # reset in ExtTextInputCutCopyPaste.__init_
+        # monkey-patch kivy's built-in cut/copy/paste popup, will be reset also in ExtTextInputCutCopyPaste.__init_
+        kivy.uix.textinput.TextInputCutCopyPaste = ExtTextInputCutCopyPaste     # pylint: disable=no-member
         super()._show_cut_copy_paste(*args, **kwargs)
-        kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste  # reset here too if already instantiated
+        kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste     # pylint: disable=no-member
 
 
 class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, ReliefCanvas,
@@ -628,7 +688,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
 
     .. hint::
         :attr:`~kivy.uix.label.Label.texture_size` could provide a more accurate size than
-        :meth:`~~ae.kivy.app.KivyMainApp.text_size_guess`, but should be used with care to prevent recursive
+        :meth:`~~ae.kivy.apps.KivyMainApp.text_size_guess`, but should be used with care to prevent recursive
         property change loops.
 
     this class is very simular to :class:`~kivy.uix.popup.Popup` and can be used as replacement, incompatible are
@@ -640,7 +700,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
         * :attr:`~kivy.uix.popup.Popup.title_color` is the `app.font_color`.
         * :attr:`~kivy.uix.popup.Popup.title_font` is the default font.
         * :attr:`~kivy.uix.popup.Popup.title_size` is the default button height
-          (:attr:`~ae.kivy.app.FrameworkApp.button_height`).
+          (:attr:`~ae.kivy.apps.FrameworkApp.button_height`).
 
     :Events:
         `on_pre_open`:
@@ -1341,7 +1401,7 @@ class FlowToggler(HelpBehavior, SlideSelectBehavior, TouchableBehavior, ToggleBu
     def __init__(self, **kwargs):
         ensure_tap_kwargs_refs(kwargs, self)
         super().__init__(**kwargs)
-        self.down_shader = dict(add_to='before', shader_code='=circled_alpha', render_shape=Ellipse)
+        self.down_shader = {'add_to': 'before', 'shader_code': '=circled_alpha', 'render_shape': Ellipse}
 
     def on_long_tap(self, touch: MotionEvent):
         """ long tap/click default handler.
@@ -1350,7 +1410,7 @@ class FlowToggler(HelpBehavior, SlideSelectBehavior, TouchableBehavior, ToggleBu
         """
         super().on_long_tap(touch)
         if flow_id := self.long_tap_flow_id:
-            self.main_app.change_flow(flow_id, **update_tap_kwargs(self, popup_kwargs=dict(touch_event=touch)))
+            self.main_app.change_flow(flow_id, **update_tap_kwargs(self, popup_kwargs={'touch_event': touch}))
 
     def on_release(self):
         """ overridable touch release event handler. """
@@ -1428,7 +1488,7 @@ class Tooltip(ScrollView):                                                      
 
     def on_size(self, *_args):
         """ (re-)position help_activator tooltip correctly after help text loading and layout resizing. """
-        self.pos = self._actual_pos()
+        self.pos = self._actual_pos()                               # pylint: disable=W0201
 
     def on_targeted_widget(self, *_args):
         """ targeted widget changed event handler.
@@ -1442,7 +1502,7 @@ class Tooltip(ScrollView):                                                      
         twb.size_to_attribute(self, 'pos', self._actual_pos)    # ensure position update on wid.size and .pos changes
         twb.pos_to_attribute(self, 'pos', self._actual_pos)
 
-        self.pos = self._actual_pos()                           # initial reposition of tooltip window
+        self.pos = self._actual_pos()  # pylint: disable=W0201  # initial reposition of tooltip window
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
         """ check for additional events added by this class.

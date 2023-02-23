@@ -1,4 +1,79 @@
-""" behaviors module """
+"""
+ae.kivy.behaviors module
+------------------------
+
+this module provides the following behavior classes:
+
+    * :class:`~ae.kivy.behaviors.HelpBehavior` extends and prepares any Kivy widget to show an
+      individual help text for it.
+    * :class:`~ae.kivy.behaviors.ModalBehavior` is a generic mix-in class that provides modal behavior to any container
+      widget.
+    * :class:`~ae.kivy.behaviors.SlideSelectBehavior`: quickly navigate in elliptically-shaped sub-/menus, alternatively
+      starting with a long touch, then slide to the menu item to select and release.
+    * :class:`~ae.kivy.behaviors.TouchableBehavior`: extends toggle-/touch-behavior of
+      :class:`~kivy.uix.behaviors.ButtonBehavior`.
+
+
+help behaviour mixin
+^^^^^^^^^^^^^^^^^^^^
+
+to show a i18n translatable help text for a Kivy widget create a subclass of the widget and add the mixin-/behavior-
+class :class:`~ae.kivy.behavior.HelpBehavior`. the following example is attaching a help text to the Kivy
+:class:`~kivy.uix.button.Button` widget::
+
+    from kivy.uix.button import Button
+    from ae.kivy.widgets import HelpBehavior
+
+    class ButtonWithHelpText(HelpBehavior, Button):
+        ...
+
+alternatively you can archive this via the definition of a new kv-lang rule, like shown underneath::
+
+    <ButtonWithHelpText@HelpBehavior+Button>
+
+.. note::
+    to automatically lock and mark the widget you want to add help texts for, this mixin class has to be specified
+    as the first inheriting class in the class or rule declaration.
+
+
+modal behavior mixin
+^^^^^^^^^^^^^^^^^^^^
+
+to convert a container widget into a modal dialog, add the :class:`~ae.kivy.behaviors.ModalBehavior` mix-in class,
+provided by this ae namespace portion.
+
+the following code snippet demonstrates a typical implementation::
+
+    class MyContainer(ModalBehavior, BoxLayout):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+
+        def open(self):
+            self.activate_esc_key_close()
+            self.activate_modal()
+
+        def close(self):
+            self.deactivate_esc_key_close()
+            self.deactivate_modal()
+
+
+calling the method :meth:`~ae.kivy.behaviors.ModalBehavior.activate_esc_key_close` in the `open` method of a container
+class allows the user to close the popup by pressing the Escape key (or Back on Android). this optional feature can
+be reverted by calling the :meth:`~ae.kivy.behaviors.ModalBehavior.deactivate_esc_key_close` method in your
+`close` method.
+
+to additionally activate the modal mode call the method :meth:`~ae.kivy.behaviors.ModalBehavior.activate_modal`.
+the modal mode can be deactivated by calling the :meth:`~ae.kivy.behaviors.ModalBehavior.deactivate_modal` method.
+
+all touch, mouse and keyboard user interactions will be consumed or filtered after activating the modal mode. therefore
+it is recommended to also visually change the GUI while in the modal mode, which has to be implemented by the mixing-in
+container widget.
+
+.. hint::
+    usage examples of the :class:`~ae.kivy.behaviors.ModalBehavior` mix-in are e.g. the classes
+    :class:`~ae.kivy.tours.TourOverlay` and :class:`~ae.kivy.widgets.FlowPopup`.
+
+"""
 from functools import partial
 from typing import Any, Callable, List, Optional, Union
 
@@ -28,8 +103,8 @@ class HelpBehavior:
 
     The correct identification of each help-aware widget presuppose that the attribute :attr:`~HelpBehavior.help_id` has
     a unique value for each widget instance. This is done automatically for the widgets provided by the module
-    :mod:`~ae.kivy_app` by converting the app flow or app state of these widgets into a help id (see e.g. the
-    implementation of the class :class:`~ae.kivy_app.FlowButton`).
+    :mod:`ae.kivy.widgets` by converting the app flow or app state of these widgets into a help id (see e.g. the
+    implementation of the class :class:`~ae.kivy.widgets.FlowButton`).
 
     :attr:`help_id` is a :class:`~kivy.properties.StringProperty` and defaults to an empty string.
     """
@@ -229,10 +304,11 @@ class SlideSelectBehavior:                                                      
     """ quickly navigate in sub-/menus, starting with a long touch, then slide to the menu item to select and release.
 
     the slide-select feature of this class allows a quicker select of any menu item, by opening any popup via the
-    :meth:`~ae.kivy_app.TouchableBehavior.on_long_tap` event, then move the pointer/finger onto the menu item to select
-    to finally release the touch. to enable this feature specify the touch event in the `touch_event` key of the
+    :meth:`~ae.kivy.behaviors.TouchableBehavior.on_long_tap` event, then move the pointer/finger onto the menu item to
+    select to finally release the touch. to enable this feature specify the touch event in the `touch_event` key of the
     `popup_kwargs` dict in the :meth:`~ae.gui_app.MainAppBase.change_flow` call, e.g. by adding the following lines in
-    your kv code onto the :class:`~ae.kivy_app.FlowButton`/:class:`~ae.kivy_app.FlowToggler` that is opening the popup::
+    your kv code onto the :class:`~ae.kivy.widgets.FlowButton`/:class:`~ae.kivy.widgets.FlowToggler` that is opening
+    the popup::
         on_long_tap:
             app.main_app.change_flow(id_of_flow('open', 'my_menu'),
             **update_tap_kwargs(self, popup_kwargs=dict(touch_event=args[1])))
@@ -283,13 +359,13 @@ class SlideSelectBehavior:                                                      
         sub_menu = Window.children[0]           # sub-menu just opened above via change_flow
         touch.grab(sub_menu)
         # allow to pass :meth:`ModalBehavior.on_touch_move` for slide_select
-        sub_menu._touch_started_inside = True
+        sub_menu._touch_started_inside = True   # pylint: disable=W0212
 
     @staticmethod
     def _ungrab_and_close(touch: MotionEvent, popup: Union[Widget, 'SlideSelectBehavior'], *_args):
         touch.ungrab(popup)
         # noinspection PyProtectedMember
-        Window.children[1]._opened_item = None
+        Window.children[1]._opened_item = None                  # pylint: disable=W0212
         popup.close()
 
     def on_touch_move(self, touch: MotionEvent) -> bool:
@@ -302,7 +378,7 @@ class SlideSelectBehavior:                                                      
         opener: Optional[Widget] = self.attach_to if is_dropdown else self
         in_opener = opener and opener.collide_point(*touch.pos)
         if opener and not in_opener:
-            opener._touch_moved_outside = True
+            opener._touch_moved_outside = True                  # pylint: disable=W0212
 
         # slide_select of menu-items/children of :class:`FlowDropDown`, :class:`FlowSelector` and :class:`FlowPopup`
         self._cancel_slide_select_closer(touch)
@@ -312,13 +388,13 @@ class SlideSelectBehavior:                                                      
             win_chi = Window.children[:2]
             foremost_popup = self is win_chi[0]
 
-            if foremost_popup and in_opener and opener._touch_moved_outside:    # type: ignore # false positive
+            if foremost_popup and in_opener and opener._touch_moved_outside:    # type: ignore # pylint: disable=W0212
                 touch.ud['slide_select_closer'] = slide_select_closer = partial(self._ungrab_and_close, touch, self)
                 Clock.schedule_once(slide_select_closer, 0.69)
 
             if self in win_chi:
                 wid_pos = self.to_widget(*touch.pos)
-                col_items = [item for item in mnu_items
+                col_items = [item for item in mnu_items                 # pylint: disable=E1133
                              if item != self._opened_item
                              and item.collide_point(*wid_pos)
                              and flow_action(getattr(item, 'tap_flow_id', "")) == 'open']
@@ -350,10 +426,10 @@ class SlideSelectBehavior:                                                      
         if touch.ud.pop('is_long_tap', False):
             items = getattr(self, 'menu_items', None)
             if items and self._layout_finished and self == Window.children[0]:
-                for item in items:
-                    if item.collide_point(*item.to_widget(*touch.pos)):      # slide_select touch released on menu item
+                for item in items:                                          # pylint: disable=E1133
+                    if item.collide_point(*item.to_widget(*touch.pos)):     # slide_select touch released on menu item
                         if hasattr(item, 'on_release'):
-                            if item not in touch.ud:    # prevent multiple dispatch of on_release
+                            if item not in touch.ud:                        # prevent multiple dispatch of on_release
                                 item.dispatch('on_release')
                                 return True
                         elif hasattr(item, 'focus'):
@@ -388,7 +464,7 @@ class TouchableBehavior:                                                        
         :class:`~kivy.uix.behaviors.ToggleButtonBehavior`, for the touch event get grabbed properly.
     """
     # abstracts of mixing-in class; e.g. from :class:`~kivy.widget.Widget`, :class:`~ae.kivy_glsl.ShadersMixin`,
-    # :class:`~ae.kivy_help.SlideSelectBehavior`, and :class:`~kivy.uix.behaviors.ButtonBehavior`
+    # :class:`~ae.kivy.behaviors.SlideSelectBehavior`, and :class:`~kivy.uix.behaviors.ButtonBehavior`
     add_shader: Callable
     center_x: float
     center_y: float
@@ -396,7 +472,7 @@ class TouchableBehavior:                                                        
     del_shader: Callable
     disabled: bool
     dispatch: Callable
-    main_app: Any               # has to be initialized externally, e.g. by :class:`~ae.kivy_help.SlideSelectBehavior`
+    main_app: Any           # has to be initialized externally, e.g. by :class:`~ae.kivy.behaviors.SlideSelectBehavior`
     state: str
 
     # Kivy properties and events
@@ -428,12 +504,12 @@ class TouchableBehavior:                                                        
         super().__init__(**kwargs)      # pylint: disable=no-member
 
         if self.down_shader is not None:
-            self.down_shader = dict(shader_code='=fire_storm', render_shape=Ellipse,
-                                    tint_ink=self.main_app.flow_path_ink)
+            self.down_shader = {'shader_code': '=fire_storm', 'render_shape': Ellipse,
+                                'tint_ink': self.main_app.flow_path_ink}
         if self.normal_shader is not None:
-            self.normal_shader = dict(shader_code='=plunge_waves', render_shape=Ellipse, add_to='before',
-                                      alpha=0.36, contrast=0.09, tex_col_mix=0.87,  time=lambda: -Clock.get_boottime(),
-                                      tint_ink=self.main_app.flow_id_ink)
+            self.normal_shader = {'shader_code': '=plunge_waves', 'render_shape': Ellipse, 'add_to': 'before',
+                                  'alpha': 0.36, 'contrast': 0.09, 'tex_col_mix': 0.87,
+                                  'time': lambda: -Clock.get_boottime(), 'tint_ink': self.main_app.flow_id_ink}
 
     @staticmethod
     def _cancel_long_touch_clock(touch: MotionEvent) -> bool:

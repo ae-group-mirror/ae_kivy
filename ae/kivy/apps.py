@@ -1,4 +1,64 @@
-""" app module """
+"""
+ae.kivy.apps module
+-------------------
+
+this module is providing two application classes, one of them extending :class:`the Kivy App class <kivy.app.App>`.
+the other app class is used as main app class, extending :class:`~ae.gui_help.HelpAppBase` with additional
+attributes and helper methods.
+
+
+application classes
+^^^^^^^^^^^^^^^^^^^
+
+the class :class:`~ae.kivy.apps.KivyMainApp` is implementing a main app class, reducing the amount of
+code needed to create a Python application based on the `kivy framework <https://kivy.org>`_.
+
+:class:`~ae.kivy.apps.KivyMainApp` is based on the following classes:
+
+    * the abstract base class :class:`~ae.gui_help.HelpAppBase` which adds context-sensitive help.
+    * the abstract base class :class:`~ae.gui_app.MainAppBase` which adds :ref:`application status`,
+      :ref:`app-state-variables`, :ref:`app-state-constants`, :ref:`application flow` and :ref:`application events`.
+    * :class:`~ae.console.ConsoleApp` is adding :ref:`config-files`, :ref:`config-variables` and :ref:`config-options`.
+    * :class:`~ae.core.AppBase` is adding :ref:`application logging` and :ref:`application debugging`.
+
+this namespace portion is also encapsulating the :class:`Kivy App class <kivy.app.App>` via the
+:class:`~ae.kivy.apps.FrameworkApp` class. this Kivy app class instance can be directly accessed from the
+main app class instance via the :attr:`~ae.gui_app.MainAppBase.framework_app` attribute.
+
+
+kivy app config variables
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+all the :ref:`config-variables` and app constants inherited from the base app classes are available.
+
+.. hint::
+    please see the documentation of the namespace portions/modules :mod:`ae.console`, :mod:`ae.gui_app`
+    and :mod:`ae.gui_help` for more detailed information on all the inherited :ref:`config-variables`,
+    :ref:`config-options`, :ref:`config-files` and :ref:`app-state-constants`.
+
+the additional :ref:`config-variables` `win_min_width` and `win_min_height`, added by this portion, you can optionally
+restrict the minimum size of the kivy main window of your app. their default values are set on app startup in the
+method :meth:`~ae.kivy.apps.KivyMainApp.on_app_start`.
+
+more constants provided by this portion are declared in the :mod:`~ae.kivy.widgets` module.
+
+
+kivy application events
+^^^^^^^^^^^^^^^^^^^^^^^
+
+the main app class is firing :ref:`application events`, additional to the ones provided by
+:class:`~ae.gui_app.MainAppBase`, by redirecting events of Kivy's :class:`~kivy.app.App` class.
+these framework app events get fired after the event :meth:`~ae.gui_app.MainAppBase.on_app_run`,
+in the following order (the Kivy event/callback-method name is given in brackets):
+
+    * on_app_build (kivy.app.App.build, after the main kv file get loaded).
+    * on_app_built (kivy.app.App.build, after the root widget get build).
+    * on_app_started (kivy.app.App.on_start)
+    * on_app_pause (kivy.app.App.on_pause)
+    * on_app_resume (kivy.app.App.on_resume)
+    * on_app_stopped (kivy.app.App.on_stop)
+
+"""
 import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
@@ -177,7 +237,7 @@ class KivyMainApp(HelpAppBase):
 
         self.framework_app = framework_app_class(self)
         if os.path.exists(MAIN_KV_FILE_NAME):
-            self.framework_app.kv_file = MAIN_KV_FILE_NAME
+            self.framework_app.kv_file = MAIN_KV_FILE_NAME          # pylint: disable=W0201
 
         return self.framework_app.run, self.framework_app.stop
 
@@ -196,7 +256,7 @@ class KivyMainApp(HelpAppBase):
             app_env_info['image_files'] = self.image_files
             app_env_info['sound_files'] = self.sound_files
 
-            app_states_data = dict(app_state_version=self.app_state_version, app_state_keys=self.app_state_keys())
+            app_states_data = {'app_state_version': self.app_state_version, 'app_state_keys': self.app_state_keys()}
             if self.verbose:
                 app_states_data["framework app states"] = self.framework_app.app_states
                 app_states_data['kbd_input_mode'] = self.kbd_input_mode
@@ -254,7 +314,7 @@ class KivyMainApp(HelpAppBase):
 
         if other dropdown/popup opened after the passed widget/layout, then only correct z index/order to show this
         widget/layout as popup (in front, as foremost widget). if the passed widget has a method named `activate_modal`
-        (like e.g. :meth:`ae.kivy_help.ModalBehavior.activate_modal`) then its `activate_modal` method will be called.
+        (like e.g. :meth:`ae.kivy.behaviors.ModalBehavior.activate_modal`) then it will be called.
         """
         popups_parent = self.framework_win
         if widget not in popups_parent.children or popups_parent.children[0] == widget:

@@ -1,4 +1,11 @@
-""" i18n module """
+"""
+ae.kivy.i18n module
+-------------------
+
+this module is adding translatable f-strings to the python and kv code of your app,
+via the helper function :func:`~ae.kivy.i18n.get_txt` and the :class:`~ae.kivy.i18n._GetTextBinder` class.
+
+"""
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from kivy.app import App                                                                                # type: ignore
