@@ -1,4 +1,4 @@
-""" test ae.kivy.app portion. """
+""" test ae.kivy package """
 import os
 import pytest
 import shutil

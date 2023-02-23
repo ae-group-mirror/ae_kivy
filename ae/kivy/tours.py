@@ -1,4 +1,29 @@
-""" tours module """
+"""
+ae.kivy.tours module
+--------------------
+
+this module provides the following classes to augment the user interface of your apps with animated product tours,
+tutorials, walkthroughs and user onboarding/welcome features:
+
+    * :class:`~ae.kivy.tours.AnimatedTourMixin`
+    * :class:`~ae.kivy.tours.AnimatedOnboardingTour`
+    * :class:`~ae.kivy.tours.TourOverlay`
+
+
+the class :class:`~ae.kivy.tours.TourOverlay` is implementing an overlay layout widget to display the animations,
+shaders, tour page texts, tooltip text and the navigation buttons of an active/running app tour.
+
+the :class:`~ae.kivy.tours.AnimatedTourMixin` can be mixed-into a tour class that inherits from
+:class:`~ae.gui_help.TourBase` to extend it with animation and glsl shader features.
+
+the class :class:`~ae.kivy.tours.AnimatedOnboardingTour` is based on :class:`~ae.gui_help.OnboardingTour` and
+:class:`~ae.kivy.tours.AnimatedTourMixin` to extend the generic app onboarding tour
+class with animations. it provides a generic app onboarding tour that covers the core features, that can be easily
+extended with app-specific tour pages.
+
+to integrate a more app-specific onboarding tour into your app, simply declare a class with a name composed by the name
+of your app (:attr:`~ae.gui_app.MainAppBase.app_name`) in camel-case, followed by the suffix `'OnboardingTour'`.
+"""
 import traceback
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
@@ -232,7 +257,7 @@ class AnimatedTourMixin:        # (TourBase):
         """ simulate the typing of texts by a user entered into an explained TextInput widget of a tour page.
 
         :param text_input:      text input widget, either of type :class:`~kivy.textinput.TextInput` or
-                                :class:`~ae.kivy_app.FlowInput`.
+                                :class:`~ae.kivy.widgets.FlowInput`.
         :param text_to_delay:   text string to be inserted delayed by the seconds specified in deltas[0].
         :param text_to_insert:  text string to be inserted directly into the passed text input widget.
         :param deltas:          delay deltas in seconds between each character to simulate text inputted by a user.
@@ -346,115 +371,58 @@ class AnimatedOnboardingTour(AnimatedTourMixin, OnboardingTour):
 
         self.pages_shaders.update({
             '': (
-                ('layout', dict(
-                    alpha="lambda: 0.39 * layout.ani_value",
-                    center_pos="lambda: list(map(float, layout.ids.next_but.center))",
-                    shader_code="=plunge_waves",
-                    time="lambda: -Clock.get_boottime()",
-                    tint_ink=[0.21, 0.39, 0.09, 0.9],
-                )),
-                ('tour_page_texts', dict(add_to='before')),
-                ('next_but', dict(
-                    add_to='before',
-                    alpha="lambda: 0.3 + layout.ani_value / 3",
-                    render_shape='Ellipse',
-                    shader_code='=plunge_waves',
-                )),
+                ('layout', {'alpha': "lambda: 0.39 * layout.ani_value",
+                            'center_pos': "lambda: list(map(float, layout.ids.next_but.center))",
+                            'shader_code': "=plunge_waves", 'time': "lambda: -Clock.get_boottime()",
+                            'tint_ink': [0.21, 0.39, 0.09, 0.9]}),
+                ('tour_page_texts', {'add_to': 'before'}),
+                ('next_but',
+                 {'add_to': 'before', 'alpha': "lambda: 0.3 + layout.ani_value / 3", 'render_shape': 'Ellipse',
+                  'shader_code': '=plunge_waves'}),
             ),
             'page_switching': (
-                ('layout', dict(
-                    alpha="lambda: 0.39 * layout.ani_value",
-                    center_pos="lambda: list(map(float, layout.ids.prev_but.center))",
-                    shader_code="=plunge_waves",
-                    time="lambda: -Clock.get_boottime()",
-                    tint_ink=[0.21, 0.39, 0.09, 0.9],
-                )),
-                ('tour_page_texts', dict(add_to='before')),
-                ('prev_but', dict(
-                    add_to='before',
-                    alpha="lambda: 0.12 + layout.ani_value / 3",
-                    render_shape='Ellipse',
-                    shader_code='=plunge_waves',
-                    time="lambda: -Clock.get_boottime()",
-                )),
+                ('layout', {'alpha': "lambda: 0.39 * layout.ani_value",
+                            'center_pos': "lambda: list(map(float, layout.ids.prev_but.center))",
+                            'shader_code': "=plunge_waves", 'time': "lambda: -Clock.get_boottime()",
+                            'tint_ink': [0.21, 0.39, 0.09, 0.9]}),
+                ('tour_page_texts', {'add_to': 'before'}),
+                ('prev_but',
+                 {'add_to': 'before', 'alpha': "lambda: 0.12 + layout.ani_value / 3", 'render_shape': 'Ellipse',
+                  'shader_code': '=plunge_waves', 'time': "lambda: -Clock.get_boottime()"}),
             ),
             'tip_help_intro': (
-                ('tour_page_texts', dict(
-                    add_to='before',
-                    alpha="lambda: 0.12 + layout.ani_value / 3",
-                    render_shape='RoundedRectangle',
-                    shader_code='=worm_whole',
-                    tint_ink=[0.021, 0.039, 0.009, 0.9],
-                )),
-                ('prev_but', dict(
-                    add_to='before',
-                    alpha="lambda: 0.12 + layout.ani_value / 3",
-                    render_shape='Ellipse',
-                    shader_code='=worm_whole',
-                    time="lambda: -Clock.get_boottime()",
-                )),
-                ('next_but', dict(
-                    add_to='before',
-                    alpha="lambda: 0.12 + layout.ani_value / 3",
-                    render_shape='Ellipse',
-                    shader_code='=worm_whole',
-                )),
+                ('tour_page_texts', {'add_to': 'before', 'alpha': "lambda: 0.12 + layout.ani_value / 3",
+                                     'render_shape': 'RoundedRectangle', 'shader_code': '=worm_whole',
+                                     'tint_ink': [0.021, 0.039, 0.009, 0.9]}),
+                ('prev_but',
+                 {'add_to': 'before', 'alpha': "lambda: 0.12 + layout.ani_value / 3", 'render_shape': 'Ellipse',
+                  'shader_code': '=worm_whole', 'time': "lambda: -Clock.get_boottime()"}),
+                ('next_but',
+                 {'add_to': 'before', 'alpha': "lambda: 0.12 + layout.ani_value / 3", 'render_shape': 'Ellipse',
+                  'shader_code': '=worm_whole'}),
             ),
             'tip_help_tooltip': (
-                ('prev_but', dict(
-                    add_to='before',
-                    render_shape='Ellipse',
-                    shader_code='=fire_storm',
-                    tint_ink=[0.81, 0.39, 0.09, 0.39],
-                    time="lambda: -Clock.get_boottime()",
-                )),
-                ('next_but', dict(
-                    add_to='before',
-                    render_shape='Ellipse',
-                    shader_code='=fire_storm',
-                    tint_ink=[0.03, 0.03, 0.9, 0.39],
-                )),
+                ('prev_but', {'add_to': 'before', 'render_shape': 'Ellipse', 'shader_code': '=fire_storm',
+                              'tint_ink': [0.81, 0.39, 0.09, 0.39], 'time': "lambda: -Clock.get_boottime()"}),
+                ('next_but', {'add_to': 'before', 'render_shape': 'Ellipse', 'shader_code': '=fire_storm',
+                              'tint_ink': [0.03, 0.03, 0.9, 0.39]}),
             ),
             'responsible_layout': (
-                ('prev_but', dict(
-                    add_to='before',
-                    render_shape='Ellipse',
-                    shader_code='=colored_smoke',
-                    time="lambda: -Clock.get_boottime()",
-                )),
-                ('next_but', dict(
-                    add_to='before',
-                    render_shape='Ellipse',
-                    shader_code='=colored_smoke',
-                )),
+                ('prev_but', {'add_to': 'before', 'render_shape': 'Ellipse', 'shader_code': '=colored_smoke',
+                              'time': "lambda: -Clock.get_boottime()"}),
+                ('next_but', {'add_to': 'before', 'render_shape': 'Ellipse', 'shader_code': '=colored_smoke'}),
             ),
             'layout_font_size': (
-                ('prev_but', dict(
-                    add_to='before',
-                    render_shape='Ellipse',
-                    shader_code='=circled_alpha',
-                    tint_ink=[0.51, 0.39, 0.9, 0.999],
-                )),
-                ('next_but', dict(
-                    add_to='before',
-                    render_shape='Ellipse',
-                    shader_code='=circled_alpha',
-                    tint_ink=[0.81, 0.39, 0.9, 0.999],
-                )),
+                ('prev_but', {'add_to': 'before', 'render_shape': 'Ellipse', 'shader_code': '=circled_alpha',
+                              'tint_ink': [0.51, 0.39, 0.9, 0.999]}),
+                ('next_but', {'add_to': 'before', 'render_shape': 'Ellipse', 'shader_code': '=circled_alpha',
+                              'tint_ink': [0.81, 0.39, 0.9, 0.999]}),
             ),
             'tour_end': (
-                ('tour_page_texts', dict(add_to='before')),
-                ('prev_but', dict(
-                    add_to='before',
-                    render_shape='Ellipse',
-                    tint_ink=[0.51, 0.39, 0.9, 0.999],
-                    time="lambda: -Clock.get_boottime()",
-                )),
-                ('next_but', dict(
-                    add_to='before',
-                    render_shape='Ellipse',
-                    tint_ink=[0.81, 0.39, 0.9, 0.999],
-                )),
+                ('tour_page_texts', {'add_to': 'before'}),
+                ('prev_but', {'add_to': 'before', 'render_shape': 'Ellipse', 'tint_ink': [0.51, 0.39, 0.9, 0.999],
+                              'time': "lambda: -Clock.get_boottime()"}),
+                ('next_but', {'add_to': 'before', 'render_shape': 'Ellipse', 'tint_ink': [0.81, 0.39, 0.9, 0.999]}),
             ),
         })
 
@@ -591,7 +559,7 @@ class TourOverlay(ModalBehavior, ShadersMixin, FloatLayout):
             if pos1 < win_height - pos2:
                 nav_y = max(nav_y + pos2, win_height - self.ids.tour_page_texts.height)
 
-        ani_kwargs = dict(t='in_out_sine', d=2.1)
+        ani_kwargs = {'t': 'in_out_sine', 'd': 2.1}
         ani_start_check(Animation(fade_out_app=self.tour_instance.page_data.get('fade_out_app', DEF_FADE_OUT_APP),
                                   navigation_pos_hint_y=nav_y / win_height,
                                   **ani_kwargs),
