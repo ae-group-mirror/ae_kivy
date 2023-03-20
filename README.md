@@ -1,12 +1,12 @@
-<!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project ae.ae V0.3.91 -->
+<!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project ae.ae V0.3.92 -->
 <!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.tpl_namespace_root V0.3.13 -->
-# kivy 0.3.110
+# kivy 0.3.111
 
 [![GitLab develop](https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy/develop?logo=python)](
     https://gitlab.com/ae-group/ae_kivy)
 [![LatestPyPIrelease](
-    https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy/release0.3.109?logo=python)](
-    https://gitlab.com/ae-group/ae_kivy/-/tree/release0.3.109)
+    https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy/release0.3.110?logo=python)](
+    https://gitlab.com/ae-group/ae_kivy/-/tree/release0.3.110)
 [![PyPIVersions](https://img.shields.io/pypi/v/ae_kivy)](
     https://pypi.org/project/ae-kivy/#history)
 

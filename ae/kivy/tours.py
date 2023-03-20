@@ -75,7 +75,7 @@ WidgetValues = Dict[str, Union[list, tuple, dict, float]]
 DEF_FADE_OUT_APP = 0.39                                             #: default of tour layout fade out app screen factor
 
 
-def ani_start_check(ani: Animation, wid: Widget):
+def ani_start_check(ani: Animation, wid: Widget):                                                   # pragma: no cover
     """ start animation if needed else skip animation start.
 
     :param ani:                 :class:`~kivy.animation.Animation` instance.
@@ -87,7 +87,7 @@ def ani_start_check(ani: Animation, wid: Widget):
             break
 
 
-def animated_widget_values(wid: Widget, ani: Union[Animation, CompoundAnimation]) -> WidgetValues:
+def animated_widget_values(wid: Widget, ani: Union[Animation, CompoundAnimation]) -> WidgetValues:  # pragma: no cover
     """ determine from a widget the attribute/property values animated/changed by an animation.
 
     :param wid:                 widget of which the animation property values will get retrieved.
@@ -100,7 +100,7 @@ def animated_widget_values(wid: Widget, ani: Union[Animation, CompoundAnimation]
     return wid_values
 
 
-def restore_widget_values(wid: Widget, values: WidgetValues):
+def restore_widget_values(wid: Widget, values: WidgetValues):                                       # pragma: no cover
     """ restore property values of a widget.
 
     :param wid:                 widget of which the animation property values will get restored.
@@ -110,7 +110,7 @@ def restore_widget_values(wid: Widget, values: WidgetValues):
         setattr(wid, attr, value)
 
 
-class AnimatedTourMixin:        # (TourBase):
+class AnimatedTourMixin:                                                                            # pragma: no cover
     """ tour class mixin to add individual shaders to the tour layout and their children widgets. """
     # abstracts
     layout: Widget
@@ -341,7 +341,7 @@ class AnimatedTourMixin:        # (TourBase):
         super().teardown_app_flow()                                                         # pylint: disable=no-member
 
 
-class AnimatedOnboardingTour(AnimatedTourMixin, OnboardingTour):
+class AnimatedOnboardingTour(AnimatedTourMixin, OnboardingTour):                                    # pragma: no cover
     """ onboarding tour, extended with animations and glsl shaders. """
     def __init__(self, main_app: 'HelpAppBase') -> None:
         super().__init__(main_app)
@@ -457,7 +457,7 @@ class AnimatedOnboardingTour(AnimatedTourMixin, OnboardingTour):
         super().teardown_shaders_and_animations()
 
 
-class TourOverlay(ModalBehavior, ShadersMixin, FloatLayout):
+class TourOverlay(ModalBehavior, ShadersMixin, FloatLayout):                                        # pragma: no cover
     """ tour layout/view overlay singleton class to display an active/running modal app tour with optional glsl shaders.
     """
     ani_value = NumericProperty()

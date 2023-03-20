@@ -2,12 +2,16 @@
 ae.kivy.widgets module
 ----------------------
 
-the widgets provided by this module are based on the kivy widgets and are respecting the :ref:`app-state-variables`
-specifying the desired app style (dark or light) and font size. most of them also change automatically the
-:ref:`application flow`.
+this module provides constants and widgets for your multi-platform apps.
+
+the generic constants for animations and vibration patterns (mostly used on mobile platforms).
+
+most of the widgets provided by this module are based on the widgets of the `Kivy framework <https://kivy.org>`__,
+extended to work with :ref:`app-state-variables`, e.g. to support app styles and theming (dark or light) and
+user definable font sizes. some of them also change the :ref:`application flow`.
 
 by importing this module the following generic widgets will be registered in the kivy widget class factory maps,
-to be available for your app:
+to be available in the kv language for your app:
 
 * :class:`~ae.kivy.widgets.AppStateSlider`: extended version of :class:`~kivy.uix.slider.Slider`, changing the value of
   :ref:`app-state-variables`.
@@ -131,7 +135,7 @@ MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of the main kv file of your 
 Builder.load_file(os.path.join(os.path.dirname(__file__), "widgets.kv"))
 
 
-class AbsolutePosSizeBinder:
+class AbsolutePosSizeBinder:                                                                        # pragma: no cover
     """ propagate changes of `pos`/`size` properties of one or more widgets plus their parents to attributes/callbacks.
 
     create an instance of this class passing the widget(s) to observe on change of their pos/size. then call the methods

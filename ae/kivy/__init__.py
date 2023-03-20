@@ -22,7 +22,8 @@ this portion is composed of the following modules:
 unit tests
 ----------
 
-unit tests are currently still incomplete and need at least V 2.0 of OpenGL and the kivy framework installed.
+unit tests are currently still incomplete and need at least V 2.0 of OpenGL and the
+`Kivy framework <https://kivy.org>`__ installed.
 
 .. note::
     unit tests are currently not passing at the gitlab CI because is failing to set up
@@ -31,4 +32,4 @@ unit tests are currently still incomplete and need at least V 2.0 of OpenGL and 
 """
 
 
-__version__ = '0.3.110'
+__version__ = '0.3.111'

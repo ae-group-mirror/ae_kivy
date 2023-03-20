@@ -1,4 +1,5 @@
 """ test ae.kivy package """
+import datetime
 import os
 import pytest
 import shutil
@@ -71,12 +72,13 @@ class KivyAppTest(KivyMainApp):
     app_state_list: list
     app_state_bool: bool
 
-    on_init_called = False
-    on_pause_called = False
-    on_resume_called = False
-    on_run_called = False
-    on_start_called = False
-    on_stop_called = False
+    on_init_called = None
+    on_pause_called = None
+    on_resume_called = None
+    on_run_called = None
+    on_start_called = None
+    on_started_called = None
+    on_stop_called = None
 
     on_flow_id_called = False
     on_font_size_called = False
@@ -87,36 +89,41 @@ class KivyAppTest(KivyMainApp):
 
     def init_app(self, framework_app_class=FrameworkApp):
         """ called from MainAppBase """
-        self.on_init_called = True
+        self.on_init_called = datetime.datetime.now()
         self.app_title = "KivyAppTest Stub"
         return super().init_app(framework_app_class=framework_app_class)
 
-    def run_app(self):
-        """ called by test routine """
-        self.on_run_called = True
-        return super().run_app()
-
     # events
+
+    def on_app_run(self):
+        """ called from KivyMainApp """
+        super().on_app_run()
+        self.on_run_called = datetime.datetime.now()
 
     def on_app_start(self):
         """ called from KivyMainApp """
         super().on_app_start()
-        self.on_start_called = True
+        self.on_start_called = datetime.datetime.now()
+
+    def on_app_started(self):
+        """ called from KivyMainApp """
+        super().on_app_started()
+        self.on_started_called = datetime.datetime.now()
 
     def on_app_pause(self):
         """ called from KivyMainApp """
         super().on_app_pause()
-        self.on_pause_called = True
+        self.on_pause_called = datetime.datetime.now()
 
     def on_app_resume(self):
         """ called from KivyMainApp """
         super().on_app_resume()
-        self.on_resume_called = True
+        self.on_resume_called = datetime.datetime.now()
 
     def on_app_stopped(self):
         """ called from KivyMainApp """
         super().on_app_stopped()
-        self.on_stop_called = True
+        self.on_stop_called = datetime.datetime.now()
 
     def on_flow_id(self):
         """ called from KivyMainApp """
@@ -625,6 +632,7 @@ class TestEvents:
         # Clock.schedule_once(app.stop_app)
         Clock.schedule_once(app.framework_app.stop)
         app.run_app()
+        Clock.tick()
         assert app.on_stop_called
 
     def test_on_stop_with_stop_touch_app(self, restore_app_env):
@@ -632,6 +640,7 @@ class TestEvents:
         assert not app.on_stop_called
         Clock.schedule_once(lambda dt: stopTouchApp())
         app.run_app()
+        Clock.tick()
         assert app.on_stop_called
 
     def test_on_user_preferences_open_enabling_debug(self, restore_app_env):
@@ -726,13 +735,19 @@ class TestEvents:
         app.run_app()
         assert app.on_run_called
         # assert app.framework_app.app_states == def_app_states
+        assert app.on_start_called
+        assert app.on_start_called > app.on_run_called
 
     def test_start(self, restore_app_env):
         app = KivyAppTest()
+        assert not app.on_run_called
         assert not app.on_start_called
+        assert not app.on_started_called
         Clock.schedule_once(app.framework_app.stop)
         app.run_app()
         assert app.on_start_called
+        assert app.on_started_called
+        assert app.on_run_called < app.on_start_called < app.on_started_called
 
 
 called_bound = False
