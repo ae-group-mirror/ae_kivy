@@ -11,7 +11,7 @@ application classes
 ^^^^^^^^^^^^^^^^^^^
 
 the class :class:`~ae.kivy.apps.KivyMainApp` is implementing a main app class, reducing the amount of
-code needed to create a Python application based on the `kivy framework <https://kivy.org>`_.
+code needed to create a Python application based on the `Kivy framework <https://kivy.org>`_.
 
 :class:`~ae.kivy.apps.KivyMainApp` is based on the following classes:
 
@@ -38,7 +38,7 @@ all the :ref:`config-variables` and app constants inherited from the base app cl
 
 the additional :ref:`config-variables` `win_min_width` and `win_min_height`, added by this portion, you can optionally
 restrict the minimum size of the kivy main window of your app. their default values are set on app startup in the
-method :meth:`~ae.kivy.apps.KivyMainApp.on_app_start`.
+method :meth:`~ae.kivy.apps.KivyMainApp.on_app_run`.
 
 more constants provided by this portion are declared in the :mod:`~ae.kivy.widgets` module.
 
@@ -53,10 +53,12 @@ in the following order (the Kivy event/callback-method name is given in brackets
 
     * on_app_build (kivy.app.App.build, after the main kv file get loaded).
     * on_app_built (kivy.app.App.build, after the root widget get build).
-    * on_app_started (kivy.app.App.on_start)
+    * on_app_start (kivy.app.App.on_start)
+    * on_app_started (one clock tick after on_app_start/kivy.app.App.on_start)
     * on_app_pause (kivy.app.App.on_pause)
     * on_app_resume (kivy.app.App.on_resume)
-    * on_app_stopped (kivy.app.App.on_stop)
+    * on_app_stop (kivy.app.App.on_stop)
+    * on_app_stopped (one clock tick after on_app_stop)
 
 """
 import os
@@ -93,7 +95,7 @@ from .widgets import (
 
 
 class FrameworkApp(App):
-    """ kivy framework app class proxy redirecting events and callbacks to the main app class instance. """
+    """ Kivy framework app class proxy redirecting events and callbacks to the main app class instance. """
 
     app_states = DictProperty()                         #: duplicate of MainAppBase app state for events/binds
     button_height = NumericProperty('45sp')             #: default button height, dynamically calculated from font size
@@ -190,15 +192,18 @@ class FrameworkApp(App):
     def on_start(self):
         """ kivy app start event.
 
-        called after :meth:`~ae.gui_app.MainAppBase.run_app` method and :meth:`~ae.gui_app.MainAppBase.on_app_start`
-        event and after Kivy created the main layout (by calling its :meth:`~kivy.app.App.build` method) and has
+        called after :meth:`~ae.gui_app.MainAppBase.run_app` method,
+        after Kivy created the main layout (by calling its :meth:`~kivy.app.App.build` method) and has
         attached it to the main window.
 
-        emits the `on_app_started` event.
+        emits the events: `on_app_start` and `on_app_started`.
        """
         self.main_app.vpo("FrameworkApp.on_start")
-        self.win_pos_size_change()  # init. app./self.landscape (on app startup and after build)
-        self.main_app.call_method('on_app_started')
+
+        # self.win_pos_size_change()  # init. app./self.landscape (on app startup and after build)
+
+        self.main_app.call_method('on_app_start')
+        Clock.schedule_once(lambda dt: self.main_app.call_method('on_app_started'))
 
     def on_stop(self):
         """ quit app event automatically saving the app states.
@@ -207,8 +212,11 @@ class FrameworkApp(App):
         emits the `on_app_stop` event.
         """
         self.main_app.vpo("FrameworkApp.on_stop")
+
         self.main_app.save_app_states()
-        self.main_app.call_method('on_app_stopped')
+
+        self.main_app.call_method('on_app_stop')
+        Clock.schedule_once(lambda dt: self.main_app.call_method('on_app_stopped'))
 
     def win_pos_size_change(self, *_):
         """ resize handler updates: :attr:`~ae.gui_app.MainAppBase.win_rectangle`, :attr:`~FrameworkApp.landscape`. """
@@ -385,10 +393,10 @@ class KivyMainApp(HelpAppBase):
         """ kivy :meth:`~kivy.app.App.on_resume` event handler. """
         self.vpo("KivyMainApp.on_app_resume default/fallback event handler called")
 
-    def on_app_start(self):  # pragma: no cover
-        """ app start event handler - used to set the user preference app states and initial window pos and size. """
-        super().on_app_start()
-        self.vpo("KivyMainApp.on_app_start - setting lang, theme, win-pos/-size and softinput mode")
+    def on_app_run(self):  # pragma: no cover
+        """ run app event handler - used to set the user preference app states and initial window pos and size. """
+        super().on_app_run()
+        self.vpo("KivyMainApp.on_app_run - setting lang, theme, win-pos/-size and softinput mode")
 
         get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
@@ -401,10 +409,14 @@ class KivyMainApp(HelpAppBase):
             Window.left, Window.top = win_rect[:2]
             Window.size = win_rect[2:]
 
+    def on_app_start(self):  # pragma: no cover
+        """ app start event handler - triggered by FrameworkApp.on_start(). """
+        self.vpo("KivyMainApp.on_app_start")
+
     def on_app_started(self):
         """ kivy :meth:`~kivy.app.App.on_start` event handler (called after on_app_build/on_app_built). """
-        self.vpo("KivyMainApp.on_app_started event handler called - calling ae.gui_help.HelpAppBase.on_app_started")
         super().on_app_started()    # check user registration/onboarding tour start in ae.gui_help.HelpAppBase
+        self.vpo("KivyMainApp.on_app_started event handler called - calling ae.gui_help.HelpAppBase.on_app_started")
 
     def on_app_stopped(self):
         """ kivy :meth:`~kivy.app.App.on_stop` event handler (called after on_app_stop). """

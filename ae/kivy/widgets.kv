@@ -68,7 +68,7 @@
 
 <AppStateSlider>
     help_id: id_of_state_help(self.app_state_name)
-    help_vars: dict(app_state_name=self.app_state_name, state_value=self.value, self=self)
+    help_vars: {'app_state_name': self.app_state_name, 'state_value': self.value, 'self': self}
     value: app.app_states.get(self.app_state_name, (self.min + self.max) / 2) if self.app_state_name else self.value
     size_hint_y: None
     height: app.button_height
@@ -124,7 +124,7 @@
 
 <FlowInput>
     help_id: id_of_flow_help(self.focus_flow_id)
-    help_vars: dict(new_flow_id=self.focus_flow_id, self=self)
+    help_vars: {'new_flow_id': self.focus_flow_id, 'self': self}
     font_size: app.app_states['font_size']
     multiline: False
     write_tab: False
@@ -133,7 +133,7 @@
 
 <FlowButton>
     help_id: id_of_flow_help(self.tap_flow_id)
-    help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
+    help_vars: {'new_flow_id': self.tap_flow_id, 'self': self}
     icon_name: ""
     source:
         app.main_app.img_file(self.icon_name or flow_key_split(self.tap_flow_id)[0], \
@@ -141,7 +141,7 @@
 
 <FlowDropDown>
     close_kwargs:
-        dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
+        {'flow_id': id_of_flow('', '')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
     auto_width: False
     # width determined by ContainerChildrenAutoWidthBehavior, so no need for: width: min(Window.width - sp(96), sp(960))
     canvas.before:
@@ -167,7 +167,7 @@
     width: min(max(title_bar.optimal_width or 90, body_box.optimal_width or 120), self._max_width)
     height: min(title_bar.height + root.separator_height + (body_box.optimal_height or 189), self._max_height)
     close_kwargs:
-        dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
+        {'flow_id': id_of_flow('', '')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
     canvas:
         Color:
             rgba: root.overlay_color[:3] + [root.overlay_color[-1] * self._anim_alpha]
@@ -264,9 +264,9 @@
 
 <FlowSelector>
     tap_flow_id: id_of_flow('close', 'flow_popup')  # or id_of_flow('close', 'popup') to show standard close help text
-    tap_kwargs: dict(popups_to_close=self.parent_popup_to_close)
+    tap_kwargs: {'popups_to_close': self.parent_popup_to_close}
     close_kwargs:
-        dict(flow_id=id_of_flow('', '')) if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
+        {'flow_id': id_of_flow('', '')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
     size_hint_x: None
     ellipse_fill_ink: Window.clearcolor[:3] + [self._anim_alpha]
     relief_ellipse_outer_colors: relief_colors(self.ellipse_fill_ink)
@@ -287,7 +287,7 @@
 <FlowToggler>
     tap_flow_id: ''
     help_id: id_of_flow_help(self.tap_flow_id)
-    help_vars: dict(new_flow_id=self.tap_flow_id, self=self)
+    help_vars: {'new_flow_id': self.tap_flow_id, 'self': self}
     icon_name: ""
     source:
         app.main_app.img_file(self.icon_name or flow_key_split(self.tap_flow_id)[0], \
@@ -410,7 +410,9 @@
     tip_text: tooltip.tip_text
     next_text: _('next')
     prev_text: _('back')
-    navigation_pos_hint_y: 0.3
+    pos: 0.0, 0.0
+    size: Window.size
+    navigation_pos_hint_y: 0.45
     canvas.before:
         Color:
             rgba: Window.clearcolor[:3] + [root.fade_out_app]
@@ -442,7 +444,7 @@
         height:
             (2.01 * self.padding[0] if title_lbl.height or page_lbl.height else 0) + \
             (max(title_lbl.height, page_lbl.height) if app.landscape else title_lbl.height + page_lbl.height)
-        pos_hint: dict(x=0, y=root.navigation_pos_hint_y)
+        pos_hint: {'x': 0.0, 'y': root.navigation_pos_hint_y}
         Label:
             id: title_lbl
             padding: 2 * (root._hem, )
@@ -486,23 +488,23 @@
     SwitchPageButton:
         id: prev_but
         disabled: root.navigation_disabled or not root.prev_text
-        pos_hint: dict(x=0.06, top=root.navigation_pos_hint_y)
+        pos_hint: {'x': 0.06, 'top': root.navigation_pos_hint_y}
         size: self.texture_size[0] * 2.1, root.label_height
         font_size: root.font_height
         text: root.prev_text
         on_release: root.prev_page()
     StopTourButton:
         id: stop_but
-        size: 2 * (root.label_height * (1.02 if root.prev_text or root.next_text else 1.29), )
+        size: 2 * (root.label_height * (1.32 if root.prev_text or root.next_text else 1.29), )
         pos_hint:
-            dict(center_x=0.501, y=(tour_page_texts.top + self.relief_ellipse_outer_lines) / Window.height) \
+            {'center_x': 0.5, 'y': tour_page_texts.top / Window.height} \
             if tour_page_texts.height and tour_page_texts.top + self.height < Window.height else \
-            dict(center_x=0.501, top=root.navigation_pos_hint_y - self.relief_ellipse_outer_lines / Window.height)
+            {'center_x': 0.5, 'top': root.navigation_pos_hint_y}
         on_release: root.stop_tour()
     SwitchPageButton:
         id: next_but
         disabled: root.navigation_disabled or not root.next_text
-        pos_hint: dict(right=0.939, top=root.navigation_pos_hint_y)
+        pos_hint: {'right': 0.939, 'top': root.navigation_pos_hint_y}
         size: self.texture_size[0] * 2.1, root.label_height
         font_size: root.font_height
         text: root.next_text
@@ -516,7 +518,7 @@
         size_hint: None, None
         size: 2 * (root.label_height * 1.89, )
     Label:
-        pos_hint: dict(center_x=.5, center_y=.5)
+        pos_hint: {'center_x': 0.5, 'center_y': 0.5}
         font_size: root.label_height
         color: app.font_color[:3] + [0.48 if app.main_app.debug else 0.0]
         text:
@@ -524,6 +526,7 @@
             " " + widget_page_id(root.explained_widget) + chr(10) + \
             "...=" + str(list(map(round, root.explained_pos))) + \
             " " + str(list(map(round, root.explained_size))) + chr(10) + \
+            "pos_hint_y=" + str(root.navigation_pos_hint_y) + chr(10) + \
             "tour=" + str(root.tour_instance.__class__.__name__) + chr(10) + \
             "page-id" + str(root.tour_instance.page_idx if root.tour_instance else "?") + "=" + \
             str(root.tour_instance.page_ids[root.tour_instance.page_idx] if root.tour_instance else "???") + chr(10) + \
@@ -549,10 +552,9 @@
     size_hint: None, None
     source: app.main_app.img_file(id_of_flow('close', 'popup'))
     button_ink: 0.999, 0.0, 0.0, 0.999
-    relief_ellipse_inner_colors: relief_colors(app.font_color)
-    relief_ellipse_inner_lines: round(self.height / 3.9)
-    relief_ellipse_outer_colors: relief_colors(self.button_ink)
-    relief_ellipse_outer_lines: round(self.height / 9.6)
+    relief_ellipse_inner_colors: relief_colors(self.button_ink)
+    relief_ellipse_inner_lines: round(self.height / 6.9)
+    relief_ellipse_inner_offset: round(self.height / 12.9)
     canvas.before:
         Color:
             rgba: self.button_ink
@@ -578,14 +580,14 @@
     title: _("create new user account")
     optimal_content_height: 2.1 * input_box.padding[0] + (1.2 if app.landscape else 2.1) * app.button_height
     query_data_maps:
-        [dict(kwargs=dict(
-        tap_flow_id=id_of_flow('add', 'user', user_name_input.text), \
-        tap_kwargs=update_tap_kwargs(self, popups_to_close=(root, )), \
-        text=_("add user"), \
-        relief_square_inner_colors=relief_colors(), \
-        relief_square_inner_lines=sp(12), \
-        relief_ellipse_inner_offset=-1, \
-        ))]
+        [{'kwargs': {
+        'tap_flow_id': id_of_flow('add', 'user', user_name_input.text), \
+        'tap_kwargs': update_tap_kwargs(self, popups_to_close=(root, )), \
+        'text': _("add user"), \
+        'relief_square_inner_colors': relief_colors(), \
+        'relief_square_inner_lines': sp(12), \
+        'relief_ellipse_inner_offset': -1, \
+        }}]
     BoxLayout:
         id: input_box
         orientation: 'horizontal' if app.landscape else 'vertical'

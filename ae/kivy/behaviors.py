@@ -212,7 +212,6 @@ class ModalBehavior:                                                            
             if not App.get_running_app().tour_layout:   # prevent close/dismiss by Esc-key if app tour is active/running
                 self.close()
             return True
-        return False
 
     def activate_esc_key_close(self):
         """ activate key press handler, calling self.close() if Escape/Back key get pressed. """
@@ -567,12 +566,15 @@ class TouchableBehavior:                                                        
         self._update_shader()
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
-        """ check for additional double/triple/alt touch events and add sound, vibration and animation.
+        """ add sound, vibration and animation, check if tour is running and additional double/triple/alt touch events.
 
         :param touch:           motion/touch event data.
         :return:                True if event got processed/used.
         """
         if not self.disabled and self.collide_point(touch.x, touch.y):
+            if self.main_app.tour_layout and self is not self.main_app.help_activator:
+                return True  # suppress on_release event if app tour is running (except for help activator button)
+
             self._touch_anim = 0.0
             self._touch_x, self._touch_y = touch.pos
             # pylint: disable=no-member # false positive
