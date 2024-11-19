@@ -115,8 +115,7 @@
     Image:
         id: themeLabelImage
         source: root.source
-        allow_stretch: True
-        keep_ratio: False
+        fit_mode: 'fill'    # allow_stretch: True; keep_ratio: False;  is deprecated since Kivy 2.2.0
         opacity: 0.69 if self.source else 0.0
         pos: self.parent.image_pos or self.parent.secondary_pos or self.parent.pos
         size: self.parent.image_size or self.parent.secondary_size or self.parent.size
@@ -512,7 +511,7 @@
     Image:
         id: tap_pointer
         source: app.main_app.img_file('tap_pointer')
-        allow_stretch: True
+        fit_mode: 'contain'     # allow_stretch: True got deprecated since Kivy 2.2.0
         opacity: 0.0
         pos: -999, -999
         size_hint: None, None

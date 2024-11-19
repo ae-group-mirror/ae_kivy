@@ -32,4 +32,4 @@ unit tests are currently still incomplete and need at least V 2.0 of OpenGL and 
 """
 
 
-__version__ = '0.3.111'
+__version__ = '0.3.112'

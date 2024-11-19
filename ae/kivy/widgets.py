@@ -465,7 +465,7 @@ class ExtTextInputCutCopyPaste(OriTextInputCutCopyPaste):  # pragma: no cover
         endless recursion because else the other super(cls, instance) call (in python2 style within
         :meth:`TextInputCutCopyPaste.__init__`) results in the same instance (instead of the overwritten instance).
         """
-        kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste     # pylint: disable=no-member
+        kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste
         self.fw_app = App.get_running_app()
         super().__init__(**kwargs)
 
@@ -674,9 +674,9 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
 
     def _show_cut_copy_paste(self, *args, **kwargs):    # pylint: disable=signature-differs
         # monkey-patch kivy's built-in cut/copy/paste popup, will be reset also in ExtTextInputCutCopyPaste.__init_
-        kivy.uix.textinput.TextInputCutCopyPaste = ExtTextInputCutCopyPaste     # pylint: disable=no-member
+        kivy.uix.textinput.TextInputCutCopyPaste = ExtTextInputCutCopyPaste
         super()._show_cut_copy_paste(*args, **kwargs)
-        kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste     # pylint: disable=no-member
+        kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste
 
 
 class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, ReliefCanvas,
@@ -871,9 +871,9 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
         if help_layout and isinstance(help_layout.targeted_widget, HelpToggler):
             return
 
-        self.dispatch('on_pre_dismiss')                                                     # pylint: disable=no-member
+        self.dispatch('on_pre_dismiss')
 
-        if not self.dispatch('on_dismiss') or kwargs.get('force', False):                   # pylint: disable=no-member
+        if not self.dispatch('on_dismiss') or kwargs.get('force', False):
             if kwargs.get('animation', True):
                 self._layout_finished = False
                 Animation(_anim_alpha=0.0, d=self._anim_duration).start(self)
@@ -932,16 +932,16 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
                 - (len(self.query_data_maps) * app.button_height if not app.landscape else 0.0)
         self.center = Window.center
 
-        self.dispatch('on_pre_open')                                            # pylint: disable=no-member
+        self.dispatch('on_pre_open')
         self.activate_esc_key_close()
         self.activate_modal()
         if kwargs.get('animation', True):
             ani = Animation(_anim_alpha=1.0, d=self._anim_duration)
-            ani.bind(on_complete=lambda *_args: self.dispatch('on_open'))       # pylint: disable=no-member
+            ani.bind(on_complete=lambda *_args: self.dispatch('on_open'))
             ani.start(self)
         else:
             self._anim_alpha = 1.0
-            self.dispatch('on_open')                                            # pylint: disable=no-member
+            self.dispatch('on_open')
 
 
 class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):                   # pragma: no cover
@@ -1306,9 +1306,9 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
         if help_layout and isinstance(help_layout.targeted_widget, HelpToggler):
             return
 
-        self.dispatch('on_pre_dismiss')                                                     # pylint: disable=no-member
+        self.dispatch('on_pre_dismiss')
 
-        if not self.dispatch('on_dismiss') or kwargs.get('force', False):                   # pylint: disable=no-member
+        if not self.dispatch('on_dismiss') or kwargs.get('force', False):
             if not self.is_open:   # prevent multiple close from post-dispatches
                 return
             self.is_open = False
@@ -1316,7 +1316,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
 
             if kwargs.get('animation', True):
                 ani = Animation(_anim_alpha=0.0, d=self._anim_duration)
-                ani.bind(on_complete=self._finalize_close)                                  # pylint: disable=no-member
+                ani.bind(on_complete=self._finalize_close)
                 ani.start(self)
             else:
                 self._anim_alpha = 0.0
@@ -1371,15 +1371,15 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
 
         self.bind(menu_items=self._layout_items)
 
-        self.dispatch('on_pre_open')                                            # pylint: disable=no-member
+        self.dispatch('on_pre_open')
 
         if kwargs.get('animation', True):
             ani = Animation(_anim_alpha=1.0, d=self._anim_duration)
-            ani.bind(on_complete=lambda *_args: self.dispatch('on_open'))       # pylint: disable=no-member
+            ani.bind(on_complete=lambda *_args: self.dispatch('on_open'))
             ani.start(self)
         else:
             self._anim_alpha = 1.0
-            self.dispatch('on_open')                                            # pylint: disable=no-member
+            self.dispatch('on_open')
 
     def remove_widget(self, widget):
         """ sync self.menu_items with self.children. """
@@ -1390,7 +1390,9 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
         """ is touch inside of this widget or a group of sub-widgets. overwritten to also include the menu items.
 
         :param pos:             touch position (x, y) in window coordinates.
-        :return:                True if this menu and its items would process a touch event at :paramref:`.pos`. """
+        :return:                True if this menu and its items would process a touch event at the touch position
+                                specified by the :paramref:`~touch_pos_is_inside.pos` argument.
+        """
         # assert set(self.container.children) == set(self.menu_items + [self.button_image])
         return super().touch_pos_is_inside(pos) or any(_.collide_point(*pos) for _ in self.menu_items)
 
