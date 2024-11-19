@@ -120,7 +120,7 @@ class AnimatedTourMixin:                                                        
     setup_texts: Callable
 
     def __init__(self, main_app: HelpAppBase) -> None:
-        super().__init__(main_app)                                          # type: ignore # pylint: disable=no-member
+        super().__init__(main_app)                                          # type: ignore
 
         self._added_animations: List[Tuple[Widget, Animation, WidgetValues]] = []
         self._added_shaders: List[Tuple[Widget, ShaderIdType]] = []
@@ -195,10 +195,10 @@ class AnimatedTourMixin:                                                        
         anim_length = self._add_animations(next_animations)
         if anim_length:
             # noinspection PyUnresolvedReferences
-            self.main_app.call_method_delayed(anim_length + 0.123, super().next_page)       # pylint: disable=no-member
+            self.main_app.call_method_delayed(anim_length + 0.123, super().next_page)
         else:
             # noinspection PyUnresolvedReferences
-            super().next_page()                                                             # pylint: disable=no-member
+            super().next_page()
 
     def setup_explained_widget(self) -> list:
         """ overridden to bind pos/size of explained widget(s) to the tour layout/overlay placeholder.
@@ -208,7 +208,7 @@ class AnimatedTourMixin:                                                        
         self._explained_binder.unbind()
 
         # noinspection PyUnresolvedReferences
-        widgets = super().setup_explained_widget()                          # type: ignore # pylint: disable=no-member
+        widgets = super().setup_explained_widget()                          # type: ignore
 
         layout = self.layout
         exp_wid = layout.explained_widget
@@ -248,7 +248,7 @@ class AnimatedTourMixin:                                                        
     def setup_layout(self):
         """ overridden to set up animations and shaders of the current tour page. """
         # noinspection PyUnresolvedReferences
-        super().setup_layout()                                                              # pylint: disable=no-member
+        super().setup_layout()
         Clock.tick()                # update position of explained widget
         self.setup_page_shaders_and_animations()
 
@@ -338,7 +338,7 @@ class AnimatedTourMixin:                                                        
         """ overridden to teardown the animations of the current/last-shown tour page. """
         self.teardown_shaders_and_animations()
         # noinspection PyUnresolvedReferences
-        super().teardown_app_flow()                                                         # pylint: disable=no-member
+        super().teardown_app_flow()
 
 
 class AnimatedOnboardingTour(AnimatedTourMixin, OnboardingTour):                                    # pragma: no cover

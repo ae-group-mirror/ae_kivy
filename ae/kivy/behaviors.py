@@ -143,7 +143,7 @@ class HelpBehavior:
         if self.help_lock and self.collide_point(*touch.pos) and main_app.help_display(self.help_id, self.help_vars):
             return True         # main_app.help_layout is not None
 
-        return super().on_touch_down(touch)                 # type: ignore # pylint: disable=no-member # false positive
+        return super().on_touch_down(touch)                 # type: ignore
 
 
 class ModalBehavior:                                                                                # pragma: no cover
@@ -232,7 +232,7 @@ class ModalBehavior:                                                            
             Window.bind(on_resize=self._align_center)
             self._center_aligned = align_center
             # binding center includes notification event on change of :attr:`~kivy.uix.widget.Widget.pos` and of `size`
-            self._fast_bound_center_uid = self.fbind('center', self._align_center)          # pylint: disable=no-member
+            self._fast_bound_center_uid = self.fbind('center', self._align_center)
 
         self.is_modal = True
 
@@ -243,7 +243,7 @@ class ModalBehavior:                                                            
     def deactivate_modal(self):
         """ de-activate modal mode for the mixing-in container. """
         if self._fast_bound_center_uid:
-            self.unbind_uid('center', self._fast_bound_center_uid)                          # pylint: disable=no-member
+            self.unbind_uid('center', self._fast_bound_center_uid)
             Window.unbind(on_resize=self._align_center)
             self._fast_bound_center_uid = 0
 
@@ -270,7 +270,7 @@ class ModalBehavior:                                                            
         if self.disabled if self._touch_started_inside else self.auto_dismiss:
             return self.is_modal
 
-        return super().on_touch_down(touch)    # type: ignore # pylint: disable=no-member # false positive
+        return super().on_touch_down(touch)    # type: ignore
 
     def on_touch_move(self, touch: MotionEvent) -> bool:
         """ touch move event handler. """
@@ -278,7 +278,7 @@ class ModalBehavior:                                                            
             return self.is_modal
 
         # noinspection PyUnresolvedReferences
-        return super().on_touch_move(touch)    # type: ignore # pylint: disable=no-member # false positive
+        return super().on_touch_move(touch)    # type: ignore
 
     def on_touch_up(self, touch: MotionEvent) -> bool:
         """ touch up event handler. """
@@ -286,7 +286,7 @@ class ModalBehavior:                                                            
             self.close()
         else:
             # noinspection PyUnresolvedReferences
-            super().on_touch_up(touch)      # type: ignore # pylint: disable=no-member # false positive
+            super().on_touch_up(touch)      # type: ignore
         self._touch_started_inside = None
         return True
 
@@ -294,7 +294,8 @@ class ModalBehavior:                                                            
         """ check if the touch pos is inside of this widget or a group of sub-widgets.
 
         :param pos:             touch position (x, y) in window coordinates.
-        :return:                True if this widget or group would process a touch event at :paramref:`.pos`.
+        :return:                True if this widget or group would process a touch event at the touch position specified
+                                in the :paramref:`~touch_pos_is_inside.pos` argument.
         """
         return self.collide_point(*pos)
 
@@ -308,6 +309,7 @@ class SlideSelectBehavior:                                                      
     `popup_kwargs` dict in the :meth:`~ae.gui_app.MainAppBase.change_flow` call, e.g. by adding the following lines in
     your kv code onto the :class:`~ae.kivy.widgets.FlowButton`/:class:`~ae.kivy.widgets.FlowToggler` that is opening
     the popup::
+
         on_long_tap:
             app.main_app.change_flow(id_of_flow('open', 'my_menu'),
             **update_tap_kwargs(self, popup_kwargs=dict(touch_event=args[1])))
@@ -332,7 +334,7 @@ class SlideSelectBehavior:                                                      
         self.main_app = App.get_running_app().main_app
 
         # noinspection PyUnresolvedReferences
-        super().__init__(**kwargs)      # pylint: disable=no-member
+        super().__init__(**kwargs)
 
     @staticmethod
     def _cancel_slide_select_closer(touch):
@@ -410,7 +412,7 @@ class SlideSelectBehavior:                                                      
                         return True
 
         # noinspection PyUnresolvedReferences
-        return super().on_touch_move(touch)     # type: ignore # pylint: disable=no-member
+        return super().on_touch_move(touch)     # type: ignore
 
     def on_touch_up(self, touch: MotionEvent) -> bool:
         """ disable long touch on mouse/finger up.
@@ -442,7 +444,7 @@ class SlideSelectBehavior:                                                      
                             break
 
         # noinspection PyUnresolvedReferences
-        return super().on_touch_up(touch)   # type: ignore # pylint: disable=no-member; does touch.ungrab(self)
+        return super().on_touch_up(touch)   # type: ignore # does touch.ungrab(self)
 
 
 class TouchableBehavior:                                                                        # pragma: no cover
@@ -500,7 +502,7 @@ class TouchableBehavior:                                                        
         self._state_shader_id: ShaderIdType = {}
 
         # noinspection PyUnresolvedReferences
-        super().__init__(**kwargs)      # pylint: disable=no-member
+        super().__init__(**kwargs)
 
         if self.down_shader is not None:
             self.down_shader = {'shader_code': '=fire_storm', 'render_shape': Ellipse,
@@ -551,7 +553,7 @@ class TouchableBehavior:                                                        
         # touch.grab(self, exclusive=True) #- commented because is already grabbed/exclusive prevents slide_select-menus
 
         # also dispatch as alternative tap
-        self.dispatch('on_alt_tap', touch)  # pylint: disable=no-member
+        self.dispatch('on_alt_tap', touch)
 
     def on_normal_shader(self, *_args):
         """ button normal state shader changed event handler. """
@@ -577,7 +579,6 @@ class TouchableBehavior:                                                        
 
             self._touch_anim = 0.0
             self._touch_x, self._touch_y = touch.pos
-            # pylint: disable=no-member # false positive
             Animation(_touch_anim=1.0, _touch_x=self.center_x, _touch_y=self.center_y, t='out_quad', d=0.69).start(self)
             is_triple = touch.is_triple_tap
             if is_triple or touch.is_double_tap:
@@ -592,7 +593,7 @@ class TouchableBehavior:                                                        
             self.main_app.play_sound('touched')
 
         # noinspection PyUnresolvedReferences
-        return super().on_touch_down(touch)  # type: ignore # pylint: disable=no-member; does touch.grab(self)
+        return super().on_touch_down(touch)  # type: ignore # does touch.grab(self)
 
     def on_touch_move(self, touch: MotionEvent) -> bool:
         """ disable long touch on mouse/finger moves.
@@ -606,7 +607,7 @@ class TouchableBehavior:                                                        
             self._cancel_long_touch_clock(touch)
 
         # noinspection PyUnresolvedReferences
-        return super().on_touch_move(touch)     # type: ignore # pylint: disable=no-member
+        return super().on_touch_move(touch)     # type: ignore
 
     def on_touch_up(self, touch: MotionEvent) -> bool:
         """ disable long touch on mouse/finger up.
@@ -621,7 +622,7 @@ class TouchableBehavior:                                                        
                 return True                     # prevent popup/dropdown dismiss
 
         # noinspection PyUnresolvedReferences
-        return super().on_touch_up(touch)   # type: ignore # pylint: disable=no-member; does touch.ungrab(self)
+        return super().on_touch_up(touch)   # type: ignore # does touch.ungrab(self)
 
     def on_triple_tap(self, touch: MotionEvent):
         """ triple tap/click default handler.
