@@ -190,7 +190,7 @@ class AbsolutePosSizeBinder:                                                    
                 parent = parent.parent
 
     def _propagate(self, wid, value, attributes, callbacks):
-        self.main_app.vpo(f"AbsolutePosSizeBinder._propagate({wid}, {value}, {attributes}, {callbacks})")
+        self.main_app.vpo(f"AbsolutePosSizeBinder._propagate({wid=}, {value=}, {attributes=}, {callbacks=})")
 
         for (target, attribute, converter) in attributes:
             setattr(target, attribute, converter(wid, value) if converter else value)
@@ -383,10 +383,27 @@ class FlowButton(HelpBehavior, SlideSelectBehavior, TouchableBehavior, ButtonBeh
 class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, SlideSelectBehavior, ReliefCanvas,
                    DropDown):  # pragma: no cover
     """ flow based widget class to implement dynamic menu-like user selections and toolbars. """
-    close_kwargs = DictProperty()               #: kwargs passed to all close action flow change event handlers
-    content = ObjectProperty()                  #: layout container
-    menu_items = ObjectProperty()               #: container/content children, like buttons, text inputs or sliders
-    parent_popup_to_close = ObjectProperty()    #: parent popup widget instance to be closed if this dropdown closes
+    close_kwargs = DictProperty()
+    """ kwargs passed to all close action flow change event handlers.
+
+    :attr:`close_kwargs` is a :class:`~kivy.properties.DictProperty`. the default depends the action of the penultimate
+    flow id in the :attr:`ae.gui_app.flow_path`: is empty or 'enter' dict then it defaults to an empty flow, else to an
+    empty dict.
+    """
+
+    content = ObjectProperty()
+    """ popup main content layout container, displayed as a child of the scrollable layout :attr:`container`.
+
+    :attr:`content` is an :class:`~kivy.properties.ObjectProperty` and has to be specified either in the kv language
+    as children or via the `content` kwarg.
+    """
+
+    menu_items = ObjectProperty()
+    """ sequence of the container/content widgets, like buttons, text inputs, sliders or the close button.
+
+    :attr:`menu_items` is an :class:`~kivy.properties.ObjectProperty` and includes by default the content widgets
+    as well as the close button of this popup.
+    """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -394,7 +411,7 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
 
     def __repr__(self):
         """ added for easier debugging. """
-        return f"{self.__class__.__name__}({hex(id(self))} close={self.close_kwargs} {self.parent_popup_to_close})"
+        return f"{self.__class__.__name__}({hex(id(self))} close={self.close_kwargs})"
 
     def _real_dismiss(self, *_args):
         """ overridden to ensure that return value of on_dismiss-dispatch get recognized. """
@@ -636,7 +653,7 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
         :param focus:           True if this text input got focus, False on unfocus.
         """
         flow_id = self.focus_flow_id if focus else self.unfocus_flow_id
-        self.main_app.vpo(f"{self}.on_focus {focus} -> {flow_id}")
+        self.main_app.vpo(f"{self}.on_focus {focus=} --> {flow_id=}")
         if flow_id:
             self.main_app.change_flow(flow_id)
 
@@ -776,12 +793,6 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
     :attr:`~kivy.core.window.Window.clearcolor` with an alpha of 0.6 (set in :meth:`.__init__`).
     """
 
-    parent_popup_to_close = ObjectProperty()
-    """ parent popup widget instance to be closed if this popup closes.
-
-    :attr:`parent_popup_to_close` is a :class:`~kivy.properties.ObjectProperty` and defaults to None.
-    """
-
     query_data_maps: List[Dict[str, Any]] = ListProperty()
     """ list of child data dicts to instantiate the query widgets (most likely :class:`FlowButton`) of this popup.
 
@@ -829,12 +840,13 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
         # noinspection PyTypeChecker
         self.relief_square_outer_lines = sp(9)
         self.separator_color = app.font_color
+        self.close_with_cancel = False
 
         super().__init__(**kwargs)
 
     def __repr__(self):
         """ added for easier debugging. """
-        return f"{self.__class__.__name__}({hex(id(self))} close={self.close_kwargs} {self.parent_popup_to_close})"
+        return f"{self.__class__.__name__}({hex(id(self))} close={self.close_kwargs})"
 
     def add_widget(self, widget: Widget, index: int = 0, canvas: Optional[str] = None):
         """ add container and content widgets.
@@ -848,22 +860,24 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
         if self.container:      # None until FlowPopup kv rule in widgets.kv is fully built (before user kv rule build)
             if self.content:
                 raise ValueError("FlowPopup has already a children, set via this method, kv or the content property")
-            self.main_app.vpo(f"FlowPopup: add content widget {widget} to container", index, canvas)
+            self.main_app.vpo(f"FlowPopup: add content {widget=} to {self.container=}; {index=} {canvas=}")
             self.container.add_widget(widget, index=index)  # ScrollView.add_widget does not have canvas parameter
             self.content = widget
             self.menu_items = widget.children + [self.ids.title_bar]
         else:
-            self.main_app.vpo(f"FlowPopup: add container {widget} from internal kv rule", index, canvas)
+            self.main_app.vpo(f"FlowPopup: add container {widget=} from internal kv rule {index=} {canvas=}")
             super().add_widget(widget, index=index, canvas=canvas)
 
-    def close(self, *_args, **kwargs):
+    def close(self, *args, **kwargs):
         """ close/dismiss container/layout (ae.gui_app popup handling compatibility for all GUI frameworks).
 
         .. note:: prevents close/dismiss of any dropdown/popup while clicking on help activator widget.
 
-        :param _args:           arguments (to have compatible signature for DropDown/Popup/ModalView widgets).
-        :param kwargs:          keyword arguments (compatible signature for DropDown/Popup/ModalView widgets).
+        :param args:            arguments (providing compatible signature for DropDown/Popup/ModalView/ModalBehavior).
+                                some like ModalBehavior passing the MotionEvent of the closing touch event.
+        :param kwargs:          keyword arguments (compatible signature for DropDown/Popup/ModalView/ModalBehavior).
         """
+        self.main_app.vpo(f"FlowPopup.close {args=} {kwargs=} {self.is_modal=}")
         if not self.is_modal:
             return
 
@@ -893,7 +907,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
 
     def on_content(self, _instance: Widget, value: Widget):
         """ optional single widget (to be added to the container layout) set directly or via FlowPopup kwargs. """
-        self.main_app.vpo(f"FlowPopup.on_content adding content {value} to container {self.container}")
+        self.main_app.vpo(f"FlowPopup.on_content adding content {value=} to {self.container=}")
         self.container.clear_widgets()
         self.container.add_widget(value)
 
@@ -914,12 +928,20 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
     def on_pre_open(self):
         """ pre open default event handler. """
 
+    def on_touch_up(self, touch: MotionEvent) -> bool:
+        """ touch up event handler. """
+        xt, yt = self.to_local(*touch.pos)
+        xw, yw = self.ids.title_bar.image_pos   # cancel 'button' widget (the Image within :class:`ImageLabel`) pos
+        w, h = self.ids.title_bar.image_size
+        self.close_with_cancel = xw <= xt <= xw + w and yw <= yt <= yw + h
+        return super().on_touch_up(touch)
+
     def open(self, *_args, **kwargs):
         """ start optional open animation after calling open method if exists in inheriting container/layout widget.
 
         :param _args:           unused argument (to have compatible signature for Popup/ModalView and DropDown
                                 widgets passing the parent widget).
-        :param kwargs:          extra arguments that are removed before to be passed to the inheriting open method:
+        :param kwargs:          optional arguments:
 
                                 * 'animation': `False` will disable the fade-in-animation (default=True).
         """
@@ -1003,12 +1025,6 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
 
     :attr:`overlay_color` is a :class:`~kivy.properties.ColorProperty` and defaults to the current color value
     :attr:`~kivy.core.window.Window.clearcolor` with an alpha of 0.6 (set in :meth:`.__init__`).
-    """
-
-    parent_popup_to_close = ListProperty([])
-    """ parent menu/popup widget instance to be closed if this menu closes.
-
-    :attr:`parent_popup_to_close` is a :class:`~kivy.properties.ListProperty` and defaults to an empty list.
     """
 
     radian_offset = NumericProperty(tau * 9.0 / 360.0)
@@ -1349,7 +1365,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
         """ display flow selector menu items, with animation and as a popup in modal mode.
 
         :param attach_to:       the widget to which this menu gets attached to.
-        :param kwargs:          extra arguments that are removed before to be passed to the inheriting open method:
+        :param kwargs:          optional arguments:
 
                                 * 'animation': `False` will disable the fade-in-animation (default=True).
         """

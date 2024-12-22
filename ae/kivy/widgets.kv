@@ -87,14 +87,13 @@
     ellipse_fill_ink: 1.0, 1.0, 1.0, 0.0
     ellipse_fill_pos: ()
     ellipse_fill_size: ()
-    image_pos: ()
     image_size: ()
-    secondary_pos: self.secondary_pos or self.pos
-    secondary_size: self.secondary_size or self.size
+    image_pos: ()
+    image_offset: 0.003, 0.003
     source: themeLabelImage.source
     square_fill_ink: 1.0, 1.0, 1.0, 0.0
-    square_fill_pos: ()
     square_fill_size: ()
+    square_fill_pos: ()
     color: app.font_color
     font_size: app.app_states['font_size']
     markup: True
@@ -105,20 +104,22 @@
         Color:
             rgba: self.square_fill_ink
         Rectangle:
-            pos: self.square_fill_pos or self.secondary_pos or self.pos
-            size: self.square_fill_size or self.secondary_size or self.size
+            pos: self.square_fill_pos or self.image_pos or self.pos
+            size: self.square_fill_size or self.image_size or self.size
         Color:
             rgba: self.ellipse_fill_ink
         Ellipse:
-            pos: self.ellipse_fill_pos or self.secondary_pos or self.pos
-            size: self.ellipse_fill_size or self.secondary_size or self.size
+            pos: self.ellipse_fill_pos or self.image_pos or self.pos
+            size: self.ellipse_fill_size or self.image_size or self.size
     Image:
         id: themeLabelImage
         source: root.source
         fit_mode: 'fill'    # allow_stretch: True; keep_ratio: False;  is deprecated since Kivy 2.2.0
         opacity: 0.69 if self.source else 0.0
-        pos: self.parent.image_pos or self.parent.secondary_pos or self.parent.pos
-        size: self.parent.image_size or self.parent.secondary_size or self.parent.size
+        pos:
+            (root.image_pos or root.pos)[0] + root.image_offset[0], \
+            (root.image_pos or root.pos)[1] + root.image_offset[1]
+        size: root.image_size or root.size
 
 
 <FlowInput>
@@ -139,8 +140,7 @@
         app.app_states['font_size'], app.app_states['light_theme'])
 
 <FlowDropDown>
-    close_kwargs:
-        {'flow_id': id_of_flow('', '')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
+    close_kwargs: {'flow_id': id_of_flow('')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
     auto_width: False
     # width determined by ContainerChildrenAutoWidthBehavior, so no need for: width: min(Window.width - sp(96), sp(960))
     canvas.before:
@@ -165,8 +165,7 @@
     size_hint: None, None
     width: min(max(title_bar.optimal_width or 90, body_box.optimal_width or 120), self._max_width)
     height: min(title_bar.height + root.separator_height + (body_box.optimal_height or 189), self._max_height)
-    close_kwargs:
-        {'flow_id': id_of_flow('', '')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
+    close_kwargs: {'flow_id': id_of_flow('')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
     canvas:
         Color:
             rgba: root.overlay_color[:3] + [root.overlay_color[-1] * self._anim_alpha]
@@ -186,21 +185,21 @@
             size: self.size
     PopupTitleBar:
         id: title_bar
-        tap_flow_id: id_of_flow('close', 'popup')
+        tap_flow_id: id_of_flow('close', 'popup')   # only for icon_name, closed via on_press: root.close()
         text: root.title
         text_size: None, app.button_height
         halign: 'center'
         padding: sp(12), sp(6)
-        secondary_size: self.height * 1.95, self.height
-        secondary_pos:
-            min(self.right - self.secondary_size[0] * 0.102, Window.width - self.secondary_size[0]), \
-            min(self.top - self.secondary_size[1] * 0.102, Window.height - self.secondary_size[1])
+        image_size: self.height * 1.95, self.height
+        image_pos:
+            min(self.right - self.image_size[0] * 0.102, Window.width - self.image_size[0]), \
+            min(self.top - self.image_size[1] * 0.102, Window.height - self.image_size[1])
         ellipse_fill_ink: 1.0, 0.0, 0.0, 0.69
-        relief_pos_size: (*self.secondary_pos, *self.secondary_size)
+        relief_pos_size: (*self.image_pos, *self.image_size)
         relief_ellipse_inner_colors: relief_colors()
         relief_ellipse_inner_lines: round(self.height / 3.6)
         optimal_width:
-            app.main_app.text_size_guess(root.title)[0] + self.secondary_size[0] / 2.1 + self.padding[0] * 2.1
+            app.main_app.text_size_guess(root.title)[0] + self.image_size[0] / 2.1 + self.padding[0] * 2.1
         size_hint_y: None
         height: app.main_app.font_size * 1.8 + self.padding[1] * 2.1 if root.title else 0
         on_press: root.close()
@@ -261,11 +260,10 @@
                 if not app.landscape and (container.optimal_height or query_box.optimal_height) else \
                 1.0 if self.children else 0.0
 
+
 <FlowSelector>
     tap_flow_id: id_of_flow('close', 'flow_popup')  # or id_of_flow('close', 'popup') to show standard close help text
-    tap_kwargs: {'popups_to_close': self.parent_popup_to_close}
-    close_kwargs:
-        {'flow_id': id_of_flow('', '')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
+    close_kwargs: {'flow_id': id_of_flow('')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
     size_hint_x: None
     ellipse_fill_ink: Window.clearcolor[:3] + [self._anim_alpha]
     relief_ellipse_outer_colors: relief_colors(self.ellipse_fill_ink)
