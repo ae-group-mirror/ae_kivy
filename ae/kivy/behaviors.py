@@ -283,7 +283,7 @@ class ModalBehavior:                                                            
     def on_touch_up(self, touch: MotionEvent) -> bool:
         """ touch up event handler. """
         if self.auto_dismiss and self._touch_started_inside is False:
-            self.close()
+            self.close(touch)
         else:
             # noinspection PyUnresolvedReferences
             super().on_touch_up(touch)      # type: ignore
@@ -550,7 +550,9 @@ class TouchableBehavior:                                                        
             self.state = 'normal'
 
         # to prevent dismiss via super().on_touch_up: exclusive receive of this touch up event in self.on_touch_up
-        # touch.grab(self, exclusive=True) #- commented because is already grabbed/exclusive prevents slide_select-menus
+        # later uncommented again, because long tap dropdowns did not stay open and selected menu item on slide to it
+        touch.grab(self, exclusive=True)  # was commented because already grabbed/exclusive prevents slide_select-menus
+        # touch.grab(self)   # without exclusive sub-menu gets selected on long touch release of dropdown-opening button
 
         # also dispatch as alternative tap
         self.dispatch('on_alt_tap', touch)

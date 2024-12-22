@@ -94,6 +94,20 @@ from .widgets import (
     ANI_SINE_DEEPER_REPEAT3, ERROR_VIBRATE_PATTERN, FlowPopup, MAIN_KV_FILE_NAME, Tooltip)
 
 
+def keyboard_command_key(win_inst: Any, key_code: int) -> str:
+    """ get keyboard command key from code, encapsulating in this function to make WindowX11 compatibl to WindowSDL2.
+
+    :param win_inst:            used Window instance (on linux either of WindowX11 or WindowSDL/2).
+    :param key_code:            key code to get the command key string for.
+    :return:                    command key string or empty string on X11 or if no command key was found.
+    """
+    try:    # when using X11 Window provider (to fix debugger mouse click locks issue #8273), ignore the AttributeError:
+        cmd_key = win_inst.command_keys.get(key_code, "")           # 'WindowX11' object has no attribute 'command_keys'
+    except:                     # noqa: E722
+        cmd_key = ""
+    return cmd_key
+
+
 class FrameworkApp(App):
     """ Kivy framework app class proxy redirecting events and callbacks to the main app class instance. """
 
@@ -143,27 +157,27 @@ class FrameworkApp(App):
         self.main_app.call_method('on_app_built')
         return root
 
-    def key_press_from_kivy(self, keyboard: Any, key_code: int, _scan_code: int, key_text: Optional[str],
+    def key_press_from_kivy(self, win_inst: Any, key_code: int, _scan_code: int, key_text: Optional[str],
                             modifiers: List[str]) -> bool:
         """ convert and redistribute key down/press events coming from Window.on_key_down.
 
-        :param keyboard:        used keyboard.
+        :param win_inst:        configured/used Window instance.
         :param key_code:        key code of pressed key.
-        :param _scan_code:      key scan code of pressed key.
+        :param _scan_code:      unused key scan code of pressed key.
         :param key_text:        key text of pressed key.
         :param modifiers:       list of modifier keys (including e.g. 'capslock', 'numlock', ...)
         :return:                True if key event got processed used by the app, else False.
         """
         return self.main_app.key_press_from_framework(
             "".join(_.capitalize() for _ in sorted(modifiers) if _ in ('alt', 'ctrl', 'meta', 'shift')),
-            keyboard.command_keys.get(key_code) or key_text or str(key_code))
+            keyboard_command_key(win_inst, key_code) or key_text or str(key_code))
 
-    def key_release_from_kivy(self, keyboard, key_code, _scan_code) -> bool:
+    def key_release_from_kivy(self, win_inst: Any, key_code: int, _scan_code: int) -> bool:
         """ key release/up event.
 
         :return:                return value of call to `on_key_release` (True if ke got processed/used).
         """
-        return self.main_app.call_method('on_key_release', keyboard.command_keys.get(key_code, str(key_code)))
+        return self.main_app.call_method('on_key_release', keyboard_command_key(win_inst, key_code) or str(key_code))
 
     def on_pause(self) -> bool:
         """ app pause event automatically saving the app states.
@@ -220,7 +234,10 @@ class FrameworkApp(App):
 
     def win_pos_size_change(self, *_):
         """ resize handler updates: :attr:`~ae.gui_app.MainAppBase.win_rectangle`, :attr:`~FrameworkApp.landscape`. """
-        self.main_app.win_pos_size_change(Window.left, Window.top, Window.width, Window.height)
+        try:  # ignore under Window provider X11 (instead of sdl2), used to fix debugger mouse click locks issue #8273
+            self.main_app.win_pos_size_change(Window.left, Window.top, Window.width, Window.height)
+        except:                         # noqa: E722
+            pass
 
 
 class KivyMainApp(HelpAppBase):
@@ -406,8 +423,18 @@ class KivyMainApp(HelpAppBase):
 
         if os_platform not in ('android', 'ios'):  # ignore last win pos on android/iOS, use always the full screen
             win_rect = self.win_rectangle or KivyMainApp.win_rectangle  # self val is empty tuple on first app start
-            Window.left, Window.top = win_rect[:2]
-            Window.size = win_rect[2:]
+            # although using KIVY_WINDOW=x11 (instead of the default: window_sdl2) fixes Kivy issue #8273, X11 throws
+            # on window position restore the exception: kivy/core/window/__init__.py", line 897, in _set_left
+            #     self._set_window_pos(value, pos[1])
+            # TypeError: 'NoneType' object is not subscriptable
+            try:
+                Window.left, Window.top = win_rect[:2]
+            except:                                         # noqa: E722
+                pass
+            try:
+                Window.size = win_rect[2:]
+            except:                                         # noqa: E722
+                pass
 
     def on_app_start(self):  # pragma: no cover
         """ app start event handler - triggered by FrameworkApp.on_start(). """
@@ -415,8 +442,8 @@ class KivyMainApp(HelpAppBase):
 
     def on_app_started(self):
         """ kivy :meth:`~kivy.app.App.on_start` event handler (called after on_app_build/on_app_built). """
-        super().on_app_started()    # check user registration/onboarding tour start in ae.gui_help.HelpAppBase
         self.vpo("KivyMainApp.on_app_started event handler called - calling ae.gui_help.HelpAppBase.on_app_started")
+        super().on_app_started()    # check user registration/onboarding tour start in ae.gui_help.HelpAppBase
 
     def on_app_stopped(self):
         """ kivy :meth:`~kivy.app.App.on_stop` event handler (called after on_app_stop). """
@@ -515,7 +542,7 @@ class KivyMainApp(HelpAppBase):
         """
         self.dpo(f"KivyMainApp.open_popup {popup_class} {popup_kwargs}")
 
-        # framework_win has absolute screen coordinates and lacks x, y properties, therefore use app.root as def opener
+        # use framework_win as opener default, having absolute screen coordinates (but lacks the x and y properties)
         opener = popup_kwargs.pop('opener', self.framework_win)
         popup_instance = popup_class(**popup_kwargs)
         popup_instance.open(opener)
