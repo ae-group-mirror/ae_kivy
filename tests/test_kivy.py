@@ -71,6 +71,7 @@ class KivyAppTest(KivyMainApp):
     """ kivy main app test implementation """
     app_state_list: list
     app_state_bool: bool
+    app_title: str
 
     on_init_called = None
     on_pause_called = None
@@ -80,7 +81,7 @@ class KivyAppTest(KivyMainApp):
     on_started_called = None
     on_stop_called = None
 
-    on_flow_id_called = False
+    on_flow_id_called = 0
     on_font_size_called = False
 
     on_key_press_called = False
@@ -126,8 +127,8 @@ class KivyAppTest(KivyMainApp):
         self.on_stop_called = datetime.datetime.now()
 
     def on_flow_id(self):
-        """ called from KivyMainApp """
-        self.on_flow_id_called = True
+        """ called from KivyMainApp.call_method_delayed() and KivyMainApp.call_method_repeatedly() """
+        self.on_flow_id_called += 1
 
     def on_font_size(self):
         """ called from KivyMainApp """
@@ -269,11 +270,11 @@ class TestHelperMethods:
 
     def test_call_method_delayed_valid_callback(self, restore_app_env):
         app = KivyAppTest()
-        assert not app.on_flow_id_called
+        assert app.on_flow_id_called == 0
         app.call_method_delayed(0.0, app.on_flow_id)
-        assert not app.on_flow_id_called
+        assert app.on_flow_id_called == 0
         Clock.tick()
-        assert app.on_flow_id_called
+        assert app.on_flow_id_called == 1
 
     def test_call_method_delayed_invalid_method(self, restore_app_env):
         app = KivyMainApp()
@@ -281,11 +282,39 @@ class TestHelperMethods:
 
     def test_call_method_delayed_valid_method(self, ini_file, restore_app_env):
         app = KivyAppTest(additional_cfg_files=(ini_file,))
-        assert not app.on_flow_id_called
+        assert app.on_flow_id_called == 0
         app.call_method_delayed(0.0, 'on_flow_id')
-        assert not app.on_flow_id_called
+        assert app.on_flow_id_called == 0
         Clock.tick()
-        assert app.on_flow_id_called
+        assert app.on_flow_id_called == 1
+
+    def test_call_method_repeatedly_invalid_callback(self, restore_app_env):
+        app = KivyMainApp()
+        app.call_method_repeatedly(0.0, app.__doc__)
+
+    def test_call_method_repeatedly_valid_callback(self, restore_app_env):
+        app = KivyAppTest()
+        assert app.on_flow_id_called == 0
+        app.call_method_repeatedly(0.0, app.on_flow_id)
+        assert app.on_flow_id_called == 0
+        Clock.tick()
+        assert app.on_flow_id_called == 1
+        Clock.tick()
+        assert app.on_flow_id_called > 1
+
+    def test_call_method_repeatedly_invalid_method(self, restore_app_env):
+        app = KivyMainApp()
+        app.call_method_repeatedly(0.0, 'invalid_method_name')
+
+    def test_call_method_repeatedly_valid_method(self, ini_file, restore_app_env):
+        app = KivyAppTest(additional_cfg_files=(ini_file,))
+        assert app.on_flow_id_called == 0
+        app.call_method_repeatedly(0.0, 'on_flow_id')
+        assert app.on_flow_id_called == 0
+        Clock.tick()
+        assert app.on_flow_id_called == 1
+        Clock.tick()
+        assert app.on_flow_id_called > 1
 
     def test_call_method_valid_method(self, ini_file, restore_app_env):
         app = KivyAppTest(additional_cfg_files=(ini_file,))
