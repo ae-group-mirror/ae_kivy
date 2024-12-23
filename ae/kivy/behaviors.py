@@ -17,9 +17,9 @@ this module provides the following behavior classes:
 help behaviour mixin
 ^^^^^^^^^^^^^^^^^^^^
 
-to show a i18n translatable help text for a Kivy widget create a subclass of the widget and add the mixin-/behavior-
-class :class:`~ae.kivy.behavior.HelpBehavior`. the following example is attaching a help text to the Kivy
-:class:`~kivy.uix.button.Button` widget::
+to show an i18n translatable help text for a Kivy widget create a subclass of the widget and add the
+mixin-/behavior-class :class:`~ae.kivy.behavior.HelpBehavior`. the following example is attaching a help text to the
+Kivy :class:`~kivy.uix.button.Button` widget::
 
     from kivy.uix.button import Button
     from ae.kivy.widgets import HelpBehavior

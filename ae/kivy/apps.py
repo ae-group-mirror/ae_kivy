@@ -95,15 +95,16 @@ from .widgets import (
 
 
 def keyboard_command_key(win_inst: Any, key_code: int) -> str:
-    """ get keyboard command key from code, encapsulating in this function to make WindowX11 compatibl to WindowSDL2.
+    """ get keyboard command key from code, encapsulating in this function to make WindowX11 compatible to WindowSDL2.
 
     :param win_inst:            used Window instance (on linux either of WindowX11 or WindowSDL/2).
     :param key_code:            key code to get the command key string for.
     :return:                    command key string or empty string on X11 or if no command key was found.
     """
+    # noinspection PyBroadException
     try:    # when using X11 Window provider (to fix debugger mouse click locks issue #8273), ignore the AttributeError:
         cmd_key = win_inst.command_keys.get(key_code, "")           # 'WindowX11' object has no attribute 'command_keys'
-    except:                     # noqa: E722
+    except:                                             # noqa: E722 # pragma: no cover
         cmd_key = ""
     return cmd_key
 
@@ -234,9 +235,10 @@ class FrameworkApp(App):
 
     def win_pos_size_change(self, *_):
         """ resize handler updates: :attr:`~ae.gui_app.MainAppBase.win_rectangle`, :attr:`~FrameworkApp.landscape`. """
+        # noinspection PyBroadException
         try:  # ignore under Window provider X11 (instead of sdl2), used to fix debugger mouse click locks issue #8273
             self.main_app.win_pos_size_change(Window.left, Window.top, Window.width, Window.height)
-        except:                         # noqa: E722
+        except:                                         # noqa: E722 # pragma: no cover
             pass
 
 
@@ -310,6 +312,19 @@ class KivyMainApp(HelpAppBase):
                                 the cancellation of the delayed call within the delay time.
         """
         return Clock.schedule_once(lambda dt: self.call_method(callback, *args, **kwargs), timeout=delay)
+
+    def call_method_repeatedly(self, interval: float, callback: Union[Callable, str], *args, **kwargs) -> Any:
+        """ repeated call of passed callable/method with args/kwargs catching and logging exceptions preventing app exit
+
+        :param interval:        interval in seconds between two calls of the callable/method specified by
+                                :paramref:`~call_method_repeatedly.callback`.
+        :param callback:        either callable or name of the main app method to call.
+        :param args:            args passed to the callable/main-app-method to be called.
+        :param kwargs:          kwargs passed to the callable/main-app-method to be called.
+        :return:                repeatedly call event object instance, providing a `cancel` method to allow
+                                the cancellation of the repeated call within the interval time.
+        """
+        return Clock.schedule_interval(lambda dt: self.call_method(callback, *args, **kwargs), timeout=interval)
 
     def change_light_theme(self, light_theme: bool):
         """ change font and window clear/background colors to match 'light'/'black' themes.
@@ -424,13 +439,15 @@ class KivyMainApp(HelpAppBase):
         if os_platform not in ('android', 'ios'):  # ignore last win pos on android/iOS, use always the full screen
             win_rect = self.win_rectangle or KivyMainApp.win_rectangle  # self val is empty tuple on first app start
             # although using KIVY_WINDOW=x11 (instead of the default: window_sdl2) fixes Kivy issue #8273, X11 throws
-            # on window position restore the exception: kivy/core/window/__init__.py", line 897, in _set_left
+            # on window position restore the exception: kivy/core/window/__init__.py, line 897, in _set_left
             #     self._set_window_pos(value, pos[1])
             # TypeError: 'NoneType' object is not subscriptable
+            # noinspection PyBroadException
             try:
                 Window.left, Window.top = win_rect[:2]
             except:                                         # noqa: E722
                 pass
+            # noinspection PyBroadException
             try:
                 Window.size = win_rect[2:]
             except:                                         # noqa: E722
