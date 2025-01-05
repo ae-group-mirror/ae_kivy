@@ -154,7 +154,7 @@ class ModalBehavior:                                                            
 
         canvas:
             Color:
-                rgba: root.my_overlay_color[:3] + [root.my_overlay_color[-1] if self.is_modal else 0]
+                rgba: root.my_overlay_color[:3] + [root.my_overlay_color[3] if self.is_modal else 0]
             Rectangle:
                 size: Window.size if self.is_modal else (0, 0)
 

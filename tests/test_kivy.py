@@ -8,12 +8,13 @@ from conftest import skip_gitlab_ci
 from unittest.mock import MagicMock, patch
 
 from kivy.base import stopTouchApp
+from kivy.core.clipboard import Clipboard
 from kivy.clock import Clock
 from kivy.lang import Builder, Observable
 from kivy.properties import BooleanProperty
 from kivy.uix.popup import Popup
 
-from ae.base import INI_EXT, TESTS_FOLDER, write_file
+from ae.base import INI_EXT, TESTS_FOLDER, read_file, write_file
 from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED, DEBUG_LEVEL_VERBOSE
 from ae.i18n import default_language
 from ae.gui_app import (
@@ -371,13 +372,13 @@ class TestHelperMethods:
         app = KivyMainApp()
         app.mix_background_ink()
         assert app.framework_app.mixed_back_ink[0] \
-            == (app.flow_id_ink[0] + app.flow_path_ink[0] + app.selected_item_ink[0] + app.unselected_item_ink[0]) / 4.0
+            == (app.flow_id_ink[0] + app.flow_path_ink[0] + app.selected_ink[0] + app.unselected_ink[0]) / 4.0
         assert app.framework_app.mixed_back_ink[1] \
-            == (app.flow_id_ink[1] + app.flow_path_ink[1] + app.selected_item_ink[1] + app.unselected_item_ink[1]) / 4.0
+            == (app.flow_id_ink[1] + app.flow_path_ink[1] + app.selected_ink[1] + app.unselected_ink[1]) / 4.0
         assert app.framework_app.mixed_back_ink[2] \
-            == (app.flow_id_ink[2] + app.flow_path_ink[2] + app.selected_item_ink[2] + app.unselected_item_ink[2]) / 4.0
+            == (app.flow_id_ink[2] + app.flow_path_ink[2] + app.selected_ink[2] + app.unselected_ink[2]) / 4.0
         assert app.framework_app.mixed_back_ink[3] \
-            == (app.flow_id_ink[3] + app.flow_path_ink[3] + app.selected_item_ink[3] + app.unselected_item_ink[3]) / 4.0
+            == (app.flow_id_ink[3] + app.flow_path_ink[3] + app.selected_ink[3] + app.unselected_ink[3]) / 4.0
 
     def test_play_beep(self, restore_app_env):
         app = KivyMainApp()
@@ -601,6 +602,23 @@ class TestEvents:
         key_code = 32
         app.framework_app.key_release_from_kivy(kbd, key_code, None)
         assert app.last_keys == (str(key_code), )
+
+    def test_on_credentials_import(self, restore_app_env):
+        old_content = Clipboard.paste()
+        assert not os.path.exists('.env')
+        app = KivyAppTest()
+        content = "credentials content\nwith multiple lines\nfor äÛß tests not has to be in the '.env file' format!"
+
+        try:
+            Clipboard.copy(content)
+            app.on_credentials_import("", {})
+            assert os.path.isfile('.env')
+            assert read_file('.env') == content
+
+        finally:
+            Clipboard.copy(old_content)
+            if os.path.exists('.env'):
+                os.remove('.env')
 
     def test_on_flow_widget_focused(self, restore_app_env):
         app = KivyAppTest()

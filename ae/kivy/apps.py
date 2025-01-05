@@ -69,6 +69,7 @@ from plyer import vibrator                                                      
 from kivy.app import App                                                                                # type: ignore
 from kivy.clock import Clock                                                                            # type: ignore
 from kivy.core.audio import SoundLoader                                                                 # type: ignore
+from kivy.core.clipboard import Clipboard                                                               # type: ignore
 from kivy.core.window import Window                                                                     # type: ignore
 from kivy.factory import Factory, FactoryException                                                      # type: ignore
 from kivy.metrics import dp                                                                             # type: ignore
@@ -79,12 +80,12 @@ from kivy.uix.popup import Popup                                                
 from kivy.uix.widget import Widget                                                                      # type: ignore
 from kivy.utils import escape_markup, get_hex_from_color                                                # type: ignore
 
-from ae.base import os_platform                                                                         # type: ignore
+from ae.base import os_platform, write_file                                                             # type: ignore
 from ae.files import CachedFile                                                                         # type: ignore
 from ae.paths import app_docs_path                                                                      # type: ignore
 from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                                                   # type: ignore
 from ae.gui_app import (                                                                                # type: ignore
-    APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE,
+    APP_STATE_SECTION_NAME, APP_STATE_VERSION_VAR_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE,
     THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR, THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR)
 from ae.gui_help import HelpAppBase                                                                     # type: ignore
 
@@ -283,7 +284,8 @@ class KivyMainApp(HelpAppBase):
             app_env_info['image_files'] = self.image_files
             app_env_info['sound_files'] = self.sound_files
 
-            app_states_data = {'app_state_version': self.app_state_version, 'app_state_keys': self.app_state_keys()}
+            app_states_data = {APP_STATE_VERSION_VAR_NAME: self.app_state_version,
+                               'app_state_keys': self.app_state_keys()}
             if self.verbose:
                 app_states_data["framework app states"] = self.framework_app.app_states
                 app_states_data['kbd_input_mode'] = self.kbd_input_mode
@@ -466,6 +468,20 @@ class KivyMainApp(HelpAppBase):
         """ kivy :meth:`~kivy.app.App.on_stop` event handler (called after on_app_stop). """
         self.vpo("KivyMainApp.on_app_stopped default/fallback event handler called")
 
+    def on_credentials_import(self, _flow_key: str, _event_kwargs: Dict[str, Any]):
+        """ import credentials from the Clipboard for user prefs debug menu item declared in UserPreferencesPopup.
+
+        :return:                None to reject the flow (valid credentials got imported by this callback method anyway).
+        """
+        cred = Clipboard.paste()
+        if cred:
+            self.vpo(f"KivyMainApp.on_credentials_import {len(cred)=}")
+            try:
+                write_file('.env', cred)
+                self.show_message("restart this app to use them", title="credentials imported")
+            except (FileExistsError, FileNotFoundError, OSError, PermissionError, ValueError, Exception) as ex:
+                self.po(f"KivyMainApp.on_credentials_import exception {ex=} on writing {os.getcwd()}/.env file")
+
     def on_flow_widget_focused(self):
         """ set focus to the widget referenced by the current flow id. """
         liw = self.widget_by_flow_id(self.flow_id)
@@ -497,11 +513,9 @@ class KivyMainApp(HelpAppBase):
         self.vpo(f"KivyMainApp.on_light_theme: theme got changed to {self.light_theme}")
         self.change_light_theme(self.light_theme)
 
-    def on_user_preferences_open(self, _flow_id: str, _event_kwargs: Dict[str, Any]) -> bool:
+    def on_user_preferences_open(self, _flow_key: str, _event_kwargs: Dict[str, Any]) -> bool:
         """ enable debug mode after clicking 3 times within 6 seconds.
 
-        :param _flow_id:        (unused).
-        :param _event_kwargs:   (unused).
         :return:                False for :meth:`~.on_flow_change` get called, opening user preferences popup.
         """
         def _timeout_reset(_dt: float):
@@ -515,7 +529,7 @@ class KivyMainApp(HelpAppBase):
             elif self._debug_enable_clicks == 1:
                 Clock.schedule_once(_timeout_reset, 6.0)
 
-        return False        # side-run:returning False (allowing user prefs dropdown to open)
+        return False        # side-run:returning False (allowing user prefs dropdown to be found and opened)
 
     def play_beep(self):
         """ make a short beep sound. """

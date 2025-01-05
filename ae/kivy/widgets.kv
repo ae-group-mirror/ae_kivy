@@ -53,7 +53,7 @@
             size: self.size
         StencilUse
         Color:
-            rgba: app.main_app.flow_id_ink[:3] + [1.0 - self._touch_anim]
+            rgba: app.main_app.flow_path_ink[:3] + [1.0 - self._touch_anim]
         Ellipse:
             pos:
                 round(self._touch_x - self.width * self._touch_anim / 2.01), \
@@ -168,7 +168,7 @@
     close_kwargs: {'flow_id': id_of_flow('')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
     canvas:
         Color:
-            rgba: root.overlay_color[:3] + [root.overlay_color[-1] * self._anim_alpha]
+            rgba: root.overlay_color[:3] + [root.overlay_color[3] * self._anim_alpha]
         Rectangle:
             size:
                 Window.width if self.is_modal else 0, \
@@ -298,11 +298,71 @@
     size_hint_x: None
     width: self.height
     source: app.main_app.img_file(self.icon_name, app.app_states['font_size'], app.app_states['light_theme'])
-    color: 0.999, 0.3 if app.tour_layout else 0.999, 0.0, 0.999
-    relief_square_inner_colors: relief_colors(self.color[:3] + [0.999 if app.help_layout or app.tour_layout else 0.0, ])
+    color: app.app_states['info_ink' if app.tour_layout else 'flow_path_ink']
+    relief_square_inner_colors:
+        relief_colors(self.color[:3] + [self.color[3] if app.help_layout or app.tour_layout else 0])
     relief_square_inner_lines: self.height * 0.39 * (0.999 - self.ani_value * 0.3)
     relief_square_inner_offset: self.height * 0.12 * self.ani_value
 
+
+<ConfirmationShowPopup>
+    guessed_text_size: app.main_app.text_size_guess(root.message)
+    optimal_content_width: max(inputPrompt.texture_size[0], self.guessed_text_size[0])
+    optimal_content_height: 3.9 * messageContainer.padding[1] + self.guessed_text_size[1] + app.button_height
+    query_data_maps:
+        [{'kwargs': {
+        'tap_flow_id': root.confirm_flow_id, \
+        'tap_kwargs': update_tap_kwargs(root.confirm_kwargs, popups_to_close=(root, )), \
+        'text': root.confirm_text, \
+        'relief_square_inner_colors': relief_colors(), \
+        'relief_square_inner_lines': sp(12), \
+        'relief_ellipse_inner_offset': -3, \
+        }}]
+    BoxLayout:
+        id: messageContainer
+        orientation: 'vertical'
+        padding: sp(12)
+        size_hint: None, None
+        size: root.optimal_content_width, root.optimal_content_height
+        ImageLabel:
+            id: inputPrompt
+            text: root.message
+            text_size: min(root._max_width, root.optimal_content_width), None
+            size_hint: None, None
+            size: self.texture_size
+
+<InputShowPopup>
+    guessed_text_size: app.main_app.text_size_guess(root.message)
+    optimal_content_width: max(inputPrompt.texture_size[0], self.guessed_text_size[0])
+    optimal_content_height:
+        2.1 * inputContainer.padding[1] \
+        + max(inputPrompt.texture_size[1], self.guessed_text_size[1]) \
+        + app.button_height
+    query_data_maps:
+        [{'kwargs': {
+        'tap_flow_id': id_of_flow('', root.confirm_flow_id, inputField.text), \
+        'tap_kwargs': update_tap_kwargs(root.confirm_kwargs, popups_to_close=(root, )), \
+        'text': root.confirm_text, \
+        'relief_square_inner_colors': relief_colors(), \
+        'relief_square_inner_lines': sp(9), \
+        'relief_ellipse_inner_offset': -1, \
+        }}]
+    BoxLayout:
+        id: inputContainer
+        orientation: 'vertical'
+        padding: sp(9)
+        size_hint: None, None
+        size: root.optimal_content_width, root.optimal_content_height
+        ImageLabel:
+            id: inputPrompt
+            text: root.message
+            text_size: min(root._max_width, root.optimal_content_width), None
+            size_hint: None, None
+            size: self.texture_size
+        FlowInput:
+            id: inputField
+            text: root.input_default
+            focus: True
 
 <MessageShowPopup>
     title: "error"              # _("error") overwrites title value specified as kwarg in self.__init__()
@@ -320,6 +380,7 @@
             size: msg_txt_box.size
             background_color: 0, 0, 0, 0
             on_release: root.close()
+
 
 <OptionalButton@FlowButton>
     visible: False
@@ -346,8 +407,8 @@
     always_overscroll: False        # workaround to kivy scrollview bug (viewport kept at bottom)
     ani_value: 0.999
     bar_width: 0 if root.tap_thru else sp(9)
-    bar_color: app.font_color[:3] + [0.69 * root.ani_value]
-    bar_inactive_color: app.font_color[:3] + [0.39 * root.ani_value]
+    bar_color: app.font_color[:3] + [app.font_color[3] * 0.69 * root.ani_value]
+    bar_inactive_color: app.font_color[:3] + [app.font_color[3] * 0.39 * root.ani_value]
     scroll_type: ['bars', 'content']
     size_hint: None, None
     width: min(help_label.width + root.bar_width, Window.width)
@@ -358,7 +419,7 @@
     tour_start_pos: root.x + root.width - root.tour_start_size[0] - sp(1), root.y + sp(1)
     canvas.before:
         Color:
-            rgba: Window.clearcolor[:3] + [root.ani_value if root.tap_thru else 0.999]
+            rgba: Window.clearcolor[:3] + [root.ani_value if root.tap_thru else Window.clearcolor[3]]
         RoundedRectangle:
             pos: root.pos
             size: root.size
@@ -579,7 +640,7 @@
     query_data_maps:
         [{'kwargs': {
         'tap_flow_id': id_of_flow('add', 'user', user_name_input.text), \
-        'tap_kwargs': update_tap_kwargs(self, popups_to_close=(root, )), \
+        'tap_kwargs': dict(popups_to_close=(root, )), \
         'text': _("add user"), \
         'relief_square_inner_colors': relief_colors(), \
         'relief_square_inner_lines': sp(12), \
