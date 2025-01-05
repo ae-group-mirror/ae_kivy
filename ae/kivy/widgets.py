@@ -92,7 +92,7 @@ import kivy.uix.textinput                                                       
 from kivy.uix.textinput import TextInput, TextInputCutCopyPaste as OriTextInputCutCopyPaste
 from kivy.uix.widget import Widget                                                                      # type: ignore
 
-from ae.gui_app import (  # type: ignore
+from ae.gui_app import (                                                                                # type: ignore
     ColorOrInk, ellipse_polar_radius, ensure_tap_kwargs_refs, id_of_flow, replace_flow_action, update_tap_kwargs)
 from ae.gui_help import (                                                                               # type: ignore
     anchor_layout_x, anchor_layout_y, anchor_points, anchor_spec, help_id_tour_class)
@@ -293,7 +293,7 @@ class AppStateSlider(HelpBehavior, ShadersMixin, Slider):                       
 
     def __str__(self):
         """ added for easier debugging. """
-        return f"{self.__class__.__name__}({hex(id(self))} sta={self.app_state_name} val={self.value})"
+        return f"{self.__class__.__name__}({hex(id(self))} {self.app_state_name=} {self.value=})"
 
     def on_value(self, *args):
         """ value changed event handler.
@@ -352,8 +352,8 @@ class ImageLabel(ReliefCanvas, ShadersMixin, Label):                            
     """
     def __repr__(self):
         """ added for easier debugging of :class:`FlowButton` and :class:`FlowToggler` widgets. """
-        flo = f" flo={self.tap_flow_id}" if hasattr(self, 'tap_flow_id') else ""
-        return f"{self.__class__.__name__}({hex(id(self))}{flo} txt={self.text})"
+        flo = f" {self.tap_flow_id=}" if hasattr(self, 'tap_flow_id') else ""
+        return f"{self.__class__.__name__}({hex(id(self))}{flo} {self.text=})"
 
 
 class FlowButton(HelpBehavior, SlideSelectBehavior, TouchableBehavior, ButtonBehavior, ImageLabel):  # pragma: no cover
@@ -411,7 +411,7 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
 
     def __repr__(self):
         """ added for easier debugging. """
-        return f"{self.__class__.__name__}({hex(id(self))} close={self.close_kwargs})"
+        return f"{self.__class__.__name__}({hex(id(self))} {self.close_kwargs=})"
 
     def _real_dismiss(self, *_args):
         """ overridden to ensure that return value of on_dismiss-dispatch get recognized. """
@@ -466,10 +466,10 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
         return super().on_touch_down(touch)
 
     def _reposition(self, *args):
-        """ fixing Dropdown bug - see issue #7382 and PR #7383. TODO: remove if PR gets merged and distributed. """
-        if self.attach_to and not self.attach_to.parent:
-            return
+        """ ensure animated small x coordinate displacement after reposition of the attach_to-widget/popup/dropdown. """
         super()._reposition(*args)
+        if self._win and self.attach_to and self.attach_to.get_parent_window():
+            Animation(x=min(self.x + sp(12), Window.width - self.width), t='in_out_sine', d=0.69).start(self)
 
 
 class ExtTextInputCutCopyPaste(OriTextInputCutCopyPaste):  # pragma: no cover
@@ -568,8 +568,7 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
 
     def __repr__(self):
         """ added for easier debugging. """
-        return f"{self.__class__.__name__}({hex(id(self))} {self.focus_flow_id} {self.unfocus_flow_id}" \
-               f" txt={self.text})"
+        return f"{self.__class__.__name__}({hex(id(self))} {self.focus_flow_id=} {self.unfocus_flow_id=} {self.text=})"
 
     def _change_selector_index(self, delta: int):
         """ change/update/set the index of the matching texts in the opened autocompletion dropdown.
@@ -620,7 +619,9 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
         :param modifiers:       list of modifier keys (pressed or locked).
         :return:                True if key event get processed/used by this method.
         """
+        self.main_app.vpo(f"{self}.keyboard_on_key_down {modifiers=} {keycode=} {text=}")
         key_name = keycode[1]
+
         if self._ac_dropdown.attach_to:
             if key_name in ('enter', 'right') and len(self._matching_ac_texts) > self._matching_ac_index:
                 # suggestion_text will be removed in Kivy 2.1.0 - see PR #7437
@@ -638,6 +639,14 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
 
         if key_name == 'insert' and 'ctrl' in modifiers:
             self.extend_ac_with_text()
+        elif key_name == 'enter' and not modifiers:                         # and isinstance(self, FlowInput):
+            parent = self.parent   # check if self.parent,parent.parent.parent is InputShowPopup
+            while parent and parent != (parent := getattr(parent, 'parent', None)):
+                if getattr(parent, 'enter_confirms', False):                # and isinstance(parent, InputShowPopup):
+                    btn_map = parent.query_data_maps[0]['kwargs']
+                    tap_flow_id, tap_kwargs = btn_map['tap_flow_id'], btn_map['tap_kwargs']
+                    self.main_app.change_flow(tap_flow_id, **tap_kwargs)
+                    return True
 
         return super().keyboard_on_key_down(window, keycode, text, modifiers)
 
@@ -835,7 +844,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
         self.fw_app = app = App.get_running_app()
         clr_ink = Window.clearcolor
         self.background_color = clr_ink
-        self.overlay_color = clr_ink[:3] + [0.6]
+        self.overlay_color = clr_ink[:3] + [0.69]
         self.relief_square_outer_colors = relief_colors(app.font_color)
         # noinspection PyTypeChecker
         self.relief_square_outer_lines = sp(9)
@@ -846,7 +855,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
 
     def __repr__(self):
         """ added for easier debugging. """
-        return f"{self.__class__.__name__}({hex(id(self))} close={self.close_kwargs})"
+        return f"{self.__class__.__name__}({hex(id(self))} {self.close_kwargs=})"
 
     def add_widget(self, widget: Widget, index: int = 0, canvas: Optional[str] = None):
         """ add container and content widgets.
@@ -1084,7 +1093,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
         # set default width and colors
         self.width = self.height * 2.1
         clr_ink = Window.clearcolor
-        self.overlay_color = clr_ink[:3] + [0.6]
+        self.overlay_color = clr_ink[:3] + [0.69]
         self.fw_app = app = App.get_running_app()   # self.main_app get initialized in SlideSelectBehavior.__init__()
         self.separator_color = app.font_color
 
@@ -1364,7 +1373,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
     def open(self, attach_to: Widget, **kwargs: Dict[str, Any]):
         """ display flow selector menu items, with animation and as a popup in modal mode.
 
-        :param attach_to:       the widget to which this menu gets attached to.
+        :param attach_to:       the widget to which this menu gets attached to (also called opener).
         :param kwargs:          optional arguments:
 
                                 * 'animation': `False` will disable the fade-in-animation (default=True).
@@ -1439,10 +1448,30 @@ class FlowToggler(HelpBehavior, SlideSelectBehavior, TouchableBehavior, ToggleBu
         self.main_app.change_flow(self.tap_flow_id, **self.tap_kwargs)
 
 
+class ConfirmationShowPopup(FlowPopup):
+    """ flow popup to display info a messages to be confirmed by the user. """
+    message = StringProperty()          #: popup window message text to display
+    title = StringProperty()            #: popup window title text to display
+    confirm_flow_id = StringProperty()  #: tap_flow_id of the confirm button
+    confirm_kwargs = DictProperty()     #: tap_kwargs dict of the confirm button
+    confirm_text = StringProperty()     #: confirm button text
+
+
+class InputShowPopup(FlowPopup):
+    """ flow popup to allow tht user to input a string. """
+    message = StringProperty()          #: popup window message text to display
+    title = StringProperty()            #: popup window title text to display
+    input_default = StringProperty()    #: initial/default input string
+    enter_confirms = BooleanProperty()  #: if enter key closes the popup confirming the input (default=True)
+    confirm_flow_id = StringProperty()  #: tap_flow_id of the confirm button
+    confirm_kwargs = DictProperty()     #: tap_kwargs dict of the confirm button
+    confirm_text = StringProperty()     #: confirm button text
+
+
 class MessageShowPopup(FlowPopup):
     """ flow popup to display info or error messages. """
-    message = StringProperty()  #: popup window message text to display
-    title = StringProperty()    #: popup window title text to display
+    message = StringProperty()          #: popup window message text to display
+    title = StringProperty()            #: popup window title text to display
 
 
 class Tooltip(ScrollView):                                                           # pragma: no cover
