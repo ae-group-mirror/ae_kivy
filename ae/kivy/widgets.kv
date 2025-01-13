@@ -139,6 +139,13 @@
         app.main_app.img_file(self.icon_name or flow_key_split(self.tap_flow_id)[0], \
         app.app_states['font_size'], app.app_states['light_theme'])
 
+<IconButton@FlowButton>
+    image_size: (round(app.app_states['font_size'] * 1.35), ) * 2
+    image_offset: (round(app.app_states['font_size'] * 0.12), ) * 2
+    ellipse_fill_size: self.image_size
+    ellipse_fill_pos: self.pos[0] + self.image_offset[0], self.pos[1] + self.image_offset[1]
+
+
 <FlowDropDown>
     close_kwargs: {'flow_id': id_of_flow('')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
     auto_width: False

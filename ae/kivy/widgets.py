@@ -1213,17 +1213,17 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
         def _size_space(blk_cnt: int = 2):
             siz = (mnu_w + chi_w * sca_x * shr_x * item_cnt * 0.3,
                    mnu_h + chi_h * sca_y * shr_y * item_cnt / (2 ** (2 - min(blk_cnt, 2))))
-            spa = [space - siz[_ % 2] for _, space in enumerate(available)]
-            blk = [_ < 0.0 for _ in spa]
+            spa = [_space - siz[_idx % 2] for _idx, _space in enumerate(available)]
+            blk = [_space < 0.0 for _space in spa]
             return siz, spa, blk, sum(blk)
 
         mnu_size, spaces, (blk_r, blk_t, blk_l, blk_b), block_cnt = _size_space()
         tries = 3
         while tries and ((shrink_x := blk_r and blk_l) + (shrink_y := blk_t and blk_b)):
             if shrink_x:
-                shr_x = tries * 0.3
+                shr_x = tries * 0.33
             if shrink_y:
-                shr_y = tries * 0.3
+                shr_y = tries * 0.33
             mnu_size, spaces, (blk_r, blk_t, blk_l, blk_b), block_cnt = _size_space(block_cnt)
             tries -= 1
         if blk_r and blk_l:
@@ -1271,12 +1271,21 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
 
         dur = self._anim_duration / 2
         center_x, center_y = self.center
+        pre_coord = {}
         for idx, item in enumerate(mnu_chi):                                # assert idx == item.child_index
             radian = self._start_radian + self._item_radian * idx
             distance = ellipse_polar_radius(ell_x, ell_y, radian)
             width, height = item.size
             pos_x = round(center_x + cos(radian) * distance - width / 2)
             pos_y = round(center_y + sin(radian) * distance - height / 2)
+
+            if pre_coord:   # detect and fix y-coordinate overlaps with previous child item
+                pre_y, pre_h = pre_coord['y'], pre_coord['height']
+                if pre_y > pos_y > pre_y - pre_h:       # if items are in 2nd or 3rd (left) quadrants
+                    pos_y = pre_y - pre_h
+                elif pos_y > pre_y > pos_y - height:    # items are in 1st or 4rd (right) quadrants
+                    pos_y = pre_y + height
+
             if pos_y < 0:
                 distance = ellipse_polar_radius(ell_x, ell_y + pos_y, radian)
                 pos_y = 0
@@ -1294,11 +1303,15 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
             item.menu_radian = radian
 
             ani = Animation(x=pos_x, y=pos_y, width=item.width, height=item.height, d=dur)
+            pre_coord = ani.animated_properties
             if item.x or item.y:
-                ani = Animation(center_x=center_x, center_y=center_y, width=9, height=9, d=dur / 2) + ani
+                # ani = Animation(center_x=center_x, center_y=center_y, width=99, height=99, d=dur / 3) + ani
+                # commented out because on heavy resize of the app window, the second animation gets not finished
+                pass
             else:
                 item.center = center_x, center_y
-                item.size = 9, 9
+                # item.size = 9, 9
+                # commented out because on heave win resize the last item keeps size=9,9 (continueing resizing)
             ani.bind(on_progress=self._item_moved)
             ani.start(item)
 
