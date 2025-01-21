@@ -11,30 +11,44 @@ extended to work with :ref:`app-state-variables`, e.g. to support app styles and
 user definable font sizes. some of them also change the :ref:`application flow`.
 
 by importing this module the following generic widgets will be registered in the kivy widget class factory maps,
-to be available in the kv language for your app:
+to be available in the kv language for your app (some of them implemented exclusively in pure kv lang within
+the `widgets.kv` file of this portion):
 
 * :class:`~ae.kivy.widgets.AppStateSlider`: extended version of :class:`~kivy.uix.slider.Slider`, changing the value of
   :ref:`app-state-variables`.
 * :class:`~ae.kivy.widgets.FlowButton`: button to change the application flow.
 * :class:`~ae.kivy.widgets.FlowDropDown`: attachable menu-like popup, based on :class:`~kivy.uix.dropdown.DropDown`.
-* :class:`~ae.kivy.widgets.FlowInput`: dynamic kivy widget based on :class:`~kivy.uix.textinput.TextInput` with
+* :class:`~ae.kivy.widgets.FlowInput`: text input widget based on :class:`~kivy.uix.textinput.TextInput` with
   application flow support.
-* :class:`~ae.kivy.widgets.FlowPopup`: dynamic auto-content-sizing popup to query user input or to show messages.
+* :class:`~ae.kivy.widgets.FlowPopup`: auto-content-sizing popup to query user input or to show messages.
 * :class:`~ae.kivy.widgets.FlowSelector`: attachable popup used for dynamic elliptic auto-spreading menus and toolbars.
 * :class:`~ae.kivy.widgets.FlowToggler`: toggle button based on :class:`~ae.kivy.widgets.ImageLabel` and
   :class:`~kivy.uix.behaviors.ToggleButtonBehavior` to change the application flow or any flag or application state.
 * :class:`~ae.kivy.widgets.HelpToggler` is a toggle button widget that switches the app's help and tour mode on and off.
-* :class:`~ae.kivy.widgets.ImageLabel`: dynamic kivy widget extending the Kivy :class:`~kivy.uix.label.Label` widget
+* IconButton: extended :class:`~ae.kivy.widgets.FlowButton` with an icon image, which can be placed relativly to the
+  button screen coordiantes.
+* :class:`~ae.kivy.widgets.ImageLabel`: label widget extending the Kivy :class:`~kivy.uix.label.Label` widget
   with an image.
 * :class:`~ae.kivy.widgets.MessageShowPopup`: simple message box widget based on :class:`~ae.kivy.widgets.FlowPopup`.
-* :class:`~ae.kivy.widgets.OptionalButton`: dynamic kivy widget based on :class:`~ae.kivy.widgets.FlowButton`
-  which can be dynamically hidden.
-* :class:`~ae.kivy.widgets.ShortenedButton`: dynamic kivy widget based on :class:`~ae.kivy.widgets.FlowButton`
-  shortening the button text.
+* OptionalButton: dynamically hidable button widget based on :class:`~ae.kivy.widgets.FlowButton`.
+* PopupTitleBar: a :class:`~ae.kivy.widgets.FlowButton` automatically displaying long button texts with an horizontal
+  auto-scroll (with the help of the :class:`~ae.kivy_auto_width.SimpleAutoTickerBehavior`).
+* PopupQueryBox: a :class:`~kivy.uix.stacklayout.StackLayout` supporting the dynamic creation of child widgets (with
+  the help of :class:`~ae.kivy_dyn_chi.DynamicChildrenBehavior`).
+* ReliefBox: a :class:`kivy.uix.boxlayout.BoxLayout` providing relief decorations (with the help of the
+  :class:`ae.kivy_relief_canvas.ReliefCanvas` mixin class).
+* ShortenedButton: button widget based on :class:`~ae.kivy.widgets.FlowButton`, which is automatically
+  shortening a long button text.
+* StopTourButton: a simple image button with relief canvas (with the help of the
+  :class:`ae.kivy_relief_canvas.ReliefCanvas` mixin class).
 * :class:`~ae.kivy.widgets.Tooltip` displays text blocks that are automatically positioned next to any
   widget to providing e.g. i18n context help texts or app tour/onboarding info.
-* :class:`~ae.kivy.widgets.UserNameEditorPopup`: popup window used e.g. to enter new user, finally registered in the
-  app config files.
+* SwitchPageButton:  simple button with relief canvas (provided by the
+  :class:`ae.kivy_relief_canvas.ReliefCanvas` mixin class) and OpenGL shader (via :class:`~ae.kivy_glsl.ShadersMixin`).
+* TourPageTexts: a :class:`kivy.uix.boxlayout.BoxLayout` providing relief decorations (with the help of the
+  :class:`ae.kivy_relief_canvas.ReliefCanvas` mixin class) and OpenGL shader (via :class:`~ae.kivy_glsl.ShadersMixin`).
+* UserNameEditorPopup: :class:`~ae.kivy.widgets.FlowPopup` widget used to enter an user name, to be registered in the
+  :ref:`app config files <config-files>`.
 
 
 tooltip popup to display context-sensitive help and app tour texts
@@ -980,7 +994,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
 
     this app flow based menu-like popup consists of a central button and animated elliptic-auto-spreading menu items.
 
-    any widget class can be used for the menu items of this class, although :class:`ShortenedButton`
+    any widget class can be used for the menu items of this class, although the ShortenedButton widget
     instances are best-prepared to auto-shorten the `text` property.
 
     :Events:
