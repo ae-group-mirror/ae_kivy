@@ -169,8 +169,9 @@ class ModalBehavior:                                                            
                     Window.height - app.main_app.help_activator.height if self.is_modal else 0
             Rectangle:
                 pos: app.main_app.help_activator.right, app.main_app.help_activator.y
-                width: Window.width - app.main_app.help_activator.width if self.is_modal else 0
-                height: app.main_app.help_activator.height
+                size:
+                    Window.width - app.main_app.help_activator.width if self.is_modal else 0, \
+                    app.main_app.help_activator.height
 
     """
     # abstracts provided by Kivy's :class:`~kivy.uix.widget.Widget` class or by the mixing-in container widget class.
