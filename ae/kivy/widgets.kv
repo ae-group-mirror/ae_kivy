@@ -7,7 +7,7 @@
 
 #: import Window kivy.core.window.Window
 
-#: import USER_NAME_MAX_LEN ae.gui_app.USER_NAME_MAX_LEN
+#: import USER_NAME_MAX_LEN ae.console.USER_NAME_MAX_LEN
 
 #: import anchor_points ae.gui_help.anchor_points
 #: import flow_action ae.gui_app.flow_action
@@ -174,8 +174,9 @@
     _max_width: Window.width - (root.side_spacing if app.landscape else 0)
     _max_height: Window.height - (0 if app.landscape else root.side_spacing)
     size_hint: None, None
-    width: min(max(title_bar.optimal_width or 90, body_box.optimal_width or 120), self._max_width)
-    height: min(title_bar.height + root.separator_height + (body_box.optimal_height or 189), self._max_height)
+    size:
+        min(max(title_bar.optimal_width or 90, body_box.optimal_width or 120), self._max_width), \
+        min(title_bar.height + root.separator_height + (body_box.optimal_height or 189), self._max_height)
     close_kwargs: {'flow_id': id_of_flow('')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
     canvas:
         Color:
@@ -229,13 +230,13 @@
             max(title_bar.optimal_width or 333,
             (container.optimal_width or 336) + (query_box.optimal_width or 0) if app.landscape else \
             max(container.optimal_width or 339, query_box.optimal_width or 0))
-        size_hint_x: None
-        width: min(self.optimal_width, root._max_width)
         optimal_height:
             max(container.optimal_height or 363, query_box.optimal_height or 0) if app.landscape else \
             (container.optimal_height or 369) + (query_box.optimal_height or 0)
-        size_hint_y: None
-        height: min(self.optimal_height, root._max_height - title_bar.height - root.separator_height)
+        size_hint: None, None
+        size:
+            min(self.optimal_width, root._max_width), \
+            min(self.optimal_height, root._max_height - title_bar.height - root.separator_height)
         ScrollView:
             id: container
             always_overscroll: False        # workaround to kivy scrollview bug (viewport kept at bottom)
@@ -396,8 +397,7 @@
 <OptionalButton@FlowButton>
     visible: False
     size_hint: None, None
-    height: app.button_height if self.visible else 0
-    width: self.height if self.visible else 0
+    size: self.height if self.visible else 0, app.button_height if self.visible else 0
     disabled: not self.visible
     opacity: 1 if self.visible else 0
 
@@ -422,8 +422,7 @@
     bar_inactive_color: app.font_color[:3] + [app.font_color[3] * 0.39 * root.ani_value]
     scroll_type: ['bars', 'content']
     size_hint: None, None
-    width: min(help_label.width + root.bar_width, Window.width)
-    height: min(help_label.height + root.bar_width, Window.height)
+    size: min(help_label.width + root.bar_width, Window.width), min(help_label.height + root.bar_width, Window.height)
     has_tour:
         getattr(root.targeted_widget, 'help_id', False) and help_id_tour_class(root.targeted_widget.help_id) or False
     tour_start_size: (app.main_app.font_size * 1.29, ) * 2 if root.has_tour else (0, 0)
@@ -650,7 +649,7 @@
     optimal_content_height: 2.1 * input_box.padding[0] + (1.2 if app.landscape else 2.1) * app.button_height
     query_data_maps:
         [{'kwargs': {
-        'tap_flow_id': id_of_flow('add', 'user', user_name_input.text), \
+        'tap_flow_id': id_of_flow('register', 'user', user_name_input.text), \
         'tap_kwargs': dict(popups_to_close=(root, )), \
         'text': _("add user"), \
         'relief_square_inner_colors': relief_colors(), \
