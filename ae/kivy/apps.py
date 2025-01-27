@@ -61,7 +61,6 @@ in the following order (the Kivy event/callback-method name is given in brackets
     * on_app_stopped (one clock tick after on_app_stop)
 
 """
-import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from plyer import vibrator                                                                              # type: ignore
@@ -80,13 +79,14 @@ from kivy.uix.popup import Popup                                                
 from kivy.uix.widget import Widget                                                                      # type: ignore
 from kivy.utils import escape_markup, get_hex_from_color                                                # type: ignore
 
-from ae.base import os_platform, write_file                                                             # type: ignore
+from ae.base import os_path_isfile, os_path_join, os_platform, write_file                               # type: ignore
 from ae.files import CachedFile                                                                         # type: ignore
 from ae.paths import app_docs_path                                                                      # type: ignore
 from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                                                   # type: ignore
 from ae.gui_app import (                                                                                # type: ignore
     APP_STATE_SECTION_NAME, APP_STATE_VERSION_VAR_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE,
-    THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR, THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR)
+    THEME_DARK_BACKGROUND_COLOR, THEME_DARK_FONT_COLOR, THEME_LIGHT_BACKGROUND_COLOR, THEME_LIGHT_FONT_COLOR,
+    id_of_flow)
 from ae.gui_help import HelpAppBase                                                                     # type: ignore
 
 from .i18n import get_txt
@@ -131,7 +131,7 @@ class FrameworkApp(App):
         self.main_app = main_app                            #: set reference to KivyMainApp instance
 
         self.title = main_app.app_title                     #: set kivy.app.App.title
-        self.icon = os.path.join("img", "app_icon.jpg")     #: set kivy.app.App.icon
+        self.icon = os_path_join("img", "app_icon.jpg")     #: set kivy.app.App.icon
         self.use_kivy_settings = main_app.debug             #: set kivy.app.App.use_kivy_settings
 
     def build(self) -> Widget:
@@ -264,7 +264,7 @@ class KivyMainApp(HelpAppBase):
         self.documents_root_path = app_docs_path()
 
         self.framework_app = framework_app_class(self)
-        if os.path.exists(MAIN_KV_FILE_NAME):
+        if os_path_isfile(MAIN_KV_FILE_NAME):
             self.framework_app.kv_file = MAIN_KV_FILE_NAME          # pylint: disable=W0201
 
         return self.framework_app.run, self.framework_app.stop
@@ -435,8 +435,8 @@ class KivyMainApp(HelpAppBase):
         get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
         Window.softinput_mode = self.kbd_input_mode
-        Window.minimum_width = self.get_var('win_min_width', default_value=405)
-        Window.minimum_height = self.get_var('win_min_height', default_value=303)
+        Window.minimum_size = (self.get_var('win_min_width', default_value=405),
+                               self.get_var('win_min_height', default_value=303))
 
         if os_platform not in ('android', 'ios'):  # ignore last win pos on android/iOS, use always the full screen
             win_rect = self.win_rectangle or KivyMainApp.win_rectangle  # self val is empty tuple on first app start
@@ -468,19 +468,53 @@ class KivyMainApp(HelpAppBase):
         """ kivy :meth:`~kivy.app.App.on_stop` event handler (called after on_app_stop). """
         self.vpo("KivyMainApp.on_app_stopped default/fallback event handler called")
 
-    def on_credentials_import(self, _flow_key: str, _event_kwargs: Dict[str, Any]):
-        """ import credentials from the Clipboard for user prefs debug menu item declared in UserPreferencesPopup.
+    def on_clipboard_file_save(self, file_path: str, _event_kwargs: Dict[str, Any]) -> bool:
+        """ debug event handler to check save of Clipboard content to specified file path.
 
-        :return:                None to reject the flow (valid credentials got imported by this callback method anyway).
+        :param file_path:       file name (with optional path relative to the app cwd).
+        :param _event_kwargs:   unused flow event kwargs.
+        :return:                True if file path in specified flow key is not empty, else False.
+
+        called from InputShowPopup opened from the user prefs debug menu item, declared in UserPreferencesPopup.
         """
-        cred = Clipboard.paste()
-        if cred:
-            self.vpo(f"KivyMainApp.on_credentials_import {len(cred)=}")
-            try:
-                write_file('.env', cred)
-                self.show_message("restart this app to use them", title="credentials imported")
-            except (FileExistsError, FileNotFoundError, OSError, PermissionError, ValueError, Exception) as ex:
-                self.po(f"KivyMainApp.on_credentials_import exception {ex=} on writing {os.getcwd()}/.env file")
+        if not file_path:
+            self.show_message(f"empty {file_path=}", title="incomplete data error")
+            return False
+
+        if os_path_isfile(file_path):
+            self.show_confirmation(f"¿overwrite existing {file_path=}?", title="file exists already",
+                                   confirm_flow_id=id_of_flow('confirmed', 'clipboard_file_save', file_path),
+                                   confirm_kwargs=dict(popups_to_close=('replace_with_data_map_popup', )))
+        else:
+            self.on_clipboard_file_save_confirmed(file_path, _event_kwargs)
+        return True
+
+    def on_clipboard_file_save_confirmed(self, file_path: str, _event_kwargs: Dict[str, Any]) -> bool:
+        """ save Clipboard content to specified file path relative to the cwd of the running app.
+
+        :param file_path:       file name (with optional path relative to the app cwd).
+        :param _event_kwargs:   unused flow event kwargs.
+        :return:                True if clipboard content is not empty and could be saved to file, else False.
+
+        called from on_clipboard_file_save directly or indirectly via :meth:`~ae.gui_app.MainAppBase.show_confirmation`.
+        use to store e.g. .ini or .env files into the current working directory (on Android the unaccessible `files/app`
+        folder within the app installation folder; prefix file path with `../app-name/` or `../` for files that have to
+        be kept on app update).
+        """
+        content = Clipboard.paste()
+        if not content:
+            self.show_message(f"empty clipboard {content=}", title="incomplete data error")
+            return False
+
+        self.vpo(f"KivyMainApp.on_clipboard_file_save {len(content)=} bytes to {file_path=}")
+        try:
+            write_file(file_path, content)
+            self.show_message("restart app to take affect", title="file saved")
+        except (FileExistsError, FileNotFoundError, OSError, PermissionError, ValueError, Exception) as ex:
+            self.po(f"KivyMainApp.on_clipboard_file_save exception {ex=} on writing to {file_path=}")
+            return False
+
+        return True
 
     def on_flow_widget_focused(self):
         """ set focus to the widget referenced by the current flow id. """

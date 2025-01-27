@@ -33,8 +33,8 @@ the `widgets.kv` file of this portion):
 * OptionalButton: dynamically hidable button widget based on :class:`~ae.kivy.widgets.FlowButton`.
 * PopupTitleBar: a :class:`~ae.kivy.widgets.FlowButton` automatically displaying long button texts with an horizontal
   auto-scroll (with the help of the :class:`~ae.kivy_auto_width.SimpleAutoTickerBehavior`).
-* PopupQueryBox: a :class:`~kivy.uix.stacklayout.StackLayout` supporting the dynamic creation of child widgets (with
-  the help of :class:`~ae.kivy_dyn_chi.DynamicChildrenBehavior`).
+* :class:`~ae.kivy.widgets.PopupQueryBox`: a :class:`~kivy.uix.stacklayout.StackLayout` supporting the dynamic creation
+  of child widgets (with the help of :class:`~ae.kivy_dyn_chi.DynamicChildrenBehavior`).
 * ReliefBox: a :class:`kivy.uix.boxlayout.BoxLayout` providing relief decorations (with the help of the
   :class:`ae.kivy_relief_canvas.ReliefCanvas` mixin class).
 * ShortenedButton: button widget based on :class:`~ae.kivy.widgets.FlowButton`, which is automatically
@@ -101,6 +101,7 @@ from kivy.uix.label import Label                                                
 from kivy.uix.relativelayout import RelativeLayout                                                      # type: ignore
 from kivy.uix.scrollview import ScrollView                                                              # type: ignore
 from kivy.uix.slider import Slider                                                                      # type: ignore
+from kivy.uix.stacklayout import StackLayout                                                            # type: ignore
 import kivy.uix.textinput                                                                               # type: ignore
 # noinspection PyProtectedMember
 from kivy.uix.textinput import TextInput, TextInputCutCopyPaste as OriTextInputCutCopyPaste
@@ -190,8 +191,8 @@ class AbsolutePosSizeBinder:                                                    
             uid = wid.fbind('size', self._wid_size_changed)
             self._bound_wid_properties.append((wid, 'size', uid))
 
-            parent = wid.parent
-            while parent and parent != parent.parent:
+            parent = wid
+            while parent != (parent := parent.parent) and parent:
                 if isinstance(parent, (ScrollView, RelativeLayout)) and parent not in self.relatives:
                     uid = parent.fbind('pos', self._rel_pos_changed)
                     self._bound_rel_properties.append((parent, 'pos', uid))
@@ -200,8 +201,6 @@ class AbsolutePosSizeBinder:                                                    
                     self._bound_rel_properties.append((parent, 'size', uid))
 
                     self.relatives.append(parent)
-
-                parent = parent.parent
 
     def _propagate(self, wid, value, attributes, callbacks):
         self.main_app.vpo(f"AbsolutePosSizeBinder._propagate({wid=}, {value=}, {attributes=}, {callbacks=})")
@@ -630,7 +629,7 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
         :param window:          keyboard window.
         :param keycode:         pressed key as tuple of (numeric key code, key name string).
         :param text:            pressed key value string.
-        :param modifiers:       list of modifier keys (pressed or locked).
+        :param modifiers:       list of modifier keys (pressed or locked like numlock and capslock).
         :return:                True if key event get processed/used by this method.
         """
         self.main_app.vpo(f"{self}.keyboard_on_key_down {modifiers=} {keycode=} {text=}")
@@ -653,9 +652,9 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
 
         if key_name == 'insert' and 'ctrl' in modifiers:
             self.extend_ac_with_text()
-        elif key_name == 'enter' and not modifiers:                         # and isinstance(self, FlowInput):
-            parent = self.parent   # check if self.parent,parent.parent.parent is InputShowPopup
-            while parent and parent != (parent := getattr(parent, 'parent', None)):
+        elif key_name == 'enter':                                           # and isinstance(self, FlowInput):
+            parent = self           # check if self.parent,parent.parent.parent is InputShowPopup
+            while parent != (parent := parent.parent) and parent:
                 if getattr(parent, 'enter_confirms', False):                # and isinstance(parent, InputShowPopup):
                     btn_map = parent.query_data_maps[0]['kwargs']
                     tap_flow_id, tap_kwargs = btn_map['tap_flow_id'], btn_map['tap_kwargs']
@@ -717,6 +716,22 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
         kivy.uix.textinput.TextInputCutCopyPaste = ExtTextInputCutCopyPaste
         super()._show_cut_copy_paste(*args, **kwargs)
         kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste
+
+
+class PopupQueryBox(DynamicChildrenBehavior, StackLayout):
+    """ container used by :class:`~ae.kivy.widgets.FlowPopup` to display dynamically created button/input widgets. """
+    def close(self, *args, **kwargs):
+        """ forward close/dismiss to parent FlowPopup instance for popups_to_close-'replace_with_data_map_popup' refs
+
+        :param args:            forwarded arguments (providing compatible signature for DropDown/Popup/ModalView/...).
+        :param kwargs:          forwarded keyword arguments (compatible signature for DropDown/Popup/ModalView/...).
+        """
+        parent = self           # check if self.parent,parent.parent.parent is FlowPopup
+        while parent != (parent := parent.parent) and parent:
+            if isinstance(parent, FlowPopup):
+                parent.close(*args, **kwargs)
+
+    dismiss = close     #: alias method of :meth:`~PopupQueryBox.close`
 
 
 class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, ReliefCanvas,

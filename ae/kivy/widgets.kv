@@ -244,11 +244,10 @@
             bar_color: app.font_color
             bar_inactive_color: app.font_color[:3] + [0.69]
             optimal_width: root.optimal_content_width
-            size_hint_x:
-                container.optimal_width / (container.optimal_width + query_box.optimal_width) \
-                if app.landscape and (container.optimal_width or query_box.optimal_width) else 1.0
             optimal_height: root.optimal_content_height
-            size_hint_y:
+            size_hint:
+                container.optimal_width / (container.optimal_width + query_box.optimal_width) \
+                if app.landscape and (container.optimal_width or query_box.optimal_width) else 1.0, \
                 container.optimal_height / (container.optimal_height + query_box.optimal_height) \
                 if not app.landscape and (container.optimal_height or query_box.optimal_height) else 1.0
         PopupQueryBox:
@@ -402,8 +401,6 @@
     opacity: 1 if self.visible else 0
 
 <PopupTitleBar@SimpleAutoTickerBehavior+FlowButton>
-
-<PopupQueryBox@DynamicChildrenBehavior+StackLayout>
 
 <ShortenedButton@FlowButton>
     size_hint_x: None
