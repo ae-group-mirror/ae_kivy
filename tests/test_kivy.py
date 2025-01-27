@@ -603,22 +603,23 @@ class TestEvents:
         app.framework_app.key_release_from_kivy(kbd, key_code, None)
         assert app.last_keys == (str(key_code), )
 
-    def test_on_credentials_import(self, restore_app_env):
+    def test_on_clipboard_file_save(self, restore_app_env):
         old_content = Clipboard.paste()
-        assert not os.path.exists('.env')
+        file_path = '.any_tst_file_name'
+        assert not os.path.isfile(file_path)
         app = KivyAppTest()
-        content = "credentials content\nwith multiple lines\nfor äÛß tests not has to be in the '.env file' format!"
+        content = "credentials content\nwith multiple lines\nfor äÛß tests not has to be in any 'special' format!"
 
         try:
             Clipboard.copy(content)
-            app.on_credentials_import("", {})
-            assert os.path.isfile('.env')
-            assert read_file('.env') == content
+            app.on_clipboard_file_save(file_path, {})
+            assert os.path.isfile(file_path)
+            assert read_file(file_path) == content
 
         finally:
             Clipboard.copy(old_content)
-            if os.path.exists('.env'):
-                os.remove('.env')
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
     def test_on_flow_widget_focused(self, restore_app_env):
         app = KivyAppTest()
