@@ -81,7 +81,7 @@ from kivy.utils import escape_markup, get_hex_from_color                        
 
 from ae.base import os_path_isfile, os_path_join, os_platform, write_file                               # type: ignore
 from ae.files import CachedFile                                                                         # type: ignore
-from ae.paths import app_docs_path                                                                      # type: ignore
+from ae.paths import app_docs_path, normalize                                                           # type: ignore
 from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                                                   # type: ignore
 from ae.gui_app import (                                                                                # type: ignore
     APP_STATE_SECTION_NAME, APP_STATE_VERSION_VAR_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE,
@@ -481,6 +481,7 @@ class KivyMainApp(HelpAppBase):
             self.show_message(f"empty {file_path=}", title="incomplete data error")
             return False
 
+        file_path = normalize(file_path)
         if os_path_isfile(file_path):
             self.show_confirmation(f"¿overwrite existing {file_path=}?", title="file exists already",
                                    confirm_flow_id=id_of_flow('confirmed', 'clipboard_file_save', file_path),
@@ -497,12 +498,12 @@ class KivyMainApp(HelpAppBase):
         :return:                True if clipboard content is not empty and could be saved to file, else False.
 
         called from on_clipboard_file_save directly or indirectly via :meth:`~ae.gui_app.MainAppBase.show_confirmation`.
-        use to store e.g. .ini or .env files into the current working directory (on Android the unaccessible `files/app`
+        use to store e.g. ini or env files into the current working directory (on Android the inaccessible `files/app`
         folder within the app installation folder; prefix file path with `../app-name/` or `../` for files that have to
         be kept on app update).
         """
         content = Clipboard.paste()
-        if not content:
+        if not content:                                                                             # pragma: no cover
             self.show_message(f"empty clipboard {content=}", title="incomplete data error")
             return False
 
@@ -510,7 +511,7 @@ class KivyMainApp(HelpAppBase):
         try:
             write_file(file_path, content)
             self.show_message("restart app to take affect", title="file saved")
-        except (FileExistsError, FileNotFoundError, OSError, PermissionError, ValueError, Exception) as ex:
+        except (FileExistsError, FileNotFoundError, OSError, PermissionError, Exception) as ex:     # pragma: no cover
             self.po(f"KivyMainApp.on_clipboard_file_save exception {ex=} on writing to {file_path=}")
             return False
 
@@ -631,7 +632,7 @@ class KivyMainApp(HelpAppBase):
             font_size = self.font_size
 
         char_width = font_size / 1.77
-        line_height = font_size * 1.2 if text else 0
+        line_height = font_size * 1.29 if text else 0
         max_width = lines_height = 0.0
         for line in text.split("\n"):
             line_width = len(line) * char_width

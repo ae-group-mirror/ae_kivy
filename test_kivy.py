@@ -1,0 +1,1 @@
+            assert counter == 3
