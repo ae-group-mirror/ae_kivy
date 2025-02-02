@@ -25,13 +25,13 @@ the `widgets.kv` file of this portion):
 * :class:`~ae.kivy.widgets.FlowToggler`: toggle button based on :class:`~ae.kivy.widgets.ImageLabel` and
   :class:`~kivy.uix.behaviors.ToggleButtonBehavior` to change the application flow or any flag or application state.
 * :class:`~ae.kivy.widgets.HelpToggler` is a toggle button widget that switches the app's help and tour mode on and off.
-* IconButton: extended :class:`~ae.kivy.widgets.FlowButton` with an icon image, which can be placed relativly to the
-  button screen coordiantes.
+* IconButton: extended :class:`~ae.kivy.widgets.FlowButton` with an icon image, which can be placed relatively to the
+  button screen coordinates.
 * :class:`~ae.kivy.widgets.ImageLabel`: label widget extending the Kivy :class:`~kivy.uix.label.Label` widget
   with an image.
 * :class:`~ae.kivy.widgets.MessageShowPopup`: simple message box widget based on :class:`~ae.kivy.widgets.FlowPopup`.
-* OptionalButton: dynamically hidable button widget based on :class:`~ae.kivy.widgets.FlowButton`.
-* PopupTitleBar: a :class:`~ae.kivy.widgets.FlowButton` automatically displaying long button texts with an horizontal
+* OptionalButton: dynamically hideable button widget based on :class:`~ae.kivy.widgets.FlowButton`.
+* PopupTitleBar: a :class:`~ae.kivy.widgets.FlowButton` automatically displaying long button texts with a horizontal
   auto-scroll (with the help of the :class:`~ae.kivy_auto_width.SimpleAutoTickerBehavior`).
 * :class:`~ae.kivy.widgets.PopupQueryBox`: a :class:`~kivy.uix.stacklayout.StackLayout` supporting the dynamic creation
   of child widgets (with the help of :class:`~ae.kivy_dyn_chi.DynamicChildrenBehavior`).
@@ -47,7 +47,7 @@ the `widgets.kv` file of this portion):
   :class:`ae.kivy_relief_canvas.ReliefCanvas` mixin class) and OpenGL shader (via :class:`~ae.kivy_glsl.ShadersMixin`).
 * TourPageTexts: a :class:`kivy.uix.boxlayout.BoxLayout` providing relief decorations (with the help of the
   :class:`ae.kivy_relief_canvas.ReliefCanvas` mixin class) and OpenGL shader (via :class:`~ae.kivy_glsl.ShadersMixin`).
-* UserNameEditorPopup: :class:`~ae.kivy.widgets.FlowPopup` widget used to enter an user name, to be registered in the
+* UserNameEditorPopup: :class:`~ae.kivy.widgets.FlowPopup` widget used to enter a username, to be registered in the
   :ref:`app config files <config-files>`.
 
 
@@ -496,7 +496,9 @@ class ExtTextInputCutCopyPaste(OriTextInputCutCopyPaste):  # pragma: no cover
         :meth:`TextInputCutCopyPaste.__init__`) results in the same instance (instead of the overwritten instance).
         """
         kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste
-        self.fw_app = App.get_running_app()
+        self.fw_app = app = App.get_running_app()
+
+        kwargs['arrow_image'] = app.main_app.img_file('bubble_arrow')
         super().__init__(**kwargs)
 
     def on_parent(self, instance: Widget, value: Widget):
@@ -505,13 +507,14 @@ class ExtTextInputCutCopyPaste(OriTextInputCutCopyPaste):  # pragma: no cover
         :param instance:        self.
         :param value:           kivy main window.
         """
-        super().on_parent(instance, value)
         textinput = self.textinput
+        self.fw_app.main_app.vpo(f"{self.__class__.__name__}.on_parent {instance=} {value=} {textinput=}")
         if not textinput:
-            return
+            return                              # shortcut: not calling super().on_parent() because does only return too
+        super().on_parent(instance, value)      # reset self.content.children
 
-        cont = self.content
         font_size = self.fw_app.main_app.font_size
+        cont = self.content
 
         for child in cont.children:
             child.font_size = font_size
@@ -519,18 +522,33 @@ class ExtTextInputCutCopyPaste(OriTextInputCutCopyPaste):  # pragma: no cover
 
         if not textinput.readonly:
             # memorize/forget complete text to/from autocomplete because dropdown is not visible if this bubble is
-            self.add_widget(BubbleButton(text=get_txt("Memorize"), font_size=font_size,
+            cont.add_widget(BubbleButton(text=get_txt("Memorize"), font_size=font_size,
                                          on_release=textinput.extend_ac_with_text))
-            self.add_widget(BubbleButton(text=get_txt("Forget"), font_size=font_size,
+            cont.add_widget(BubbleButton(text=get_txt("Forget"), font_size=font_size,
                                          on_release=textinput.delete_text_from_ac))
 
-        # estimate container size (exact calc not possible because button width / texture_size[0] is still 100 / 0)
-        width = cont.padding[0] + cont.padding[2] + len(cont.children) * (cont.spacing[0] + sp(126))
-        height = cont.padding[1] + cont.padding[3] + self.fw_app.button_height
+        # estimate container size (exact calc not possible because bubble button width/texture_size[0] is still 100/0)
+        bub_w = bub_h = 0.0
+        text_size_guess = self.fw_app.main_app.text_size_guess
+        bub_padding = cont.padding[0] + cont.padding[2], cont.padding[1] + cont.padding[3]
+        for bub in cont.children:
+            width, height = text_size_guess(bub.text, padding=bub_padding)
+            if width > bub_w:
+                bub_w = width
+            if height > bub_h:
+                bub_h = height
+
+        bub_w, bub_h = 2.1 * cont.spacing + bub_w, 2.1 * cont.spacing + 1.5 * bub_h
+        if self.fw_app.landscape:
+            width = cont.padding[0] + cont.padding[2] + len(cont.children) * bub_w
+            height = cont.padding[1] + cont.padding[3] + bub_h
+        else:
+            width = cont.padding[0] + cont.padding[2] + bub_w
+            height = cont.padding[1] + cont.padding[3] + len(cont.children) * bub_h
         self.size = width, height   # pylint: disable=attribute-defined-outside-init # false positive
 
 
-class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
+class FlowInput(HelpBehavior, ShadersMixin, ReliefCanvas, TextInput):  # pragma: no cover
     """ text input/edit widget with optional autocompletion.
 
     until version 0.1.43 of this portion the background and text color of :class:`FlowInput` did automatically
@@ -596,8 +614,6 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
             chi[idx].square_fill_ink = Window.clearcolor
             self._matching_ac_index = (idx + delta + cnt) % cnt
             chi[self._matching_ac_index].square_fill_ink = self.auto_complete_selector_index_ink
-            # suggestion_text will be removed in Kivy 2.1.0 - see PR #7437
-            # self.suggestion_text = self._matching_ac_texts[self._matching_ac_index][len(self.text):]  # type: ignore
 
     def _delete_ac_text(self, ac_text: str = ""):
         if not ac_text and self._matching_ac_texts:
@@ -701,8 +717,6 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
                 self.main_app.change_flow(replace_flow_action(self.focus_flow_id, 'suggest'))
                 self._ac_dropdown.open(self)
             self._change_selector_index(0)
-            # suggestion_text will be removed in Kivy 2.1.0 - see PR #7437
-            # self.suggestion_text = matching[self._matching_ac_index][len(self.text):]
         elif self._ac_dropdown.attach_to:
             self._ac_dropdown.close()
 
@@ -712,13 +726,18 @@ class FlowInput(HelpBehavior, ShadersMixin, TextInput):  # pragma: no cover
         self._ac_dropdown.close()
 
     def _show_cut_copy_paste(self, *args, **kwargs):    # pylint: disable=signature-differs
+        self.main_app.vpo(f"FlowInput._show_cut_copy_paste {args=} {kwargs=}")
         # monkey-patch kivy's built-in cut/copy/paste popup, will be reset also in ExtTextInputCutCopyPaste.__init_
         kivy.uix.textinput.TextInputCutCopyPaste = ExtTextInputCutCopyPaste
+
+        if 'pos_in_window' not in kwargs and kwargs.get('mode') == 'paste':
+            kwargs['pos_in_window'] = True              # ensure correct pos in long_touch/paste mode
         super()._show_cut_copy_paste(*args, **kwargs)
+
         kivy.uix.textinput.TextInputCutCopyPaste = OriTextInputCutCopyPaste
 
 
-class PopupQueryBox(DynamicChildrenBehavior, StackLayout):
+class PopupQueryBox(DynamicChildrenBehavior, StackLayout):                                          # pragma: no cover
     """ container used by :class:`~ae.kivy.widgets.FlowPopup` to display dynamically created button/input widgets. """
     def close(self, *args, **kwargs):
         """ forward close/dismiss to parent FlowPopup instance for popups_to_close-'replace_with_data_map_popup' refs
@@ -1312,7 +1331,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
                 pre_y, pre_h = pre_coord['y'], pre_coord['height']
                 if pre_y > pos_y > pre_y - pre_h:       # if items are in 2nd or 3rd (left) quadrants
                     pos_y = pre_y - pre_h
-                elif pos_y > pre_y > pos_y - height:    # items are in 1st or 4rd (right) quadrants
+                elif pos_y > pre_y > pos_y - height:    # items are in 1st or 4th (right) quadrants
                     pos_y = pre_y + height
 
             if pos_y < 0:
@@ -1340,7 +1359,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):         
             else:
                 item.center = center_x, center_y
                 # item.size = 9, 9
-                # commented out because on heave win resize the last item keeps size=9,9 (continueing resizing)
+                # commented out because on heave win resize the last item keeps size=9,9 (continuing resizing)
             ani.bind(on_progress=self._item_moved)
             ani.start(item)
 

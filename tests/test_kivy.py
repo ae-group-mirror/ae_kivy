@@ -444,13 +444,13 @@ class TestHelperMethods:
         app = KivyMainApp()
 
         assert app.text_size_guess("") == (0.0, 0.0)
-        assert app.text_size_guess("tst") == (3 * app.font_size / 1.77, app.font_size * 1.2)
-        assert app.text_size_guess("tst\nWWW") == (3 * app.font_size / 1.77, app.font_size * 2 * 1.2)
+        assert app.text_size_guess("tst") == (3 * app.font_size / 1.77, app.font_size * 1.29)
+        assert app.text_size_guess("tst\nWWW") == (3 * app.font_size / 1.77, app.font_size * 2 * 1.29)
 
         font_size = 99
         assert app.text_size_guess("", font_size=font_size) == (0.0, 0.0)
-        assert app.text_size_guess("tst", font_size=font_size) == (3 * font_size / 1.77, font_size * 1.2)
-        assert app.text_size_guess("tst\nWWW", font_size=font_size) == (3 * font_size / 1.77, font_size * 2 * 1.2)
+        assert app.text_size_guess("tst", font_size=font_size) == (3 * font_size / 1.77, font_size * 1.29)
+        assert app.text_size_guess("tst\nWWW", font_size=font_size) == (3 * font_size / 1.77, font_size * 2 * 1.29)
 
     def test_widget_children(self, restore_app_env):
         app = KivyMainApp()
@@ -606,13 +606,27 @@ class TestEvents:
     def test_on_clipboard_file_save(self, restore_app_env):
         old_content = Clipboard.paste()
         file_path = '.any_tst_file_name'
+        counter = 0
+        def inc_counter(*_args, **_kwargs):
+            nonlocal counter
+            counter += 1
+
         assert not os.path.isfile(file_path)
         app = KivyAppTest()
         content = "credentials content\nwith multiple lines\nfor äÛß tests not has to be in any 'special' format!"
 
         try:
+            app.show_message = inc_counter
+            assert app.on_clipboard_file_save("", {}) is False
+            assert counter == 1
+
+            app.show_confirmation = inc_counter
+            assert app.on_clipboard_file_save("test_kivy.py", {}) is True
+            assert counter == 2
+
             Clipboard.copy(content)
             app.on_clipboard_file_save(file_path, {})
+            assert counter == 3
             assert os.path.isfile(file_path)
             assert read_file(file_path) == content
 

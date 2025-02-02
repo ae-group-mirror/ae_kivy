@@ -30,7 +30,6 @@
 
 <ReliefBox@ReliefCanvas+BoxLayout>
 
-
 <HelpBehavior>
     help_id: ''
     # 'help_layout is not None' is needed because None is not allowed for boolean `help_lock` attribute/property
@@ -47,7 +46,6 @@
         Line:
             width: sp(3)
             rounded_rectangle: self.x + sp(3), self.y + sp(3), self.width - sp(6), self.height - sp(6), sp(12)
-
 
 <TouchableBehavior>
     canvas.after:
@@ -68,7 +66,6 @@
             pos: self.pos
             size: self.size
         StencilPop
-
 
 <AppStateSlider>
     help_id: id_of_state_help(self.app_state_name)
@@ -125,6 +122,38 @@
             (root.image_pos or root.pos)[1] + root.image_offset[1]
         size: root.image_size or root.size
 
+<-BubbleContent>
+    opacity: 0.69 if self.disabled else 0.96
+    orientation: 'horizontal' if app.landscape else 'vertical'
+    canvas:
+        Color:
+            rgba: Window.clearcolor
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<-BubbleButton>
+    # redefine all BubbleButton canvas instructions inherited Kivy Button and Label widgets for FlowInput
+    color: app.font_color
+    font_size: app.app_states['font_size']
+    canvas:
+        Color:
+            rgba: Window.clearcolor
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: app.font_color
+        Line:
+            width: sp(0.9)
+            rounded_rectangle: self.x, self.y, self.width, self.height, sp(9)
+        # redefine/customize Label&Button canvas to see/display text, and in black/dark color when light_theme is True
+        Color:
+            rgba: app.font_color
+        Rectangle:
+            texture: self.texture
+            size: self.texture_size
+            pos: int(self.center_x - self.texture_size[0] / 2.), int(self.center_y - self.texture_size[1] / 2.)
 
 <FlowInput>
     help_id: id_of_flow_help(self.focus_flow_id)
@@ -134,6 +163,8 @@
     write_tab: False
     use_bubble: True
     use_handles: True
+    relief_square_outer_colors: relief_colors((0.09, 0.09, 0.3))
+    relief_square_outer_lines: 6
 
 <FlowButton>
     help_id: id_of_flow_help(self.tap_flow_id)
@@ -149,6 +180,12 @@
     ellipse_fill_size: self.image_size
     ellipse_fill_pos: self.pos[0] + self.image_offset[0], self.pos[1] + self.image_offset[1]
 
+<OptionalButton@FlowButton>
+    visible: False
+    size_hint: None, None
+    size: self.height if self.visible else 0, app.button_height if self.visible else 0
+    disabled: not self.visible
+    opacity: 1.0 if self.visible else 0.0
 
 <FlowDropDown>
     close_kwargs: {'flow_id': id_of_flow('')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
@@ -271,7 +308,6 @@
                 if not app.landscape and (container.optimal_height or query_box.optimal_height) else \
                 1.0 if self.children else 0.0
 
-
 <FlowSelector>
     tap_flow_id: id_of_flow('close', 'flow_popup')  # or id_of_flow('close', 'popup') to show standard close help text
     close_kwargs: {'flow_id': id_of_flow('')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
@@ -315,7 +351,6 @@
     relief_square_inner_lines: self.height * 0.39 * (0.999 - self.ani_value * 0.3)
     relief_square_inner_offset: self.height * 0.12 * self.ani_value
 
-
 <ConfirmationShowPopup>
     guessed_text_size: app.main_app.text_size_guess(root.message)
     optimal_content_width: max(inputPrompt.texture_size[0], self.guessed_text_size[0])
@@ -333,8 +368,6 @@
         id: messageContainer
         orientation: 'vertical'
         padding: sp(12)
-        size_hint: None, None
-        size: root.optimal_content_width, root.optimal_content_height
         ImageLabel:
             id: inputPrompt
             text: root.message
@@ -362,8 +395,6 @@
         id: inputContainer
         orientation: 'vertical'
         padding: sp(9)
-        size_hint: None, None
-        size: root.optimal_content_width, root.optimal_content_height
         ImageLabel:
             id: inputPrompt
             text: root.message
@@ -391,14 +422,6 @@
             size: msg_txt_box.size
             background_color: 0, 0, 0, 0
             on_release: root.close()
-
-
-<OptionalButton@FlowButton>
-    visible: False
-    size_hint: None, None
-    size: self.height if self.visible else 0, app.button_height if self.visible else 0
-    disabled: not self.visible
-    opacity: 1 if self.visible else 0
 
 <PopupTitleBar@SimpleAutoTickerBehavior+FlowButton>
 
@@ -604,7 +627,7 @@
     orientation: 'horizontal' if app.landscape else 'vertical'
     size_hint_y: None
     relief_square_outer_lines: int(max(self.y, Window.height - self.top) * 0.69)
-    relief_square_inner_colors: relief_colors(app.font_color)
+    relief_square_inner_colors: relief_colors()
     relief_square_inner_offset: -1
     canvas.before:
         Color:
