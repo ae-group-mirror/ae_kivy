@@ -32,4 +32,15 @@ unit tests are currently still incomplete and need at least V 2.0 of OpenGL and 
 """
 
 
-__version__ = '0.3.120'
+from kivy.config import Config                                            # type: ignore
+
+from ae.base import os_platform                                           # type: ignore
+
+
+__version__ = '0.3.121'
+
+
+if os_platform == 'linux':    # remove Kivy's linux touchpad weirdness; see issue #5697
+    for option in Config.options('input'):
+        if Config.get('input', option) == 'probesysfs':
+            Config.remove_option('input', option)

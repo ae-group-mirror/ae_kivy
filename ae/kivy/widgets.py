@@ -754,7 +754,7 @@ class PopupQueryBox(DynamicChildrenBehavior, StackLayout):                      
 
 
 class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, ReliefCanvas,
-                BoxLayout):                                                                         # pragma: no cover
+                BoxLayout):  # pragma: no cover
     """ popup for dynamic and auto-sizing dialogs and other top-most or modal windows.
 
     the scrollable :attr:`container` (a :class:`~kivy.uix.scrollview.ScrollView` instance) can only have one child,

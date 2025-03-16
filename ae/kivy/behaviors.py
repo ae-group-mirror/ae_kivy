@@ -158,7 +158,7 @@ class ModalBehavior:                                                            
             Rectangle:
                 size: Window.size if self.is_modal else (0, 0)
 
-    two rectangles will be needed to not overlay/fade-out the help activator button:
+    two rectangles will be needed to not overlay/fade-out the help activator button::
 
         canvas:
             Color:
@@ -285,11 +285,12 @@ class ModalBehavior:                                                            
         """ touch up event handler. """
         if self.auto_dismiss and self._touch_started_inside is False:
             self.close(touch)
+            ret = True
         else:
             # noinspection PyUnresolvedReferences
-            super().on_touch_up(touch)      # type: ignore
+            ret = super().on_touch_up(touch)      # type: ignore
         self._touch_started_inside = None
-        return True
+        return ret
 
     def touch_pos_is_inside(self, pos: List[float]) -> bool:
         """ check if the touch pos is inside of this widget or a group of sub-widgets.
@@ -404,8 +405,9 @@ class SlideSelectBehavior:                                                      
                     touch.ud['slide_select_opener'] = slide_select_opener = partial(
                         self._grab_and_open, touch, col_items[0], None if foremost_popup else win_chi[0])
                     Clock.schedule_once(slide_select_opener, 0.39)
-                    return True
-                if foremost_popup:
+                    # return True   returning True prevents touch-initiated scrolls, e.g. in UserPrefs Colors dropdown
+
+                elif foremost_popup:
                     widgets = mnu_items + [self.attach_to if is_dropdown else self]
                     min_x, min_y, width, height = self.main_app.widgets_enclosing_rectangle(widgets)
                     if not (min_x <= touch.x <= min_x + width and min_y <= touch.y <= min_y + height):
@@ -474,7 +476,6 @@ class TouchableBehavior:                                                        
     del_shader: Callable
     disabled: bool
     dispatch: Callable
-    main_app: Any           # has to be initialized externally, e.g. by :class:`~ae.kivy.behaviors.SlideSelectBehavior`
     state: str
 
     # Kivy properties and events
@@ -505,13 +506,14 @@ class TouchableBehavior:                                                        
         # noinspection PyUnresolvedReferences
         super().__init__(**kwargs)
 
+        main_app = App.get_running_app().main_app
         if self.down_shader is not None:
             self.down_shader = {'shader_code': '=fire_storm', 'render_shape': Ellipse,
-                                'tint_ink': self.main_app.flow_path_ink}
+                                'tint_ink': main_app.flow_path_ink}
         if self.normal_shader is not None:
             self.normal_shader = {'shader_code': '=plunge_waves', 'render_shape': Ellipse, 'add_to': 'before',
                                   'alpha': 0.36, 'contrast': 0.09, 'tex_col_mix': 0.87,
-                                  'time': lambda: -Clock.get_boottime(), 'tint_ink': self.main_app.flow_id_ink}
+                                  'time': lambda: -Clock.get_boottime(), 'tint_ink': main_app.flow_id_ink}
 
     @staticmethod
     def _cancel_long_touch_clock(touch: MotionEvent) -> bool:
@@ -577,7 +579,8 @@ class TouchableBehavior:                                                        
         :return:                True if event got processed/used.
         """
         if not self.disabled and self.collide_point(touch.x, touch.y):
-            if self.main_app.tour_layout and self is not self.main_app.help_activator:
+            main_app = App.get_running_app().main_app
+            if main_app.tour_layout and self is not main_app.help_activator:
                 return True  # suppress on_release event if app tour is running (except for help activator button)
 
             self._touch_anim = 0.0
@@ -592,8 +595,8 @@ class TouchableBehavior:                                                        
             # pylint: disable=maybe-no-member
             touch.ud['long_touch_handler'] = long_touch_handler = lambda dt: self.dispatch('on_long_tap', touch)
             Clock.schedule_once(long_touch_handler, 0.99)
-            self.main_app.play_vibrate(TOUCH_VIBRATE_PATTERN)
-            self.main_app.play_sound('touched')
+            main_app.play_vibrate(TOUCH_VIBRATE_PATTERN)
+            main_app.play_sound('touched')
 
         # noinspection PyUnresolvedReferences
         return super().on_touch_down(touch)  # type: ignore # does touch.grab(self)

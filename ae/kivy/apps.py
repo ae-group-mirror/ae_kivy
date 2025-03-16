@@ -608,8 +608,8 @@ class KivyMainApp(HelpAppBase):
         """
         self.dpo(f"KivyMainApp.open_popup {popup_class} {popup_kwargs}")
 
-        # use framework_win as opener default, having absolute screen coordinates (but lacks the x and y properties)
-        opener = popup_kwargs.pop('opener', self.framework_win)
+        # use framework_root as opener default, having absolute screen coordinates (framework_win lacks pos property)
+        opener = popup_kwargs.pop('opener', self.framework_root)
         popup_instance = popup_class(**popup_kwargs)
         popup_instance.open(opener)
 
