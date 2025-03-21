@@ -61,10 +61,13 @@ in the following order (the Kivy event/callback-method name is given in brackets
     * on_app_stopped (one clock tick after on_app_stop)
 
 """
+import os
+
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from plyer import vibrator                                                                              # type: ignore
 
+from kivy import kivy_home_dir                                                                          # type: ignore
 from kivy.app import App                                                                                # type: ignore
 from kivy.clock import Clock                                                                            # type: ignore
 from kivy.core.audio import SoundLoader                                                                 # type: ignore
@@ -79,9 +82,9 @@ from kivy.uix.popup import Popup                                                
 from kivy.uix.widget import Widget                                                                      # type: ignore
 from kivy.utils import escape_markup, get_hex_from_color                                                # type: ignore
 
-from ae.base import os_path_isfile, os_path_join, os_platform, write_file                               # type: ignore
+from ae.base import os_path_basename, os_path_isfile, os_path_join, os_platform, write_file             # type: ignore
 from ae.files import CachedFile                                                                         # type: ignore
-from ae.paths import app_docs_path, normalize                                                           # type: ignore
+from ae.paths import PATH_PLACEHOLDERS, app_docs_path, copy_file, normalize, Collector                  # type: ignore
 from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                                                   # type: ignore
 from ae.gui_app import (                                                                                # type: ignore
     APP_STATE_SECTION_NAME, APP_STATE_VERSION_VAR_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE,
@@ -271,6 +274,11 @@ class KivyMainApp(HelpAppBase):
 
     # overwritten and helper methods
 
+    def _init_path_placeholders(self):
+        """ add Kivy-specific paths """
+        PATH_PLACEHOLDERS['khd'] = kivy_home_dir
+        super()._init_path_placeholders()
+
     def app_env_dict(self) -> Dict[str, Any]:
         """ collect run-time app environment data and settings.
 
@@ -301,6 +309,25 @@ class KivyMainApp(HelpAppBase):
             app_env_info['app states data'] = app_states_data
 
         return app_env_info
+
+    def backup_config_resources(self) -> str:   # pragma: no cover
+        """ backup kivy-specific config files and logs to {ado}<now_str>. """
+        backup_root = super().backup_config_resources()     # gui_app/MainAppBase backup also creates backup_root folder
+        backup_kivy_home_dir = os_path_join(backup_root, 'khdl')
+
+        try:
+            os.makedirs(backup_kivy_home_dir)
+
+            coll = Collector()
+            coll.collect("{khd}", append='config.ini', only_first_of=())    # 'config.ini' name set in kivy/__init__.py
+            coll.collect("{khd}/logs", append="*.txt", only_first_of=())    # .. 'logs' in kivy/config.py&kivy/logger.py
+            for file in coll.files:
+                copy_file(file, os_path_join(backup_kivy_home_dir, os_path_basename(file)))
+
+        except (PermissionError, Exception) as ex:
+            self.show_message(f"kivy-specific backup to '{backup_kivy_home_dir}' failed with exception '{ex}'")
+
+        return backup_root
 
     def call_method_delayed(self, delay: float, callback: Union[Callable, str], *args, **kwargs) -> Any:
         """ delayed call of passed callable/method with args/kwargs catching and logging exceptions preventing app exit.
@@ -468,6 +495,51 @@ class KivyMainApp(HelpAppBase):
         """ kivy :meth:`~kivy.app.App.on_stop` event handler (called after on_app_stop). """
         self.vpo("KivyMainApp.on_app_stopped default/fallback event handler called")
 
+    def on_clipboard_file_delete_confirmed(self, file_path: str, _event_kwargs: Dict[str, Any]) -> bool:
+        """ delete file at specified file path relative to the cwd (after user copyied 'DELETE_FILE' into Clipboard).
+
+        :param file_path:       file name to delete (with optional path relative to the CWD).
+        :param _event_kwargs:   unused flow event kwargs.
+        :return:                True if file could be deleted, else False.
+        """
+        try:
+            os.remove(file_path)
+            self.show_message(f"successfully deleted {file_path=}")
+        except (FileExistsError, FileNotFoundError, OSError, PermissionError, Exception) as ex:     # pragma: no cover
+            self.po(f"KivyMainApp.on_clipboard_file_delete_confirmed exception {ex=} on deletion of {file_path=}")
+            return False
+
+        return True
+
+    def on_clipboard_file_overwrite_confirmed(self, file_path: str, _event_kwargs: Dict[str, Any]) -> bool:
+        """ save Clipboard content to specified, and maybe existing, file path relative to the cwd of the running app.
+
+        :param file_path:       file name (with optional path relative to the CWD).
+        :param _event_kwargs:   unused flow event kwargs.
+        :return:                True if clipboard content is not empty and could be saved to file, else False.
+
+        called from on_clipboard_file_save directly or indirectly via :meth:`~ae.gui_app.MainAppBase.show_confirmation`.
+        use to store e.g. ini or env files into the current working directory (on Android the inaccessible `files/app`
+        folder within the app installation folder; prefix file path with `../app-name/` or `../` for files that have to
+        be kept on app update).
+        """
+        content = Clipboard.paste()
+        if not content or content == 'DELETE_FILE':     # pragma: no cover
+            self.show_message(f"wrong clipboard {content=}; expected nonempty content or 'DELETE_FILE' if file existed")
+            return False
+
+        self.vpo(f"KivyMainApp.on_clipboard_file_overwrite_confirmed {len(content)=} bytes to {file_path=}")
+        try:
+            write_file(file_path, content)
+            if file_path == self._main_cfg_fnam:
+                self.load_app_states()  # load app states from just overwritten main config file
+            self.show_message("restart app to take affect", title="file saved")
+        except (FileExistsError, FileNotFoundError, OSError, PermissionError, Exception) as ex:     # pragma: no cover
+            self.po(f"KivyMainApp.on_clipboard_file_overwrite_confirmed exception {ex=} on writing to {file_path=}")
+            return False
+
+        return True
+
     def on_clipboard_file_save(self, file_path: str, _event_kwargs: Dict[str, Any]) -> bool:
         """ debug event handler to check save of Clipboard content to specified file path.
 
@@ -483,37 +555,13 @@ class KivyMainApp(HelpAppBase):
 
         file_path = normalize(file_path)
         if os_path_isfile(file_path):
-            self.show_confirmation(f"¿overwrite existing {file_path=}?", title="file exists already",
-                                   confirm_flow_id=id_of_flow('confirmed', 'clipboard_file_save', file_path),
+            file_action = 'delete' if Clipboard.paste() == 'DELETE_FILE' else 'overwrite'
+            self.show_confirmation(f"¿{file_action} {file_path=}?",
+                                   title=f"confirm file {file_action}",
+                                   confirm_flow_id=id_of_flow('confirmed', f'clipboard_file_{file_action}', file_path),
                                    confirm_kwargs=dict(popups_to_close=('replace_with_data_map_popup', )))
         else:
-            self.on_clipboard_file_save_confirmed(file_path, _event_kwargs)
-        return True
-
-    def on_clipboard_file_save_confirmed(self, file_path: str, _event_kwargs: Dict[str, Any]) -> bool:
-        """ save Clipboard content to specified file path relative to the cwd of the running app.
-
-        :param file_path:       file name (with optional path relative to the app cwd).
-        :param _event_kwargs:   unused flow event kwargs.
-        :return:                True if clipboard content is not empty and could be saved to file, else False.
-
-        called from on_clipboard_file_save directly or indirectly via :meth:`~ae.gui_app.MainAppBase.show_confirmation`.
-        use to store e.g. ini or env files into the current working directory (on Android the inaccessible `files/app`
-        folder within the app installation folder; prefix file path with `../app-name/` or `../` for files that have to
-        be kept on app update).
-        """
-        content = Clipboard.paste()
-        if not content:                                                                             # pragma: no cover
-            self.show_message(f"empty clipboard {content=}", title="incomplete data error")
-            return False
-
-        self.vpo(f"KivyMainApp.on_clipboard_file_save {len(content)=} bytes to {file_path=}")
-        try:
-            write_file(file_path, content)
-            self.show_message("restart app to take affect", title="file saved")
-        except (FileExistsError, FileNotFoundError, OSError, PermissionError, Exception) as ex:     # pragma: no cover
-            self.po(f"KivyMainApp.on_clipboard_file_save exception {ex=} on writing to {file_path=}")
-            return False
+            self.on_clipboard_file_overwrite_confirmed(file_path, _event_kwargs)
 
         return True
 
