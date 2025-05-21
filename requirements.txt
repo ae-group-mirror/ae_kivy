@@ -5,8 +5,7 @@ ae_files
 ae_paths
 ae_i18n
 ae_core
-ae_gui_app
-ae_gui_help
+ae_gui
 ae_kivy_glsl
 ae_kivy_auto_width
 ae_kivy_dyn_chi
