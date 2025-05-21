@@ -9,23 +9,28 @@
 
 #: import USER_NAME_MAX_LEN ae.console.USER_NAME_MAX_LEN
 
-#: import anchor_points ae.gui_help.anchor_points
-#: import flow_action ae.gui_app.flow_action
-#: import flow_key ae.gui_app.flow_key
-#: import flow_key_split ae.gui_app.flow_key_split
-#: import flow_object ae.gui_app.flow_object
-#: import help_id_tour_class ae.gui_help.help_id_tour_class
-#: import id_of_flow ae.gui_app.id_of_flow
-#: import id_of_flow_help ae.gui_help.id_of_flow_help
-#: import id_of_state_help ae.gui_help.id_of_state_help
-#: import id_of_tour_help ae.gui_help.id_of_tour_help
-#: import replace_flow_action ae.gui_app.replace_flow_action
-#: import update_tap_kwargs ae.gui_app.update_tap_kwargs
-#: import widget_page_id ae.gui_help.widget_page_id
-
-#: import relief_colors ae.kivy_relief_canvas.relief_colors
-
-#: set HELP_COLOR (0.0, 0.69, 0.99)
+#: import COLOR_BLACK ae.gui.utils.COLOR_BLACK
+#: import COLOR_DARK_GREY ae.gui.utils.COLOR_DARK_GREY
+#: import COLOR_GREY ae.gui.utils.COLOR_GREY
+#: import COLOR_LIGHT_GREY ae.gui.utils.COLOR_LIGHT_GREY
+#: import COLOR_WHITE ae.gui.utils.COLOR_WHITE
+#: import anchor_points ae.gui.utils.anchor_points
+#: import brighten_color ae.gui.utils.brighten_color
+#: import complementary_color ae.gui.utils.complementary_color
+#: import darken_color ae.gui.utils.darken_color
+#: import flow_action ae.gui.utils.flow_action
+#: import flow_key ae.gui.utils.flow_key
+#: import flow_key_split ae.gui.utils.flow_key_split
+#: import flow_object ae.gui.utils.flow_object
+#: import help_id_tour_class ae.gui.utils.help_id_tour_class
+#: import id_of_flow ae.gui.utils.id_of_flow
+#: import id_of_flow_help ae.gui.utils.id_of_flow_help
+#: import id_of_state_help ae.gui.utils.id_of_state_help
+#: import id_of_tour_help ae.gui.utils.id_of_tour_help
+#: import relief_colors ae.gui.utils.relief_colors
+#: import replace_flow_action ae.gui.utils.replace_flow_action
+#: import update_tap_kwargs ae.gui.utils.update_tap_kwargs
+#: import widget_page_id ae.gui.utils.widget_page_id
 
 
 <ReliefBox@ReliefCanvas+BoxLayout>
@@ -37,12 +42,16 @@
     help_vars: {}
     canvas.after:
         Color:
-            rgba: HELP_COLOR + (0.24 if self.help_lock and self.width and self.height else 0, )
+            rgba:
+                app.main_app.help_ink[:3] + [app.main_app.help_ink[3] * 0.21 \
+                if self.help_lock and self.width and self.height else 0]
         Ellipse:
             pos: self.x + sp(9), self.y + sp(9)
             size: self.width - sp(18), self.height - sp(18)
         Color:
-            rgba: HELP_COLOR + (0.51 if self.help_lock and self.width and self.height else 0, )
+            rgba:
+                app.main_app.help_ink[:3] + [app.main_app.help_ink[3] * 0.51 \
+                if self.help_lock and self.width and self.height else 0]
         Line:
             width: sp(3)
             rounded_rectangle: self.x + sp(3), self.y + sp(3), self.width - sp(6), self.height - sp(6), sp(12)
@@ -85,16 +94,7 @@
             size: self.size
 
 <ImageLabel>
-    ellipse_fill_ink: 1.0, 1.0, 1.0, 0.0
-    ellipse_fill_pos: ()
-    ellipse_fill_size: ()
-    image_size: ()
-    image_pos: ()
-    image_offset: 0.003, 0.003
     source: themeLabelImage.source
-    square_fill_ink: 1.0, 1.0, 1.0, 0.0
-    square_fill_size: ()
-    square_fill_pos: ()
     color: app.font_color
     font_size: app.app_states['font_size']
     markup: True
@@ -163,8 +163,8 @@
     write_tab: False
     use_bubble: True
     use_handles: True
-    relief_square_outer_colors: relief_colors((0.09, 0.09, 0.3))
-    relief_square_outer_lines: 6
+    relief_square_inner_colors: relief_colors((0.09, 0.09, 0.3), sunken=True)
+    relief_square_inner_lines: sp(3)
 
 <FlowButton>
     help_id: id_of_flow_help(self.tap_flow_id)
@@ -243,7 +243,7 @@
         image_pos:
             min(self.right - self.image_size[0] * 0.102, Window.width - self.image_size[0]), \
             min(self.top - self.image_size[1] * 0.102, Window.height - self.image_size[1])
-        ellipse_fill_ink: 1.0, 0.0, 0.0, 0.69
+        ellipse_fill_ink: app.main_app.cancel_ink
         relief_pos_size: (*self.image_pos, *self.image_size)
         relief_ellipse_inner_colors: relief_colors()
         relief_ellipse_inner_lines: round(self.height / 3.6)
@@ -312,20 +312,20 @@
     tap_flow_id: id_of_flow('close', 'flow_popup')  # or id_of_flow('close', 'popup') to show standard close help text
     close_kwargs: {'flow_id': id_of_flow('')} if app.main_app.flow_path_action(path_index=-2) in ('', 'enter') else {}
     size_hint_x: None
-    ellipse_fill_ink: Window.clearcolor[:3] + [self._anim_alpha]
-    relief_ellipse_outer_colors: relief_colors(self.ellipse_fill_ink)
-    relief_ellipse_outer_lines: int(sp(6) * self._anim_alpha)
+    icon_name: 'close_popup'
+    ellipse_fill_ink: app.main_app.cancel_ink[:3] + [self._anim_alpha]
+    relief_ellipse_inner_colors: relief_colors(app.main_app.cancel_ink)
+    relief_ellipse_inner_lines: round(self.height / 6.9)
+    relief_ellipse_inner_offset: sp(3.9)
     canvas:
         Color:
             rgba: self.overlay_color[:3] + [self.overlay_color[-1] * self._anim_alpha]
         Rectangle:
-            size:
-                (Window.width, Window.height - app.main_app.help_activator.height) \
-                if self.is_modal else (0, 0)
+            size: (Window.width, app.main_app.help_activator.y) if self.is_modal else (0, 0)
         Rectangle:
             pos: app.main_app.help_activator.right, app.main_app.help_activator.y
             size:
-                (Window.width - app.main_app.help_activator.width, app.main_app.help_activator.height) \
+                (Window.width - app.main_app.help_activator.right, app.main_app.help_activator.height) \
                 if self.is_modal else (0, 0)
 
 <FlowToggler>
@@ -340,16 +340,47 @@
 <HelpToggler>
     icon_name:
         app.help_layout and 'help_icon' or \
-        not app.tour_layout and 'app_icon' in app.main_app.image_files and 'app_icon' or \
+        app.tour_layout and 'app_tour' or \
+        'app_icon' in app.main_app.image_files and 'app_icon' or \
         ''
     size_hint_x: None
     width: self.height
     source: app.main_app.img_file(self.icon_name, app.app_states['font_size'], app.app_states['light_theme'])
-    color: app.app_states['info_ink' if app.tour_layout else 'flow_path_ink']
+    color: app.main_app.cancel_ink if app.help_layout or app.tour_layout else app.main_app.info_ink
     relief_square_inner_colors:
-        relief_colors(self.color[:3] + [self.color[3] if app.help_layout or app.tour_layout else 0])
+        relief_colors(complementary_color(self.color[:3]) + [1 if app.help_layout or app.tour_layout else 0])
     relief_square_inner_lines: self.height * 0.39 * (0.999 - self.ani_value * 0.3)
-    relief_square_inner_offset: self.height * 0.12 * self.ani_value
+
+<HelpMenu>
+    item_angles: -12, -45
+    HelpButton:
+        label_text: _("help")
+        icon_name: 'help_icon'
+        on_press: root.close(), app.main_app.help_layout_activation()
+    HelpButton:
+        label_text: _("tour")
+        icon_name: 'app_tour'
+        on_press: root.close(); app.main_app.start_app_tour()
+
+<HelpButton@FlowButton>
+    label_text: ""
+    size: self.texture_size
+    image_size: self.size[1], self.height
+    # text: " " * 9 + self.label_text + " " * 3
+    text: app.main_app.width_spaces(self.size[1] + sp(24)) + self.label_text + app.main_app.width_spaces(sp(24))
+    canvas.before:
+        Color:
+            rgba: Window.clearcolor
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [15, 15, 15, 15]
+        Color:
+            rgba: app.main_app.info_ink
+        RoundedRectangle:
+            pos: self.pos[0] + self.size[1], self.pos[1]
+            size: self.size[0] - self.size[1], self.size[1]
+            radius: [3, 15, 15, 3]
 
 <ConfirmationShowPopup>
     guessed_text_size: app.main_app.text_size_guess(root.message)

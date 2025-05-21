@@ -14,19 +14,19 @@ the class :class:`~ae.kivy.tours.TourOverlay` is implementing an overlay layout 
 shaders, tour page texts, tooltip text and the navigation buttons of an active/running app tour.
 
 the :class:`~ae.kivy.tours.AnimatedTourMixin` can be mixed-into a tour class that inherits from
-:class:`~ae.gui_help.TourBase` to extend it with animation and glsl shader features.
+:class:`~ae.gui.tours.TourBase` to extend it with animation and glsl shader features.
 
-the class :class:`~ae.kivy.tours.AnimatedOnboardingTour` is based on :class:`~ae.gui_help.OnboardingTour` and
+the class :class:`~ae.kivy.tours.AnimatedOnboardingTour` is based on :class:`~ae.gui.tours.OnboardingTour` and
 :class:`~ae.kivy.tours.AnimatedTourMixin` to extend the generic app onboarding tour
-class with animations. it provides a generic app onboarding tour that covers the core features, that can be easily
+class with animations. it provides a generic app onboarding tour that covers the core features that can be easily
 extended with app-specific tour pages.
 
-to integrate a more app-specific onboarding tour into your app, simply declare a class with a name composed by the name
-of your app (:attr:`~ae.gui_app.MainAppBase.app_name`) in camel-case, followed by the suffix `'OnboardingTour'`.
+to integrate a more app-specific onboarding tour into your app, declare a class with a name composed by the name
+of your app (:attr:`~ae.gui.app.MainAppBase.app_name`) in camel-case, followed by the suffix `'OnboardingTour'`.
 """
 import traceback
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Optional, Type, Union
 
 # noinspection PyProtectedMember
 from kivy.animation import Animation, CompoundAnimation                                                 # type: ignore
@@ -41,14 +41,16 @@ from kivy.uix.widget import Widget                                              
 
 from ae.base import snake_to_camel                                                                      # type: ignore
 from ae.dynamicod import try_eval                                                                       # type: ignore
-from ae.gui_help import REGISTERED_TOURS, HelpAppBase, OnboardingTour, TourBase, help_id_tour_class     # type: ignore
+from ae.gui.utils import REGISTERED_TOURS, help_id_tour_class                                           # type: ignore
+from ae.gui.app import MainAppBase                                                                      # type: ignore
+from ae.gui.tours import OnboardingTour, TourBase                                                       # type: ignore
 from ae.kivy_glsl import ShaderIdType, ShadersMixin                                                     # type: ignore
 
 from .behaviors import ModalBehavior
 from .widgets import AbsolutePosSizeBinder
 
 
-PageAnimationType = Tuple[str, Union[Animation, str]]
+PageAnimationType = tuple[str, Union[Animation, str]]
 """ tuple of a widget id string and an :class:`~kivy.animation.Animation` instance/evaluation-expression.
 
     if the first character of the widget id is a `@` then the :attr:`~kivy.animation.Animation.repeat` attribute of
@@ -62,13 +64,13 @@ PageAnimationType = Tuple[str, Union[Animation, str]]
 
     alternative to an animation instance, a evaluation string can be specified. these evaluations allow to use the
     following globals: :class:`~kivy.animation.Animation` (also abbreviated as `A`), :class:`~kivy.clock.Clock`,
-    :attr:`~ae.gui_help.TourBase.layout`, :attr:`~kivy.metrics.sp`, :class:`~kivy.core.window.Window` and a
+    :attr:`~ae.gui.tours.TourBase.layout`, :attr:`~kivy.metrics.sp`, :class:`~kivy.core.window.Window` and a
     reference to the instance of this app tour via `tour`.
 """
 
-PageAnimationsType = Tuple[PageAnimationType, ...]  #: tuple of :data:`PageAnimationType` items
+PageAnimationsType = tuple[PageAnimationType, ...]  #: tuple of :data:`PageAnimationType` items
 
-WidgetValues = Dict[str, Union[list, tuple, dict, float]]
+WidgetValues = dict[str, Union[list, tuple, dict, float]]
 """ a key of this dict specifies the name, the dict value the value of a widget property/attribute. """
 
 
@@ -76,7 +78,7 @@ DEF_FADE_OUT_APP = 0.39                                             #: default o
 
 
 def ani_start_check(ani: Animation, wid: Widget):                                                   # pragma: no cover
-    """ start animation if needed else skip animation start.
+    """ start animation if needed, else skip animation start.
 
     :param ani:                 :class:`~kivy.animation.Animation` instance.
     :param wid:                 widget to start/skip the animation for.
@@ -111,29 +113,29 @@ def restore_widget_values(wid: Widget, values: WidgetValues):                   
 
 
 class AnimatedTourMixin:                                                                            # pragma: no cover
-    """ tour class mixin to add individual shaders to the tour layout and their children widgets. """
+    """ tour class mixin to add individual shaders to the tour layout and their child widgets. """
     # abstracts
     layout: Widget
     main_app: Any
-    page_ids: List[str]
+    page_ids: list[str]
     page_idx: int
     setup_texts: Callable
 
-    def __init__(self, main_app: HelpAppBase) -> None:
+    def __init__(self, main_app: MainAppBase) -> None:
         super().__init__(main_app)                                          # type: ignore
 
-        self._added_animations: List[Tuple[Widget, Animation, WidgetValues]] = []
-        self._added_shaders: List[Tuple[Widget, ShaderIdType]] = []
+        self._added_animations: list[tuple[Widget, Animation, WidgetValues]] = []
+        self._added_shaders: list[tuple[Widget, ShaderIdType]] = []
         self._explained_binder = AbsolutePosSizeBinder()
 
-        self.pages_animations: Dict[Optional[str], PageAnimationsType] = {}
+        self.pages_animations: dict[Optional[str], PageAnimationsType] = {}
         """ dict of compound animation instances of the pages of this tour.
 
         the key of this dict is the page id or None (for animations available in all pages of this tour).
         each value of this dict is of the type :data:`PageAnimationsType`.
         """
 
-        self.pages_shaders: Dict[Optional[str], Tuple[Tuple[str, ShaderIdType], ...]] = {}
+        self.pages_shaders: dict[Optional[str], tuple[tuple[str, ShaderIdType], ...]] = {}
         """ dict of widget shaders for the pages of this tour.
 
         the key of this dict is the page id or None (for shaders available in all pages of this tour).
@@ -148,11 +150,11 @@ class AnimatedTourMixin:                                                        
 
         before the add_shader()-kwargs dict will be passed to the :meth:`~ae.kivy_glsl.ShadersMixin.add_shader` method,
         all their non-string values, specifying as strings, will be evaluated/converted automatically. the evaluation
-        provides the following globals: :attr:`~ae.gui_help.TourBase.layout`, :attr:`~kivy.metrics.sp`,
+        provides the following globals: :attr:`~ae.gui.tours.TourBase.layout`, :attr:`~kivy.metrics.sp`,
         :class:`~kivy.clock.Clock`, :class:`~kivy.core.window.Window` and the `tour` instance.
         """
 
-        self.switch_next_animations: Dict[Optional[str], PageAnimationsType] = {}
+        self.switch_next_animations: dict[Optional[str], PageAnimationsType] = {}
         """ dict of compound animation instances for the next page switch transition of the pages of this tour.
 
         the key of this dict is the page id or None (for animations available in all pages of this tour).
@@ -162,7 +164,7 @@ class AnimatedTourMixin:                                                        
     def _add_animations(self, animations: PageAnimationsType):
         """ add animations to the tour page currently displayed in the tour layout/overlay.
 
-        :param animations:      tuple of tuples of widget id and animation instance/evaluation-string.
+        :param animations:      tuple of 2-element-tuples having widget id and animation instance/evaluation-string.
         :return:                length of the longest animation added (in seconds).
         """
         max_len = 0.0
@@ -173,6 +175,7 @@ class AnimatedTourMixin:                                                        
                 glo_vars = self.main_app.global_variables(layout=layout, sp=sp, tour=self,
                                                           A=Animation, Animation=Animation, Clock=Clock, Window=Window)
                 anim = try_eval(anim, glo_vars=glo_vars)
+
             if wid_id[0:1] == '@':
                 wid_id = wid_id[1:]
                 anim.repeat = True
@@ -181,8 +184,7 @@ class AnimatedTourMixin:                                                        
             anim.start(wid)
             added.append((wid, anim, start_values))
 
-            if anim.duration > max_len:
-                max_len = anim.duration
+            max_len = max(max_len, anim.duration)
 
         self._added_animations.extend(added)
 
@@ -222,7 +224,7 @@ class AnimatedTourMixin:                                                        
         return widgets
 
     def setup_page_shaders_and_animations(self):
-        """ setup shaders and animations of the current page.
+        """ set up shaders and animations of the current page.
 
         specified in :attr:`~AnimatedTourMixin.pages_shaders` and :attr:`~AnimatedTourMixin.pages_animations`.
         """
@@ -249,11 +251,11 @@ class AnimatedTourMixin:                                                        
         """ overridden to set up animations and shaders of the current tour page. """
         # noinspection PyUnresolvedReferences
         super().setup_layout()
-        Clock.tick()                # update position of explained widget
+        Clock.tick()                # update position of the explained widget
         self.setup_page_shaders_and_animations()
 
     def simulate_text_input(self, text_input: TextInput, text_to_delay: str,
-                            text_to_insert: str = "", deltas: Tuple[float, ...] = (1.8, 0.6, 0.3)):
+                            text_to_insert: str = "", deltas: tuple[float, ...] = (1.8, 0.6, 0.3)):
         """ simulate the typing of texts by a user entered into an explained TextInput widget of a tour page.
 
         :param text_input:      text input widget, either of type :class:`~kivy.textinput.TextInput` or
@@ -261,7 +263,7 @@ class AnimatedTourMixin:                                                        
         :param text_to_delay:   text string to be inserted delayed by the seconds specified in deltas[0].
         :param text_to_insert:  text string to be inserted directly into the passed text input widget.
         :param deltas:          delay deltas in seconds between each character to simulate text inputted by a user.
-                                first delta default is a bit higher to finish navigation button y-pos-animation.
+                                the first delta default is a bit higher to finish navigation button y-pos-animation.
         """
         if text_input.get_root_window():
             for char_to_insert in text_to_insert:
@@ -287,7 +289,7 @@ class AnimatedTourMixin:                                                        
         :param release_delay:   time in seconds of the button release simulation animation.
         :return:                compound animation instance simulating a tap.
 
-        .. note:: use as animation evaluation expression, to get the widget values on setup-time of the page (not tour).
+        .. note:: use as animation evaluation expression to get the widget values on setup-time of the page (not tour).
         """
         layout = self.layout
         if wid_id[0:1] == ':':
@@ -324,7 +326,7 @@ class AnimatedTourMixin:                                                        
         return ani
 
     def teardown_shaders_and_animations(self):
-        """ teardown all added shaders and animations of current tour page (including switch next page animations). """
+        """ tear down all added shaders and animations of the current tour page (including switch next page ani). """
         for wid, anim, start_values in reversed(self._added_animations):
             anim.stop(wid)
             restore_widget_values(wid, start_values)
@@ -335,7 +337,7 @@ class AnimatedTourMixin:                                                        
         self._added_shaders = []
 
     def teardown_app_flow(self):
-        """ overridden to teardown the animations of the current/last-shown tour page. """
+        """ overridden to tear down the animations of the current/last-shown tour page. """
         self.teardown_shaders_and_animations()
         # noinspection PyUnresolvedReferences
         super().teardown_app_flow()
@@ -343,7 +345,7 @@ class AnimatedTourMixin:                                                        
 
 class AnimatedOnboardingTour(AnimatedTourMixin, OnboardingTour):                                    # pragma: no cover
     """ onboarding tour, extended with animations and glsl shaders. """
-    def __init__(self, main_app: 'HelpAppBase') -> None:
+    def __init__(self, main_app: MainAppBase) -> None:
         super().__init__(main_app)
 
         self._bound = None
@@ -427,12 +429,12 @@ class AnimatedOnboardingTour(AnimatedTourMixin, OnboardingTour):                
         })
 
     def next_page(self):
-        """ overriding to remove next button size animation only visible in the first tour after app re/start. """
+        """ overriding to remove the next button size animation only visible in the first tour after app re/start. """
         layout = self.layout
         layout.ani_value = 0.0
         super().next_page()
         if self.last_page_id == '' and self.pages_animations.pop('', False):
-            Animation(font_size=layout.font_height).start(layout.ids.next_but)  # set font size back to original value
+            Animation(font_size=layout.font_height).start(layout.ids.next_but)  # set font size back to the original val
 
     def setup_layout(self):
         """ overridden to update layout texts if app window/screen orientation (app.landscape) changes. """
@@ -505,12 +507,12 @@ class TourOverlay(ModalBehavior, ShadersMixin, FloatLayout):                    
     """
 
     tour_instance = ObjectProperty()
-    """ holding the :class:`~ae.gui_help.TourBase` instance of the current tour, initialized by :meth:`.start_tour`.
+    """ holding the :class:`~ae.gui.tours.TourBase` instance of the current tour, initialized by :meth:`.start_tour`.
 
     :attr:`tour_instance` is a :class:`~kivy.properties.ObjectProperty` and is read-only.
     """
 
-    def __init__(self, main_app: HelpAppBase, tour_class: Optional[Type[TourBase]] = None, **kwargs):
+    def __init__(self, main_app: MainAppBase, tour_class: Optional[Type[TourBase]] = None, **kwargs):
         """ prepare app and tour overlay (singleton instance of this class) to start tour.
 
         :param main_app:        main app instance.
@@ -521,24 +523,24 @@ class TourOverlay(ModalBehavior, ShadersMixin, FloatLayout):                    
 
         self._tooltip_animation = None
         self.auto_dismiss = False
-        self.explained_widget = main_app.help_activator             # assign dummy init widget to prevent None errors
+        self.explained_widget = main_app.help_activator             # assign a fake init widget to prevent None errors
 
         super().__init__(**kwargs)
 
         if main_app.help_layout:
-            main_app.help_activation_toggle()   # deactivate help mode if activated
+            main_app.help_activation_toggle()                       # deactivate help mode if activated
 
         self.start_tour(tour_class)
 
     def next_page(self):
-        """ switch to next tour page. """
+        """ switch to the next tour page. """
         self.main_app.vpo("TourOverlay.next_page")
         self.navigation_disabled = True
         self.tour_instance.cancel_auto_page_switch_request()
         self.tour_instance.next_page()
 
     def on_navigation_disabled(self, *_args):
-        """ navigation button disabled change event, used to hide page texts (blend-in-anim in page_updated()). """
+        """ handle the navigation button disable change event to hide page texts (blend-in-anim in page_updated()). """
         if self.navigation_disabled:
             ani = Animation(opacity=0.123, d=0.6)
             ids = self.ids
@@ -573,7 +575,7 @@ class TourOverlay(ModalBehavior, ShadersMixin, FloatLayout):                    
         self.navigation_disabled = False
 
     def prev_page(self):
-        """ switch to previous tour page. """
+        """ switch to the previous tour page. """
         self.main_app.vpo("TourOverlay.prev_page")
         self.navigation_disabled = True
         self.tour_instance.cancel_auto_page_switch_request()
@@ -583,7 +585,7 @@ class TourOverlay(ModalBehavior, ShadersMixin, FloatLayout):                    
         """ reset app state and prepare tour to start.
 
         :param tour_cls:        optional tour (pages) class, default: tour of currently shown help id or OnboardingTour.
-        :return:                True if tour exists and got started.
+        :return:                a boolean True value if tour exists and got started, else False.
         """
         main_app = self.main_app
         if not tour_cls:
@@ -598,7 +600,7 @@ class TourOverlay(ModalBehavior, ShadersMixin, FloatLayout):                    
             self.tour_instance = tour_instance = tour_cls(main_app)     # initialize tour instance
             tour_instance.start()                                       # start tour
             main_app.help_activator.ani_start()
-        except Exception as ex:
+        except Exception as ex:                                         # pylint: disable=broad-exception-caught
             main_app.po(f"TourOverlay.start_tour exception {ex}")
             traceback.print_exc()
             main_app.help_activator.ani_stop()

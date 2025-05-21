@@ -17,9 +17,9 @@ from kivy.uix.popup import Popup
 from ae.base import INI_EXT, TESTS_FOLDER, read_file, write_file
 from ae.core import DEBUG_LEVEL_DISABLED, DEBUG_LEVEL_ENABLED, DEBUG_LEVEL_VERBOSE
 from ae.i18n import default_language
-from ae.gui_app import (
-    APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE, flow_key, id_of_flow, replace_flow_action,
-    MainAppBase)
+from ae.gui.utils import (
+    APP_STATE_SECTION_NAME, MAX_FONT_SIZE, MIN_FONT_SIZE, flow_key, id_of_flow, replace_flow_action)
+from ae.gui.app import MainAppBase
 
 from ae.kivy.i18n import get_txt
 from ae.kivy.widgets import (
@@ -52,7 +52,7 @@ Builder.load_string(MAIN_KV_LAYOUT)
 
 @pytest.fixture
 def ini_file(restore_app_env):
-    """ provide test config file """
+    """ provide a test config file """
     fn = "tests/tst" + INI_EXT
     with open(fn, 'w') as file_handle:
         file_handle.write(f"[{APP_STATE_SECTION_NAME}]\n")
@@ -63,7 +63,7 @@ def ini_file(restore_app_env):
 
 
 class KeyboardStub:
-    """ stub to simulate keyboard instance for key events. """
+    """ stub to simulate a keyboard instance for key events. """
     def __init__(self, **kwargs):
         self.command_keys = kwargs
 
@@ -372,13 +372,13 @@ class TestHelperMethods:
         app = KivyMainApp()
         app.mix_background_ink()
         assert app.framework_app.mixed_back_ink[0] \
-            == (app.flow_id_ink[0] + app.flow_path_ink[0] + app.selected_ink[0] + app.unselected_ink[0]) / 4.0
+            == (app.flow_id_ink[0] + app.flow_path_ink[0] + app.selected_ink[0]) / 3.0
         assert app.framework_app.mixed_back_ink[1] \
-            == (app.flow_id_ink[1] + app.flow_path_ink[1] + app.selected_ink[1] + app.unselected_ink[1]) / 4.0
+            == (app.flow_id_ink[1] + app.flow_path_ink[1] + app.selected_ink[1]) / 3.0
         assert app.framework_app.mixed_back_ink[2] \
-            == (app.flow_id_ink[2] + app.flow_path_ink[2] + app.selected_ink[2] + app.unselected_ink[2]) / 4.0
+            == (app.flow_id_ink[2] + app.flow_path_ink[2] + app.selected_ink[2]) / 3.0
         assert app.framework_app.mixed_back_ink[3] \
-            == (app.flow_id_ink[3] + app.flow_path_ink[3] + app.selected_ink[3] + app.unselected_ink[3]) / 4.0
+            == (app.flow_id_ink[3] + app.flow_path_ink[3] + app.selected_ink[3]) / 3.0
 
     def test_play_beep(self, restore_app_env):
         app = KivyMainApp()
@@ -607,7 +607,9 @@ class TestEvents:
         old_content = Clipboard.paste()
         file_path = '.any_tst_file_name'
         counter = 0
+
         def inc_counter(*_args, **_kwargs):
+            """ increment call counter """
             nonlocal counter
             counter += 1
 
@@ -721,7 +723,7 @@ class TestEvents:
         app.debug_level = DEBUG_LEVEL_DISABLED
         assert not app.on_user_preferences_open('', {})
         assert app._debug_enable_clicks == 1
-        # using Clock.schedule_once(_delayed_test, 6.9) and the commented sub-function underneath -> get never executed:
+        # using Clock.schedule_once(_delayed_test, 6.9) and the commented subfunction underneath -> get never executed:
         # def _delayed_test(dt: float):
         #     print("delayed test_on_user_preferences_open_enabling_debug after:", dt)
         #     assert app.debug_level == DEBUG_LEVEL_DISABLED
@@ -837,7 +839,7 @@ class TestI18N:
         assert len(get_txt.observers) == 1
 
     def test_unbinding(self):
-        assert len(get_txt.observers) == 1      # from last test method
+        assert len(get_txt.observers) == 1      # from the last test method
         get_txt.funbind('_', bound)
         assert not get_txt.observers
 
