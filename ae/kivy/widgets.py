@@ -118,7 +118,7 @@ from ae.kivy_dyn_chi import DynamicChildrenBehavior                             
 from ae.kivy_glsl import ShadersMixin                                                                   # type: ignore
 from ae.kivy_relief_canvas import ReliefCanvas                                                          # type: ignore
 
-from .behaviors import HelpBehavior, ModalBehavior, SlideSelectBehavior, TouchableBehavior
+from .behaviors import grab_touch, HelpBehavior, ModalBehavior, SlideSelectBehavior, TouchableBehavior
 from .i18n import get_txt
 
 
@@ -1197,20 +1197,21 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragm
     def __init__(self, **kwargs):
         self._attached_wid_pos = ()     # x/y of attached widget in widget coordinates
         self._attached_binder = None
+        self.container = self
+        self.button_image = None
+        self.menu_items = []
+        self.fw_app = app = App.get_running_app()   # self.main_app gets initialized in SlideSelectBehavior.__init__()
 
         if ini_touch := kwargs.pop('touch_event', None):
-            ini_touch.grab(self)
+            # ini_touch.grab(self)
+            app.main_app.vpo(f"FlowSelector-__init__ grab {ini_touch=}, {self=}")
+            grab_touch(ini_touch, self)
             self._attached_touch_pos = ini_touch.pos    # x/y of initial touch in window coordinates
             self._ini_touch = ini_touch
             self._touch_started_inside = True  # for :meth:`ae.kivy.behaviors.ModalBehavior.on_touch_move` slide_select
         else:
             self._attached_touch_pos = []
             self._ini_touch = None
-
-        self.container = self
-        self.button_image = None
-        self.menu_items = []
-        self.fw_app = app = App.get_running_app()   # self.main_app gets initialized in SlideSelectBehavior.__init__()
 
         # set default colors, maybe overwritten by kwargs
         self.overlay_color = Window.clearcolor[:3] + [0.69]
@@ -1819,4 +1820,34 @@ class HelpToggler(ReliefCanvas, Image):                                         
         if self.collide_point(*touch.pos):
             self.main_app.help_activation_toggle()
             return True
+        return super().on_touch_down(touch)
+
+
+def sv_children(parent: Widget) -> list[Widget]:
+    """ determine ScrollView instances in the children tree of the specified parent widget. """
+    svs = []
+    for chi in parent.children:
+        svs.extend(sv_children(chi))
+        if isinstance(chi, ScrollView):
+            svs.append(chi)
+    return svs
+
+
+class EmbeddingScrollView(ScrollView):
+    """ temporary ScrollView class for verbose touch down debugging. """
+    def on_touch_down(self, touch: MotionEvent):
+        print(f"   @@@EmbeddingScrollView.on_touch_down: {self=} received {touch=}")
+        for inner_sv in sv_children(self):
+            coords = inner_sv.to_parent(*inner_sv.to_widget(*touch.pos))
+            collide = inner_sv.collide_point(*coords)
+            print(f"   @@@{inner_sv=} {coords=} {collide=} {inner_sv.scroll_x=} {inner_sv.scroll_y=}")
+            if collide:  # and inner_sv.scroll_x not in (1, 0):
+                touch.push()
+                touch.apply_transform_2d(inner_sv.to_widget)
+                touch.apply_transform_2d(inner_sv.to_parent)
+                consumed = inner_sv.on_touch_down(touch)
+                touch.pop()
+                if consumed:
+                    print("   @@=touch event consumed")
+                    return True
         return super().on_touch_down(touch)

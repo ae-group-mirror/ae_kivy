@@ -274,7 +274,7 @@
         size:
             min(self.optimal_width, root._max_width), \
             min(self.optimal_height, root._max_height - title_bar.height - root.separator_height)
-        ScrollView:
+        EmbeddingScrollView:
             id: container
             always_overscroll: False        # workaround to kivy scrollview bug (viewport kept at bottom)
             bar_width: sp(9)
