@@ -65,9 +65,9 @@ be reverted by calling the :meth:`~ae.kivy.behaviors.ModalBehavior.deactivate_es
 to additionally activate the modal mode, call the method :meth:`~ae.kivy.behaviors.ModalBehavior.activate_modal`.
 the modal mode can be deactivated by calling the :meth:`~ae.kivy.behaviors.ModalBehavior.deactivate_modal` method.
 
-all touch, mouse and keyboard user interactions will be consumed or filtered after activating the modal mode. therefore,
-it is recommended to also visually change the GUI while in the modal mode, which has to be implemented by the mixing-in
-container widget.
+after activating the modal mode, most of the user interactions (like touches, or mouse and keyboard events) will be
+consumed or filtered. therefore, it is recommended to also visually change the GUI while in the modal mode, which
+has to be implemented by the mixing-in container widget.
 
 .. hint::
     usage examples of the :class:`~ae.kivy.behaviors.ModalBehavior` mix-in are e.g., the classes
@@ -88,12 +88,35 @@ from kivy.properties import (                                                   
 from kivy.uix.dropdown import DropDown                                                                  # type: ignore
 from kivy.uix.widget import Widget                                                                      # type: ignore
 
+from ae.base import stack_var                                                                           # type: ignore
+from ae.gui.app import MainAppBase                                                                      # type: ignore
 from ae.gui.utils import flow_action                                                                    # type: ignore
 from ae.kivy_glsl import ShaderIdType                                                                   # type: ignore
 
 
 TOUCH_VIBRATE_PATTERN = (0.0, 0.09, 0.09, 0.06, 0.03, 0.03)
 """ very short/~0.3s vibrate pattern for button and toggler touch. """
+
+
+def grab_touch(touch: MotionEvent, widget: Widget, exclusive: bool = False, main_app: Optional[MainAppBase] = None
+               ) -> bool:
+    """ temporal helper function to debug occasionally happening exclusive grab conflicts """
+    if not main_app:
+        main_app = App.get_running_app().main_app
+
+    wid_info = repr(widget)
+    if widget != (caller := stack_var('self')):
+        wid_info += f" via {caller=}"
+
+    try:
+        main_app.vpo(f"grab_touch: {exclusive=} {wid_info=} {touch=}")
+        touch.grab(widget, exclusive=exclusive)
+        return True
+
+    except Exception as exception:
+        main_app.po(f"grab_touch FAILED with {exception=} for {exclusive=} {wid_info=} {touch=}")
+
+    return False
 
 
 class HelpBehavior:
@@ -181,7 +204,7 @@ class ModalBehavior:                                                            
     disabled: bool              #: disabled property of :class:`~kivy.uix.widget.Widget`
     fbind: Callable             #: fast binding method of :class:`~kivy.uix.widget.Widget`
     funbind: Callable           #: fast unbinding method of :class:`~kivy.uix.widget.Widget`
-    unbind_uid: Callable        #: even faster unbinding method of :class:`~kivy.uix.widget.Widget`
+    unbind_uid: Callable        #: the faster unbinding method of :class:`~kivy.uix.widget.Widget`
 
     auto_dismiss = BooleanProperty()
     """ determines if the container is automatically dismissed when the user hits the Esc/Back key or clicks outside it.
@@ -200,7 +223,7 @@ class ModalBehavior:                                                            
     _touch_started_inside: Optional[bool] = None            #: flag if touch started inside this widget or group
 
     def _align_center(self, *_args):
-        """ reposition container to the center of the app window.
+        """ reposition the container to the center of the app window.
 
         :param _args:           unused (passed only on bound window resize events)
         """
@@ -297,7 +320,7 @@ class ModalBehavior:                                                            
         """ check if the touch pos is inside this widget or a group of sub-widgets.
 
         :param pos:             touch position (x, y) in window coordinates.
-        :return:                the boolean value True if this widget or group processes a touch event at the touch
+        :return:                a boolean value True if this widget or group processes a touch event at the touch
                                 position specified in the :paramref:`~touch_pos_is_inside.pos` argument.
         """
         return self.collide_point(*pos)
@@ -319,7 +342,7 @@ class SlideSelectBehavior:                                                      
 
     .. note::
         has to be inherited (to be in the MRO) before :class:`~kivy.uix.behaviors.ButtonBehavior`, respectively
-        :class:`~kivy.uix.behaviors.ToggleButtonBehavior`, for the touch event get grabbed properly.
+        :class:`~kivy.uix.behaviors.ToggleButtonBehavior`, for the touch event gets grabbed properly.
     """
     # abstracts of mixing-in class; e.g., from :class:`~kivy.widget.Widget`, :class:`~ae.kivy_glsl.ShadersMixin`,
     # :class:`~kivy.uix.dropdown.DropDown` and :class:`~kivy.uix.behaviors.ButtonBehavior`.
@@ -354,14 +377,15 @@ class SlideSelectBehavior:                                                      
     def _grab_and_open(self, touch: MotionEvent, item: Widget, first_close: Widget, *_args):
         if first_close:  # moved over another menu item of the parent menu then close
             touch.ungrab(first_close)
-            first_close.close()  # .. the foremost submenu and open the sibling submenu instead
+            first_close.close()  # the foremost submenu and open the sibling submenu instead
 
         if not self.main_app.change_flow(item.tap_flow_id, **item.tap_kwargs):
             return
 
         self._opened_item = item
         sub_menu = Window.children[0]           # the submenu just opened above via change_flow
-        touch.grab(sub_menu)
+        # touch.grab(sub_menu)
+        grab_touch(touch, sub_menu, main_app=self.main_app)
         # allow dispatching of :meth:`ModalBehavior.on_touch_move` events for slide_select
         sub_menu._touch_started_inside = True   # pylint: disable=W0212
 
@@ -466,7 +490,7 @@ class TouchableBehavior:                                                        
 
     .. note::
         has to be inherited (to be in the MRO) before the class :class:`~kivy.uix.behaviors.ButtonBehavior`,
-        respectively :class:`~kivy.uix.behaviors.ToggleButtonBehavior`, for the touch event get grabbed properly.
+        respectively :class:`~kivy.uix.behaviors.ToggleButtonBehavior`, for the touch event gets grabbed properly.
     """
     # abstracts of mixing-in class; e.g., from :class:`~kivy.widget.Widget`, :class:`~ae.kivy_glsl.ShadersMixin`,
     # :class:`~ae.kivy.behaviors.SlideSelectBehavior`, and :class:`~kivy.uix.behaviors.ButtonBehavior`
@@ -555,8 +579,11 @@ class TouchableBehavior:                                                        
 
         # to prevent dismiss via super().on_touch_up: exclusive receive of this touch-up event in self.on_touch_up
         # later uncommented again, because long tap dropdowns did not stay open and selected menu item on slide to it
-        touch.grab(self, exclusive=True)  # was commented because already grabbed/exclusive prevents slide_select-menus
         # touch.grab(self)   # without exclusive submenu gets selected on long touch release of dropdown-opening button
+        # if touch.grab_exclusive_class is None:  # check if already grabbed, to prevent exception in touch.grab() call
+        #    touch.grab(self, exclusive=True)  # was commented because already grabbed/exclusive prevents slide_select
+        if not grab_touch(touch, self, exclusive=True):
+            grab_touch(touch, self)
 
         # also dispatch as an alternative tap
         self.dispatch('on_alt_tap', touch)
