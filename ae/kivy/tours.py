@@ -3,7 +3,7 @@ ae.kivy.tours module
 --------------------
 
 this module provides the following classes to augment the user interface of your apps with animated product tours,
-tutorials, walkthroughs and user onboarding/welcome features:
+tutorials, walkthroughes and user onboarding/welcome features:
 
     * :class:`~ae.kivy.tours.AnimatedTourMixin`
     * :class:`~ae.kivy.tours.AnimatedOnboardingTour`
@@ -277,8 +277,8 @@ class AnimatedTourMixin:                                                        
                 self.main_app.call_method_delayed(next_delay, self.simulate_text_input, text_input, text_to_delay[1:],
                                                   text_to_insert=text_to_delay[0], deltas=deltas[1:] + (next_delay, ))
 
-    def tap_animation(self, wid_id: str = '', pos_delay: float = 2.34,
-                      press_delay: float = 0.69, release_delay: float = 0.39) -> PageAnimationType:
+    def tap_animation(self, wid_id: str = '', pos_delay: float = 2.34, press_delay: float = 0.69,
+                      release_delay: float = 0.39) -> PageAnimationType:
         """ create a compound animation instance simulating a user touch/tap on the specified widget.
 
         :param wid_id:          specifies the widget to be tap simulated: either a widget id string (first item of the
@@ -291,6 +291,7 @@ class AnimatedTourMixin:                                                        
 
         .. note:: use as animation evaluation expression to get the widget values on setup-time of the page (not tour).
         """
+        # pylint: disable=too-many-locals
         layout = self.layout
         if wid_id[0:1] == ':':
             tap_wid = self.main_app.widget_by_flow_id(wid_id[1:])

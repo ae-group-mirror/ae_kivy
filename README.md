@@ -1,16 +1,16 @@
-<!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project ae.ae V0.3.95 -->
-<!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.tpl_namespace_root V0.3.14 -->
-# kivy 0.3.124
+<!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project ae.ae v0.3.101 -->
+<!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.namespace_root_tpls v0.3.22 -->
+# kivy 0.3.125
 
 [![GitLab develop](https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy/develop?logo=python)](
     https://gitlab.com/ae-group/ae_kivy)
 [![LatestPyPIrelease](
-    https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy/release0.3.123?logo=python)](
-    https://gitlab.com/ae-group/ae_kivy/-/tree/release0.3.123)
+    https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy/release0.3.125?logo=python)](
+    https://gitlab.com/ae-group/ae_kivy/-/tree/release0.3.125)
 [![PyPIVersions](https://img.shields.io/pypi/v/ae_kivy)](
     https://pypi.org/project/ae-kivy/#history)
 
->ae_kivy package 0.3.124.
+>ae namespace package portion kivy: core application classes and widgets for GUIApp-conform Kivy apps.
 
 [![Coverage](https://ae-group.gitlab.io/ae_kivy/coverage.svg)](
     https://ae-group.gitlab.io/ae_kivy/coverage/index.html)

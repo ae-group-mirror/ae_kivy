@@ -245,7 +245,7 @@ class FrameworkApp(App):
             pass
 
 
-class KivyMainApp(MainAppBase):
+class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-methods
     """ Kivy application """
     documents_root_path: str = "."                      #: the root file path for app documents; for import/export
     get_txt_: Any = get_txt                             #: make i18n translations available via main app instance
@@ -269,7 +269,7 @@ class KivyMainApp(MainAppBase):
 
         self.framework_app = framework_app_class(self)
         if os_path_isfile(MAIN_KV_FILE_NAME):
-            self.framework_app.kv_file = MAIN_KV_FILE_NAME          # pylint: disable=W0201
+            self.framework_app.kv_file = MAIN_KV_FILE_NAME          # pylint: disable=attribute-defined-outside-init
 
         return self.framework_app.run, self.framework_app.stop
 
@@ -463,8 +463,8 @@ class KivyMainApp(MainAppBase):
         get_txt.switch_lang(self.lang_code)
         self.change_light_theme(self.light_theme)
         Window.softinput_mode = self.kbd_input_mode
-        Window.minimum_size = (self.get_var('win_min_width', default_value=405),
-                               self.get_var('win_min_height', default_value=303))
+        Window.minimum_size = (self.get_variable('win_min_width', default_value=405),
+                               self.get_variable('win_min_height', default_value=303))
 
         if os_platform not in ('android', 'ios'):  # ignore last win pos on android/iOS, use always the full screen
             win_rect = self.win_rectangle or KivyMainApp.win_rectangle  # self val is empty tuple on first app start
@@ -585,7 +585,7 @@ class KivyMainApp(MainAppBase):
         """
         self.vpo(f"KivyMainApp.on_kbd_input_mode_change to {mode}")
         self.change_app_state('kbd_input_mode', mode)
-        self.set_var('kbd_input_mode', mode, section=APP_STATE_SECTION_NAME)  # add optional app state var to config
+        self.set_variable('kbd_input_mode', mode, section=APP_STATE_SECTION_NAME)  # add optional appstate var to config
         Window.softinput_mode = mode
         return True
 
