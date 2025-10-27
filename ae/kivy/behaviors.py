@@ -113,13 +113,13 @@ def grab_touch(touch: MotionEvent, widget: Widget, exclusive: bool = False, main
         touch.grab(widget, exclusive=exclusive)
         return True
 
-    except Exception as exception:
+    except Exception as exception:      # pylint: disable=broad-exception-caught
         main_app.po(f"grab_touch FAILED with {exception=} for {exclusive=} {wid_info=} {touch=}")
 
     return False
 
 
-class HelpBehavior:
+class HelpBehavior:     # pylint: disable=too-few-public-methods
     """ behavior mixin class for widgets providing help texts. """
     help_id = StringProperty()
     """ unique help id of the widget.
@@ -387,16 +387,16 @@ class SlideSelectBehavior:                                                      
         # touch.grab(sub_menu)
         grab_touch(touch, sub_menu, main_app=self.main_app)
         # allow dispatching of :meth:`ModalBehavior.on_touch_move` events for slide_select
-        sub_menu._touch_started_inside = True   # pylint: disable=W0212
+        sub_menu._touch_started_inside = True   # pylint: disable=protected-access
 
     @staticmethod
     def _ungrab_and_close(touch: MotionEvent, popup: Union[Widget, 'SlideSelectBehavior'], *_args):
         touch.ungrab(popup)
         # noinspection PyProtectedMember
-        Window.children[1]._opened_item = None                  # pylint: disable=W0212
+        Window.children[1]._opened_item = None                  # pylint: disable=protected-access
         popup.close()
 
-    def on_touch_move(self, touch: MotionEvent) -> bool:
+    def on_touch_move(self, touch: MotionEvent) -> bool:        # pylint: disable=too-many-locals
         """ disable long touch on mouse/finger moves.
 
         :param touch:           motion/touch event data.
@@ -406,7 +406,7 @@ class SlideSelectBehavior:                                                      
         opener: Optional[Widget] = self.attach_to if is_dropdown else self
         in_opener = opener and opener.collide_point(*touch.pos)
         if opener and not in_opener:
-            opener._touch_moved_outside = True                  # pylint: disable=W0212
+            opener._touch_moved_outside = True                  # pylint: disable=protected-access
 
         # slide_select of menu-items/children of :class:`FlowDropDown`, :class:`FlowSelector` and :class:`FlowPopup`
         self._cancel_slide_select_closer(touch)
@@ -416,13 +416,14 @@ class SlideSelectBehavior:                                                      
             win_chi = Window.children[:2]
             foremost_popup = self is win_chi[0]
 
-            if foremost_popup and in_opener and opener._touch_moved_outside:    # type: ignore # pylint: disable=W0212
+            # pylint: disable=protected-access
+            if foremost_popup and in_opener and opener._touch_moved_outside:    # type: ignore
                 touch.ud['slide_select_closer'] = slide_select_closer = partial(self._ungrab_and_close, touch, self)
                 Clock.schedule_once(slide_select_closer, 0.69)
 
             if self in win_chi:
                 wid_pos = self.to_widget(*touch.pos)
-                col_items = [item for item in mnu_items                 # pylint: disable=E1133
+                col_items = [item for item in mnu_items                         # pylint: disable=not-an-iterable
                              if item != self._opened_item
                              and item.collide_point(*wid_pos)
                              and flow_action(getattr(item, 'tap_flow_id', "")) == 'open']
@@ -452,10 +453,10 @@ class SlideSelectBehavior:                                                      
         self._cancel_slide_select_opener(touch)
         self._opened_item = None
 
-        if touch.ud.pop('is_long_tap', False):
+        if touch.ud.pop('is_long_tap', False):                              # pylint: disable=too-many-nested-blocks
             items = getattr(self, 'menu_items', None)
             if items and self._layout_finished and self == Window.children[0]:
-                for item in items:                                          # pylint: disable=E1133
+                for item in items:                                          # pylint: disable=not-an-iterable
                     if item.collide_point(*item.to_widget(*touch.pos)):     # slide_select touch released on a menu item
                         if hasattr(item, 'on_release'):
                             if item not in touch.ud:                        # prevent multiple dispatch of on_release

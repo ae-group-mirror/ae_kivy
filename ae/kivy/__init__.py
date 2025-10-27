@@ -3,7 +3,7 @@ core application classes and widgets for GUIApp-conform Kivy apps
 =================================================================
 
 this ae portion is implementing the Kivy-framework-specific parts for apps with multilingual context-sensitive help,
-user onboarding, tours, walkthroughs and tutorials.
+user onboarding, tours, walkthroughes and tutorials.
 
 by extending and joining the app classes :class:`~ae.gui.app.MainAppBase` and :class:`~kivy.app.App`,
 it is providing additional :ref:`config-variables`, some useful constants, behaviors and
@@ -37,7 +37,7 @@ from kivy.config import Config                                            # type
 from ae.base import os_platform                                           # type: ignore
 
 
-__version__ = '0.3.124'
+__version__ = '0.3.125'
 
 
 if os_platform == 'linux':    # remove Kivy's linux touchpad weirdness; see issue #5697

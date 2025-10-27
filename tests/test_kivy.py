@@ -168,7 +168,7 @@ class TestAppState:
     def test_change_app_state(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
         assert app.save_app_states() == ""
-        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
+        assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
         fas = app.retrieve_app_states()
         assert all(k in fas and v == fas[k] for k, v in TST_DICT.items())
 
@@ -182,9 +182,9 @@ class TestAppState:
         fas = app.retrieve_app_states()
         assert all(k in fas and v == fas[k] for k, v in chg_dict.items())
 
-        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
+        assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
         assert app.save_app_states() == ""
-        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == chg_val
+        assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == chg_val
 
     def test_default_app_states(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file, ))
@@ -192,7 +192,7 @@ class TestAppState:
 
     def test_load_app_states(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
-        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
+        assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
 
         app.load_app_states()
         assert getattr(app, TST_VAR) == TST_VAL
@@ -203,7 +203,7 @@ class TestAppState:
 
     def test_retrieve_app_states(self, ini_file, restore_app_env):
         app = KivyMainApp(additional_cfg_files=(ini_file,))
-        assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
+        assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
         fas = app.retrieve_app_states()
         assert all(k in fas and v == fas[k] for k, v in TST_DICT.items())
 
@@ -212,7 +212,7 @@ class TestAppState:
         app = KivyMainApp(additional_cfg_files=(ini_file,))
         old_dict = TST_DICT.copy()
         try:
-            assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
+            assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == TST_VAL
             fas = app.retrieve_app_states()
             assert all(k in fas and v == fas[k] for k, v in TST_DICT.items())
 
@@ -220,7 +220,7 @@ class TestAppState:
             TST_DICT = {TST_VAR: chg_val}
             setattr(app, TST_VAR, chg_val)
             assert app.save_app_states() == ""
-            assert app.get_var(TST_VAR, section=APP_STATE_SECTION_NAME) == chg_val
+            assert app.get_variable(TST_VAR, section=APP_STATE_SECTION_NAME) == chg_val
             fas = app.retrieve_app_states()
             assert all(k in fas and v == fas[k] for k, v in TST_DICT.items())
         finally:
@@ -260,7 +260,7 @@ class TestAppState:
 class TestHelperMethods:
     def test_app_env_dict(self, restore_app_env):
         app = KivyMainApp()
-        app.set_opt('debug_level', DEBUG_LEVEL_VERBOSE)
+        app.set_option('debug_level', DEBUG_LEVEL_VERBOSE)
         data = app.app_env_dict()
         assert 'dpi_factor' in data
         assert 'app data' in data

@@ -76,6 +76,7 @@ the active state of the help mode.
 
 to attach help texts to your widget instances, add the behavior class :class:`~ae.kivy.behaviors.HelpBehavior`.
 """
+# pylint: disable=too-many-lines
 import os
 
 from math import atan, atan2, cos, pi, radians, sin, tau
@@ -152,7 +153,7 @@ MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of your app's main kv file
 Builder.load_file(os.path.join(os.path.dirname(__file__), "widgets.kv"))
 
 
-class AbsolutePosSizeBinder:                                                                        # pragma: no cover
+class AbsolutePosSizeBinder:                # pragma: no cover # pylint: disable=too-many-instance-attributes
     """ propagate changes of `pos`/`size` properties of one or more widgets plus their parents to attributes/callbacks.
 
     create an instance of this class passing the widget(s) to observe on change of their pos/size. then call the methods
@@ -526,7 +527,7 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
             Animation(x=min(self.x + sp(12), Window.width - self.width), t='in_out_sine', d=0.69).start(self)
 
 
-class ExtTextInputCutCopyPaste(OriTextInputCutCopyPaste):  # pragma: no cover
+class ExtTextInputCutCopyPaste(OriTextInputCutCopyPaste):  # pragma: no cover # pylint: disable=too-few-public-methods
     """ overwrite/extend :class:`kivy.uix.textinput.TextInputCutCopyPaste` w/ translatable and autocomplete options. """
     def __init__(self, **kwargs):
         """ create :class:`~kivy.uix.Bubble` instance to display the cut/copy/paste options.
@@ -774,7 +775,7 @@ class FlowInput(HelpBehavior, ShadersMixin, ReliefCanvas, TextInput):  # pragma:
 
     def _select_ac_text(self, selector: Widget):
         """ put selected autocompletion text into text input and close _ac_dropdown """
-        self.text = selector.text                                           # pylint: disable=W0201
+        self.text = selector.text                                   # pylint: disable=attribute-defined-outside-init
         self._ac_dropdown.close()
 
     def _show_cut_copy_paste(self, *args, **kwargs):    # pylint: disable=signature-differs
@@ -805,6 +806,7 @@ class PopupQueryBox(DynamicChildrenBehavior, StackLayout):                      
     dismiss = close     #: alias method of :meth:`~PopupQueryBox.close`
 
 
+# pylint: disable=too-many-instance-attributes
 class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, ReliefCanvas,
                 BoxLayout):  # pragma: no cover
     """ popup for dynamic and auto-sizing dialogs and other top-most or modal windows.
@@ -1081,7 +1083,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
             self.dispatch('on_open')
 
 
-# pylint: disable-next=too-many-ancestors
+# pylint: disable-next=too-many-ancestors,too-many-instance-attributes
 class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragma: no cover
     """ an attachable popup used for dynamic elliptic auto-spreading menus and toolbars.
 
@@ -1264,7 +1266,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragm
             menu_item.unbind(size=self._layout_items)
         self.unbind(menu_items=self._layout_items)
 
-    def _item_moved(self, _anim: Animation, item: Widget, progress: float):
+    def _item_moved(self, _anim: Animation, item: Widget, progress: float):     # pylint: disable=too-many-locals
         """ draw an animated dash/line from the menu-center to the item-center. """
         vis_val = abs((progress - 0.5) * 2)
 
@@ -1285,11 +1287,11 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragm
                  dash_length=3, dash_offset=3,     # only works if width == 1.0 (default and is faster)
                  group=item_group)
 
-    def _layout_items(self, *_args):
+    def _layout_items(self, *_args):    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """ calculate the window positions of the menu-items.
 
-        when the size of all menu items is the same, then a homogen layout can be easily calculated by placing the menu
-        items with the same distance and the same angle between them around the center menu button.
+        when the size of all menu items is the same, then a homogenous layout can be easily calculated by placing
+        the menu items with the same distance and the same angle between them around the center menu button.
 
         this method calculates the first menu item angle (start-angle), the angle direction (minus for clock-wise
         or plus for counter-clock-wise) and the angle/spacing between the menu items. the calculation takes into account
@@ -1358,6 +1360,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragm
 
         def _start_and_offset_radians(mnu_size: tuple[float, float]) -> tuple[float, float, float, float]:
             """ determine the start/offset radians for the menu-items and the corrected size of the menu. """
+            # pylint: disable=too-many-locals,too-many-branches
             nonlocal shrink_x, shrink_y
 
             spaces, (blk_r, blk_t, blk_l, blk_b), block_cnt = _space_blocked_count(mnu_size)
@@ -1414,6 +1417,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragm
                 delta_radian -= inclination_radian * 2.0
             delta_radian *= angle_direction / max(1, item_cnt - (1 if block_cnt else 0))
 
+            # noinspection PyTypeChecker
             return start_radian, delta_radian, *mnu_size
 
         menu_size = _menu_size(2)    # assume that the initial menu size has two blocked directions
@@ -1715,7 +1719,7 @@ class Tooltip(ScrollView):                                                      
 
     def on_size(self, *_args):
         """ (re-)position help_activator tooltip correctly after help text loading and layout resizing. """
-        self.pos = self._actual_pos()                               # pylint: disable=W0201
+        self.pos = self._actual_pos()                               # pylint: disable=attribute-defined-outside-init
 
     def on_targeted_widget(self, *_args):
         """ targeted widget changed event handler.
@@ -1729,7 +1733,7 @@ class Tooltip(ScrollView):                                                      
         twb.size_to_attribute(self, 'pos', self._actual_pos)    # ensure position update on wid.size and .pos changes
         twb.pos_to_attribute(self, 'pos', self._actual_pos)
 
-        self.pos = self._actual_pos()  # pylint: disable=W0201 # initial reposition of the tooltip window
+        self.pos = self._actual_pos()  # pylint: disable=attribute-defined-outside-init # tooltip window initial repos
 
     def on_touch_down(self, touch: MotionEvent) -> bool:
         """ check for additional events added by this class.
@@ -1833,14 +1837,15 @@ def sv_children(parent: Widget) -> list[Widget]:
     return svs
 
 
-class EmbeddingScrollView(ScrollView):
+class EmbeddingScrollView(ScrollView):              # pylint: disable=too-few-public-methods
     """ temporary ScrollView class for verbose touch down debugging. """
     def on_touch_down(self, touch: MotionEvent):
+        """ touch down event handler """
         print(f"   @@@EmbeddingScrollView.on_touch_down: {self=} received {touch=}")
         for inner_sv in sv_children(self):
-            coords = inner_sv.to_parent(*inner_sv.to_widget(*touch.pos))
-            collide = inner_sv.collide_point(*coords)
-            print(f"   @@@{inner_sv=} {coords=} {collide=} {inner_sv.scroll_x=} {inner_sv.scroll_y=}")
+            inner_pos = inner_sv.to_parent(*inner_sv.to_widget(*touch.pos))
+            collide = inner_sv.collide_point(*inner_pos)
+            print(f"   @@@{inner_sv=} {inner_pos=} {collide=} {inner_sv.scroll_x=} {inner_sv.scroll_y=}")
             if collide:  # and inner_sv.scroll_x not in (1, 0):
                 touch.push()
                 touch.apply_transform_2d(inner_sv.to_widget)
