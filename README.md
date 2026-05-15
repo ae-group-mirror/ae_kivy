@@ -1,12 +1,12 @@
-<!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project ae.ae v0.3.101 -->
+<!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project ae.ae v0.3.103 -->
 <!-- THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.namespace_root_tpls v0.3.22 -->
-# kivy 0.3.125
+# kivy 0.3.126
 
 [![GitLab develop](https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy/develop?logo=python)](
     https://gitlab.com/ae-group/ae_kivy)
 [![LatestPyPIrelease](
-    https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy/release0.3.125?logo=python)](
-    https://gitlab.com/ae-group/ae_kivy/-/tree/release0.3.125)
+    https://img.shields.io/gitlab/pipeline/ae-group/ae_kivy/release0.3.126?logo=python)](
+    https://gitlab.com/ae-group/ae_kivy/-/tree/release0.3.126)
 [![PyPIVersions](https://img.shields.io/pypi/v/ae_kivy)](
     https://pypi.org/project/ae-kivy/#history)
 
@@ -54,7 +54,7 @@ following command in the root folder of this repository
 (ae_kivy):
 
 ```shell script
-pip install -e .[dev]
+pip install --editable .[dev]
 ```
 
 the last command will install this package portion, along with the tools you need

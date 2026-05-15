@@ -780,7 +780,7 @@ class FlowInput(HelpBehavior, ShadersMixin, ReliefCanvas, TextInput):  # pragma:
 
     def _show_cut_copy_paste(self, *args, **kwargs):    # pylint: disable=signature-differs
         self.main_app.vpo(f"FlowInput._show_cut_copy_paste {args=} {kwargs=}")
-        # monkey-patch kivy's built-in cut/copy/paste popup will be reset also in ExtTextInputCutCopyPaste.__init_
+        # monkey-patch Kivy's built-in cut/copy/paste popup will be reset also in ExtTextInputCutCopyPaste.__init_
         kivy.uix.textinput.TextInputCutCopyPaste = ExtTextInputCutCopyPaste     # pylint: disable=no-member
 
         if 'pos_in_window' not in kwargs and kwargs.get('mode') == 'paste':

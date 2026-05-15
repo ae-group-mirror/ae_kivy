@@ -1,6 +1,7 @@
 kivy
 plyer
 ae_base
+ae_system
 ae_files
 ae_paths
 ae_i18n

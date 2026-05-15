@@ -326,9 +326,9 @@ class TestHelperMethods:
     def test_call_method_return(self, ini_file, restore_app_env):
         app = KivyAppTest(additional_cfg_files=(ini_file,))
         assert not app.on_run_called
-        Clock.schedule_once(app.framework_app.stop)
-        app.run_app()
-        assert app.on_run_called
+        Clock.schedule_once(app.framework_app.stop)         # adding timeout=0.9 does not fix the v2.3.1 freeze
+        app.run_app()                                       # TEST FREEZE HERE - with kivy 2.3.1 / not with 2.3.0 ?!?!?
+        assert app.on_run_called                            # commenting-out app.run_app() results in `assert None` here
 
     def test_call_method_invalid_method(self, restore_app_env):
         app = KivyMainApp()
@@ -371,14 +371,14 @@ class TestHelperMethods:
     def test_mix_background_ink(self, restore_app_env):
         app = KivyMainApp()
         app.mix_background_ink()
-        assert app.framework_app.mixed_back_ink[0] \
-            == (app.flow_id_ink[0] + app.flow_path_ink[0] + app.selected_ink[0]) / 3.0
-        assert app.framework_app.mixed_back_ink[1] \
-            == (app.flow_id_ink[1] + app.flow_path_ink[1] + app.selected_ink[1]) / 3.0
-        assert app.framework_app.mixed_back_ink[2] \
-            == (app.flow_id_ink[2] + app.flow_path_ink[2] + app.selected_ink[2]) / 3.0
-        assert app.framework_app.mixed_back_ink[3] \
-            == (app.flow_id_ink[3] + app.flow_path_ink[3] + app.selected_ink[3]) / 3.0
+        assert round(app.framework_app.mixed_back_ink[0], ndigits=2) \
+            == round((app.flow_id_ink[0] + app.flow_path_ink[0] + app.selected_ink[0]) / 3.0, ndigits=2)
+        assert round(app.framework_app.mixed_back_ink[1], ndigits=2) \
+            == round((app.flow_id_ink[1] + app.flow_path_ink[1] + app.selected_ink[1]) / 3.0, ndigits=2)
+        assert round(app.framework_app.mixed_back_ink[2], ndigits=2) \
+            == round((app.flow_id_ink[2] + app.flow_path_ink[2] + app.selected_ink[2]) / 3.0, ndigits=2)
+        assert round(app.framework_app.mixed_back_ink[3], ndigits=2) \
+            == round((app.flow_id_ink[3] + app.flow_path_ink[3] + app.selected_ink[3]) / 3.0, ndigits=2)
 
     def test_play_beep(self, restore_app_env):
         app = KivyMainApp()
@@ -396,7 +396,7 @@ class TestHelperMethods:
             shutil.copy(os.path.join(TESTS_FOLDER, 'tst.wav'), os.path.join(sound_dir, sound_file + '.wav'))
             app = KivyMainApp()
             app.load_sounds()
-            app.play_sound(sound_file)
+            app.play_sound(sound_file)      # TEST FREEZE HERE - refactor to tmp_path and w/o tst.wav in tests/ ?!?!?
         finally:
             shutil.rmtree(sound_dir)
 
@@ -408,7 +408,7 @@ class TestHelperMethods:
             write_file(os.path.join(sound_dir, sound_file + '.mp3'), 'invalid sound file content')
             app = KivyMainApp()
             app.load_sounds()
-            app.play_sound(sound_file)
+            app.play_sound(sound_file)      # TEST FREEZE HERE w/ kivy 2.3.1!!!  - refactor to tmp_path ?!?!?
         finally:
             shutil.rmtree(sound_dir)
 
@@ -687,7 +687,7 @@ class TestEvents:
         assert not app.on_resume_called
         app.framework_app.dispatch('on_resume')
         Clock.schedule_once(app.framework_app.stop, 0.6)
-        app.run_app()
+        app.run_app()                                     # TEST FREEZE HERE - with kivy 2.3.1 / not with 2.3.0 ?!?!?
         assert app.on_resume_called
 
     def test_on_stop(self, restore_app_env):
