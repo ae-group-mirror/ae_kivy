@@ -3,7 +3,7 @@ ae.kivy.tours module
 --------------------
 
 this module provides the following classes to augment the user interface of your apps with animated product tours,
-tutorials, walkthroughes and user onboarding/welcome features:
+tutorials, walkthroughs and user onboarding/welcome features:
 
     * :class:`~ae.kivy.tours.AnimatedTourMixin`
     * :class:`~ae.kivy.tours.AnimatedOnboardingTour`
@@ -14,7 +14,7 @@ the class :class:`~ae.kivy.tours.TourOverlay` is implementing an overlay layout 
 shaders, tour page texts, tooltip text and the navigation buttons of an active/running app tour.
 
 the :class:`~ae.kivy.tours.AnimatedTourMixin` can be mixed-into a tour class that inherits from
-:class:`~ae.gui.tours.TourBase` to extend it with animation and glsl shader features.
+:class:`~ae.gui.tours.TourBase` to extend it with animation and GLSL shader features.
 
 the class :class:`~ae.kivy.tours.AnimatedOnboardingTour` is based on :class:`~ae.gui.tours.OnboardingTour` and
 :class:`~ae.kivy.tours.AnimatedTourMixin` to extend the generic app onboarding tour
@@ -345,7 +345,7 @@ class AnimatedTourMixin:                                                        
 
 
 class AnimatedOnboardingTour(AnimatedTourMixin, OnboardingTour):                                    # pragma: no cover
-    """ onboarding tour, extended with animations and glsl shaders. """
+    """ onboarding tour, extended with animations and GLSL shaders. """
     def __init__(self, main_app: MainAppBase) -> None:
         super().__init__(main_app)
 
@@ -461,7 +461,7 @@ class AnimatedOnboardingTour(AnimatedTourMixin, OnboardingTour):                
 
 
 class TourOverlay(ModalBehavior, ShadersMixin, FloatLayout):                                        # pragma: no cover
-    """ tour layout/view overlay singleton class to display an active/running modal app tour with optional glsl shaders.
+    """ tour layout/view overlay singleton class to display an active/running modal app tour with optional GLSL shaders.
     """
     ani_value = NumericProperty()
     """ animated float value between 0.0 and 1.0, used e.g. by :attr:`AnimatedTourMixin.pages_animations`.

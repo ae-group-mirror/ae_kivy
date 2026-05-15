@@ -75,7 +75,7 @@ has to be implemented by the mixing-in container widget.
 
 """
 from functools import partial
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Self, Union
 
 from kivy.animation import Animation                                                                    # type: ignore
 from kivy.app import App                                                                                # type: ignore
@@ -88,7 +88,7 @@ from kivy.properties import (                                                   
 from kivy.uix.dropdown import DropDown                                                                  # type: ignore
 from kivy.uix.widget import Widget                                                                      # type: ignore
 
-from ae.base import stack_var                                                                           # type: ignore
+from ae.system import stack_var                                                                         # type: ignore
 from ae.gui.app import MainAppBase                                                                      # type: ignore
 from ae.gui.utils import flow_action                                                                    # type: ignore
 from ae.kivy_glsl import ShaderIdType                                                                   # type: ignore
@@ -403,7 +403,7 @@ class SlideSelectBehavior:                                                      
         :return:                a boolean True value if the event got processed/used.
         """
         is_dropdown = isinstance(self, DropDown)
-        opener: Optional[Widget] = self.attach_to if is_dropdown else self
+        opener: Widget | Self | None = self.attach_to if is_dropdown else self
         in_opener = opener and opener.collide_point(*touch.pos)
         if opener and not in_opener:
             opener._touch_moved_outside = True                  # pylint: disable=protected-access

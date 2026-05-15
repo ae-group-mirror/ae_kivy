@@ -82,7 +82,8 @@ from kivy.uix.popup import Popup                                                
 from kivy.uix.widget import Widget                                                                      # type: ignore
 from kivy.utils import escape_markup, get_hex_from_color                                                # type: ignore
 
-from ae.base import os_path_basename, os_path_isfile, os_path_join, os_platform, write_file             # type: ignore
+from ae.base import os_path_basename, os_path_isfile, os_path_join, write_file                          # type: ignore
+from ae.system import os_platform                                                                       # type: ignore
 from ae.files import CachedFile                                                                         # type: ignore
 from ae.paths import PATH_PLACEHOLDERS, app_docs_path, copy_file, normalize, Collector                  # type: ignore
 from ae.core import DEBUG_LEVELS, DEBUG_LEVEL_ENABLED                                                   # type: ignore
