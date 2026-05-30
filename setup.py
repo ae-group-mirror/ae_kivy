@@ -1,4 +1,4 @@
-# THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.project_tpls v0.3.77
+# THIS FILE IS EXCLUSIVELY MAINTAINED by the project aedev.project_tpls v0.3.79
 """ setup of ae namespace package portion kivy: core application classes and widgets for GUIApp-conform Kivy apps. """
 import sys
 # noinspection PyUnresolvedReferences
@@ -51,12 +51,12 @@ setup_kwargs = {
     'install_requires': [
         'Kivy==2.3.0',
         'plyer==2.1.0',
-        'ae_base==0.3.83',
-        'ae_system==0.3.2',
-        'ae_files==0.3.26',
+        'ae_base==0.3.85',
+        'ae_system==0.3.3',
+        'ae_files==0.3.27',
         'ae_paths==0.3.44',
         'ae_i18n==0.3.35',
-        'ae_core==0.3.85',
+        'ae_core==0.3.86',
         'ae_gui==0.3.117',
         'ae-kivy-glsl==0.3.16',
         'ae_kivy_auto_width==0.3.26',
@@ -89,7 +89,7 @@ setup_kwargs = {
     },
     'python_requires': '>=3.12',
     'url': 'https://gitlab.com/ae-group/ae_kivy',
-    'version': '0.3.126',
+    'version': '0.3.127',
     'zip_safe': False,
 }
 
