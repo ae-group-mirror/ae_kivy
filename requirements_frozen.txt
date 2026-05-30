@@ -1,11 +1,11 @@
 Kivy==2.3.0
 plyer==2.1.0
-ae_base==0.3.83
-ae_system==0.3.2
-ae_files==0.3.26
+ae_base==0.3.85
+ae_system==0.3.3
+ae_files==0.3.27
 ae_paths==0.3.44
 ae_i18n==0.3.35
-ae_core==0.3.85
+ae_core==0.3.86
 ae_gui==0.3.117
 ae-kivy-glsl==0.3.16
 ae_kivy_auto_width==0.3.26
