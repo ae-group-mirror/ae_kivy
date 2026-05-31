@@ -37,7 +37,7 @@ from kivy.config import Config                                            # type
 from ae.system import os_platform                                         # type: ignore
 
 
-__version__ = '0.3.127'
+__version__ = '0.3.128'
 
 
 if os_platform == 'linux':    # remove Kivy's linux touchpad weirdness; see issue #5697
