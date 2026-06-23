@@ -1,1 +1,1 @@
-            assert counter == 3
+app_obj: ConsoleApp | None = None
