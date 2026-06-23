@@ -358,7 +358,7 @@ class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-method
         return Clock.schedule_interval(lambda dt: self.call_method(callback, *args, **kwargs), timeout=interval)
 
     def change_light_theme(self, light_theme: bool):
-        """ change font and window clear/background colors to match 'light'/'black' themes.
+        """ change font and window clear/background colors to match 'light' / 'black' themes.
 
         :param light_theme:     pass True for light theme, False for black theme.
         """

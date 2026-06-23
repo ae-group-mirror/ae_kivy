@@ -55,6 +55,7 @@ setup_kwargs = {
         'ae_system',
         'ae_files',
         'ae_paths',
+        'ae_dynamicod',
         'ae_i18n',
         'ae_core',
         'ae_gui',
@@ -89,7 +90,7 @@ setup_kwargs = {
     },
     'python_requires': '>=3.12',
     'url': 'https://gitlab.com/ae-group/ae_kivy',
-    'version': '0.3.128',
+    'version': '0.3.129',
     'zip_safe': False,
 }
 
