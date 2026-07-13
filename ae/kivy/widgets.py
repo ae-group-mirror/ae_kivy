@@ -79,13 +79,14 @@ to attach help texts to your widget instances, add the behavior class :class:`~a
 # pylint: disable=too-many-lines
 import os
 
+from collections.abc import Callable
 from math import atan, atan2, cos, pi, radians, sin, tau
-from typing import Any, Callable, Optional
+from typing import Any, cast
 
 import kivy                                                                                             # type: ignore
 from kivy.animation import Animation                                                                    # type: ignore
 from kivy.app import App                                                                                # type: ignore
-from kivy.core.window import Window                                                                     # type: ignore
+from kivy.core.window import WindowBase, Window                                                         # type: ignore
 from kivy.graphics import Color, Ellipse, Line                                                          # type: ignore
 from kivy.input import MotionEvent                                                                      # type: ignore
 from kivy.lang import Builder                                                                           # type: ignore
@@ -125,7 +126,7 @@ from .i18n import get_txt
 
 PosSizeCallable = Callable[[Widget, list[float]], Any]
 BoundWidgetPropertyId = tuple[Widget, str, int]
-PropagatedAttributes = tuple[Any, str, Optional[PosSizeCallable]]
+PropagatedAttributes = tuple[Any, str, PosSizeCallable | None]
 
 
 ANI_SINE_DEEPER_REPEAT3 = \
@@ -150,6 +151,7 @@ MAIN_KV_FILE_NAME = 'main.kv'  #: default file name of your app's main kv file
 
 
 # load/declare base widgets with integrated app flow and observers ensuring change of app states (e.g., theme and size)
+# noinspection PyTypeChecker
 Builder.load_file(os.path.join(os.path.dirname(__file__), "widgets.kv"))
 
 
@@ -254,7 +256,7 @@ class AbsolutePosSizeBinder:                # pragma: no cover # pylint: disable
         self._wid_size_changed(wid, wid.size)
         self._wid_pos_changed(wid, wid.pos)     # layout size change mostly does change also the absolute widget pos
 
-    def pos_to_attribute(self, target: Any, attribute: str, converter: Optional[PosSizeCallable] = None):
+    def pos_to_attribute(self, target: Any, attribute: str, converter: PosSizeCallable | None = None):
         """ request the propagation of the changed (absolute) widget(s) position to an object attribute.
 
         :param target:          the object which attribute will be changed on change of `pos`.
@@ -270,7 +272,7 @@ class AbsolutePosSizeBinder:                # pragma: no cover # pylint: disable
         """
         self._pos_callbacks.append(callback)
 
-    def size_to_attribute(self, target: Any, attribute: str, converter: Optional[PosSizeCallable] = None):
+    def size_to_attribute(self, target: Any, attribute: str, converter: PosSizeCallable | None = None):
         """ request the propagation of the changed widget(s) size to an object attribute.
 
         :param target:          the object which attribute will be changed on change of `size`.
@@ -502,7 +504,7 @@ class FlowDropDown(ContainerChildrenAutoWidthBehavior, DynamicChildrenBehavior, 
         self.content = value     # value==self.container
         self.menu_items = self.content.children
 
-    def on_dismiss(self) -> Optional[bool]:
+    def on_dismiss(self) -> bool | None:
         """ default dismiss/close default event handler.
 
         :return:                True to prevent/cancel the dismiss/close.
@@ -550,6 +552,7 @@ class ExtTextInputCutCopyPaste(OriTextInputCutCopyPaste):  # pragma: no cover # 
         :param value:           kivy main window.
         """
         textinput = self.textinput
+        # noinspection PyStringConversionWithoutDunderMethod
         self.fw_app.main_app.vpo(f"{self.__class__.__name__}.on_parent {instance=} {value=} {textinput=}")
         if not textinput:
             return                              # shortcut: not calling super().on_parent() because does only return too
@@ -732,7 +735,7 @@ class FlowInput(HelpBehavior, ShadersMixin, ReliefCanvas, TextInput):  # pragma:
 
         return super().keyboard_on_key_down(window, keycode, text, modifiers)
 
-    def keyboard_on_textinput(self, window: Window, text: str):
+    def keyboard_on_textinput(self, window: WindowBase, text: str):
         """ overridden to suppress any user input if a tour is running/active. """
         if not self.main_app.tour_layout:
             super().keyboard_on_textinput(window, text)
@@ -964,7 +967,7 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
         """ added for easier debugging. """
         return f"{self.__class__.__name__}({hex(id(self))} {self.close_kwargs=})"
 
-    def add_widget(self, widget: Widget, index: int = 0, canvas: Optional[str] = None):
+    def add_widget(self, widget: Widget, index: int = 0, canvas: str | None = None):
         """ add container and content widgets.
 
         the first call set container from kv rule, 2nd the content, 3rd raise error.
@@ -976,11 +979,13 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
         if self.container:      # None until FlowPopup kv rule in widgets.kv is fully built (before user kv rule build)
             if self.content:
                 raise ValueError("FlowPopup has already a children, set via this method, kv or the content property")
+            # noinspection PyStringConversionWithoutDunderMethod
             self.main_app.vpo(f"FlowPopup: add content {widget=} to {self.container=}; {index=} {canvas=}")
             self.container.add_widget(widget, index=index)  # ScrollView.add_widget does not have a canvas parameter
             self.content = widget
             self.menu_items = widget.children + [self.ids.title_bar]
         else:
+            # noinspection PyStringConversionWithoutDunderMethod
             self.main_app.vpo(f"FlowPopup: add container {widget=} from internal kv rule {index=} {canvas=}")
             super().add_widget(widget, index=index, canvas=canvas)
 
@@ -1024,11 +1029,12 @@ class FlowPopup(ModalBehavior, DynamicChildrenBehavior, SlideSelectBehavior, Rel
 
     def on_content(self, _instance: Widget, value: Widget):
         """ optional single widget (to be added to the container layout) set directly or via FlowPopup kwargs. """
+        # noinspection PyStringConversionWithoutDunderMethod
         self.main_app.vpo(f"FlowPopup.on_content adding content {value=} to {self.container=}")
         self.container.clear_widgets()
         self.container.add_widget(value)
 
-    def on_dismiss(self) -> Optional[bool]:
+    def on_dismiss(self) -> bool | None:
         """ default dismiss/close event handler.
 
         :return:                return True to prevent/cancel the dismiss/close.
@@ -1197,12 +1203,12 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragm
     __events__ = ('on_pre_open', 'on_open', 'on_pre_dismiss', 'on_dismiss')
 
     def __init__(self, **kwargs):
-        self._attached_wid_pos = ()     # x/y of attached widget in widget coordinates
+        self._attached_wid_pos = (0.0, 0.0)             # x/y of attached widget in widget coordinates
         self._attached_binder = None
         self.container = self
         self.button_image = None
         self.menu_items = []
-        self.fw_app = app = App.get_running_app()   # self.main_app gets initialized in SlideSelectBehavior.__init__()
+        self.fw_app = app = App.get_running_app()       # self.main_app gets set in SlideSelectBehavior.__init__()
 
         if ini_touch := kwargs.pop('touch_event', None):
             # ini_touch.grab(self)
@@ -1228,15 +1234,18 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragm
         cen_x, cen_y = self.center_x + delta_x, self.center_y + delta_y
 
         if self.x + delta_x < 0 or cen_x < wid_x:
+            # noinspection PyTypeChecker
             cen_x = max(self.width, wid_x + wid_r) / 2.0
         elif self.right + delta_x > Window.width or cen_x > wid_r:
             cen_x = min(Window.width - self.width / 2, wid_r)
         if self.y + delta_y < 0 or cen_y < wid_y:
+            # noinspection PyTypeChecker
             cen_y = max(self.height, wid_y + wid_t) / 2.0
         elif self.top + delta_y > Window.height or cen_y > wid_t:
             cen_y = min(Window.height - self.height / 2, wid_t)
 
-        self.center = [cen_x, cen_y]
+        self.center_x = cen_x
+        self.center_y = cen_y
         self._attached_touch_pos = self.center
         self._attached_wid_pos = widget.pos
 
@@ -1245,12 +1254,14 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragm
     def _attached_size(self, widget: Widget, _size: list[float]):
         wid_x, wid_y = widget.to_window(*widget.pos)  # assert widget is self.attached_widget and widget.size == _size
         wid_r, wid_t = widget.to_window(widget.right, widget.top)
-        self.center = [min(max(wid_x, self.center_x), wid_r), min(max(wid_y, self.center_y), wid_t)]
+        self.center_x = min(max(wid_x, self.center_x), wid_r)
+        self.center_y = min(max(wid_y, self.center_y), wid_t)
         self._layout_items()
 
     def _finalize_close(self, *_args):
         """ final unbinding/closing after animations are finished. """
         if self._ini_touch:
+            # noinspection PyUnresolvedReferences
             self._ini_touch.ungrab(self)
             self._ini_touch = None
 
@@ -1356,7 +1367,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragm
             """ guess the available space in the window and the blocked directions """
             spa = tuple(_space - mnu_size[_dir_idx % 2] for _dir_idx, _space in enumerate(available_space))
             blk = tuple(_space < 0.0 for _space in spa)
-            return spa, blk, sum(blk)
+            return spa, cast(tuple[bool, bool, bool, bool], blk), sum(blk)
 
         def _start_and_offset_radians(mnu_size: tuple[float, float]) -> tuple[float, float, float, float]:
             """ determine the start/offset radians for the menu-items and the corrected size of the menu. """
@@ -1366,8 +1377,10 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragm
             spaces, (blk_r, blk_t, blk_l, blk_b), block_cnt = _space_blocked_count(mnu_size)
             tries = 3  # if little available space, iterate to find the less blocked direction
             while tries and ((shr_x := blk_r and blk_l) + (shr_y := blk_t and blk_b)):
+                # noinspection PyUnboundLocalVariable
                 if shr_x:
                     shrink_x = tries * 0.3
+                # noinspection PyUnboundLocalVariable
                 if shr_y:
                     shrink_y = tries * 0.3
                 mnu_size = _menu_size(block_cnt)
@@ -1435,7 +1448,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragm
         ani_dur = self.open_close_duration
         sca_radius = self.scale_radius
         center_x, center_y = self.center
-        pre_y = pre_h = None
+        pre_y = pre_h = 0.0
         for item_idx, item_widget in enumerate(mnu_chi):
             item_radian = item_radians[item_idx]
             item_width, item_height = item_widget.size
@@ -1520,7 +1533,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragm
 
     dismiss = close     #: alias method of :meth:`~FlowSelector.close`
 
-    def on_dismiss(self) -> Optional[bool]:
+    def on_dismiss(self) -> bool | None:
         """ default dismiss/close event handler.
 
         :return:                return True to prevent/cancel the dismiss/close.
@@ -1563,6 +1576,7 @@ class FlowSelector(ModalBehavior, DynamicChildrenBehavior, FlowButton):  # pragm
         abi.pos_to_callback(self._attached_pos)
 
         self.size = attach_to.size
+        # noinspection PyTypeChecker
         self.center = self._attached_touch_pos or attach_to.to_window(*attach_to.center)
         self._attached_pos(attach_to, attach_to.to_window(*self._attached_wid_pos))
 
@@ -1776,7 +1790,7 @@ class HelpLayout(Tooltip):                  # pragma: no cover
 
 class HelpMenu(FlowSelector):               # pragma: no cover # pylint: disable=too-many-ancestors
     """ menu to allow user to de-/activate help and/or tour mode. """
-    def on_dismiss(self) -> Optional[bool]:
+    def on_dismiss(self) -> bool | None:
         """ default dismiss/close event handler.
 
         :return:                return True to prevent/cancel the dismiss/close.
@@ -1841,10 +1855,12 @@ class EmbeddingScrollView(ScrollView):              # pylint: disable=too-few-pu
     """ temporary ScrollView class for verbose touch down debugging. """
     def on_touch_down(self, touch: MotionEvent):
         """ touch down event handler """
+        # noinspection PyStringConversionWithoutDunderMethod
         print(f"   @@@EmbeddingScrollView.on_touch_down: {self=} received {touch=}")
         for inner_sv in sv_children(self):
             inner_pos = inner_sv.to_parent(*inner_sv.to_widget(*touch.pos))
             collide = inner_sv.collide_point(*inner_pos)
+            # noinspection PyStringConversionWithoutDunderMethod
             print(f"   @@@{inner_sv=} {inner_pos=} {collide=} {inner_sv.scroll_x=} {inner_sv.scroll_y=}")
             if collide:  # and inner_sv.scroll_x not in (1, 0):
                 touch.push()

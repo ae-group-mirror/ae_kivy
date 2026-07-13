@@ -74,8 +74,10 @@ has to be implemented by the mixing-in container widget.
     :class:`~ae.kivy.tours.TourOverlay` and :class:`~ae.kivy.widgets.FlowPopup`.
 
 """
+from __future__ import annotations
+from collections.abc import Callable
 from functools import partial
-from typing import Any, Callable, Optional, Self, Union
+from typing import Any, Self
 
 from kivy.animation import Animation                                                                    # type: ignore
 from kivy.app import App                                                                                # type: ignore
@@ -98,12 +100,13 @@ TOUCH_VIBRATE_PATTERN = (0.0, 0.09, 0.09, 0.06, 0.03, 0.03)
 """ very short/~0.3s vibrate pattern for button and toggler touch. """
 
 
-def grab_touch(touch: MotionEvent, widget: Widget, exclusive: bool = False, main_app: Optional[MainAppBase] = None
+def grab_touch(touch: MotionEvent, widget: Widget, exclusive: bool = False, main_app: MainAppBase | None = None
                ) -> bool:
     """ temporal helper function to debug occasionally happening exclusive grab conflicts """
     if not main_app:
         main_app = App.get_running_app().main_app
 
+    # noinspection PyStringConversionWithoutDunderMethod
     wid_info = repr(widget)
     if widget != (caller := stack_var('self')):
         wid_info += f" via {caller=}"
@@ -220,7 +223,7 @@ class ModalBehavior:                                                            
 
     _center_aligned: bool = False                           #: True if self will be repositioned to the Window center
     _fast_bound_center_uid: int = 0                         #: fbind/unbind_uid of the center property (pos and size)
-    _touch_started_inside: Optional[bool] = None            #: flag if touch started inside this widget or group
+    _touch_started_inside: bool | None = None               #: flag if touch started inside this widget or group
 
     def _align_center(self, *_args):
         """ reposition the container to the center of the app window.
@@ -230,7 +233,7 @@ class ModalBehavior:                                                            
         if self._center_aligned and self.is_modal:
             self.center = Window.center
 
-    def _on_key_down(self, _window, key, _scancode, _codepoint, _modifiers) -> Optional[bool]:
+    def _on_key_down(self, _window, key, _scancode, _codepoint, _modifiers) -> bool | None:
         """ close/dismiss this popup if back/Esc key get pressed - allowing stacking with DropDown/FlowDropDown. """
         if key == 27 and self.auto_dismiss and self.is_modal:
             if not App.get_running_app().tour_layout:   # prevent close/dismiss by the Esc key if an app tour is active
@@ -346,7 +349,7 @@ class SlideSelectBehavior:                                                      
     """
     # abstracts of mixing-in class; e.g., from :class:`~kivy.widget.Widget`, :class:`~ae.kivy_glsl.ShadersMixin`,
     # :class:`~kivy.uix.dropdown.DropDown` and :class:`~kivy.uix.behaviors.ButtonBehavior`.
-    attach_to: Optional[Widget]
+    attach_to: Widget | None
     close: Callable
     collide_point: Callable
     dispatch: Callable
@@ -355,7 +358,7 @@ class SlideSelectBehavior:                                                      
     def __init__(self, **kwargs):
         """ set normal pressed state shader on widget initialization. """
         self._layout_finished: bool = True
-        self._opened_item: Optional[Widget] = None
+        self._opened_item: Widget | None = None
         self._touch_moved_outside: bool = False
         self.main_app = App.get_running_app().main_app
 
@@ -390,7 +393,7 @@ class SlideSelectBehavior:                                                      
         sub_menu._touch_started_inside = True   # pylint: disable=protected-access
 
     @staticmethod
-    def _ungrab_and_close(touch: MotionEvent, popup: Union[Widget, 'SlideSelectBehavior'], *_args):
+    def _ungrab_and_close(touch: MotionEvent, popup: Widget | SlideSelectBehavior, *_args):
         touch.ungrab(popup)
         # noinspection PyProtectedMember
         Window.children[1]._opened_item = None                  # pylint: disable=protected-access
@@ -423,6 +426,7 @@ class SlideSelectBehavior:                                                      
 
             if self in win_chi:
                 wid_pos = self.to_widget(*touch.pos)
+                # noinspection PyTypeChecker
                 col_items = [item for item in mnu_items                         # pylint: disable=not-an-iterable
                              if item != self._opened_item
                              and item.collide_point(*wid_pos)
@@ -434,6 +438,7 @@ class SlideSelectBehavior:                                                      
                     # return True # returning True prevents touch-initiated scrolls, e.g., in UserPrefs Colors dropdown
 
                 elif foremost_popup:
+                    # noinspection PyUnresolvedReferences
                     widgets = mnu_items + [self.attach_to if is_dropdown else self]
                     min_x, min_y, width, height = self.main_app.widgets_enclosing_rectangle(widgets)
                     if not (min_x <= touch.x <= min_x + width and min_y <= touch.y <= min_y + height):
@@ -456,6 +461,7 @@ class SlideSelectBehavior:                                                      
         if touch.ud.pop('is_long_tap', False):                              # pylint: disable=too-many-nested-blocks
             items = getattr(self, 'menu_items', None)
             if items and self._layout_finished and self == Window.children[0]:
+                # noinspection PyTypeChecker
                 for item in items:                                          # pylint: disable=not-an-iterable
                     if item.collide_point(*item.to_widget(*touch.pos)):     # slide_select touch released on a menu item
                         if hasattr(item, 'on_release'):
@@ -583,7 +589,9 @@ class TouchableBehavior:                                                        
         # touch.grab(self)   # without exclusive submenu gets selected on long touch release of dropdown-opening button
         # if touch.grab_exclusive_class is None:  # check if already grabbed, to prevent exception in touch.grab() call
         #    touch.grab(self, exclusive=True)  # was commented because already grabbed/exclusive prevents slide_select
+        # noinspection PyTypeChecker
         if not grab_touch(touch, self, exclusive=True):
+            # noinspection PyTypeChecker
             grab_touch(touch, self)
 
         # also dispatch as an alternative tap

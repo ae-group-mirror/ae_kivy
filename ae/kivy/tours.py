@@ -25,8 +25,9 @@ to integrate a more app-specific onboarding tour into your app, declare a class 
 of your app (:attr:`~ae.gui.app.MainAppBase.app_name`) in camel-case, followed by the suffix `'OnboardingTour'`.
 """
 import traceback
+from collections.abc import Callable
 from copy import deepcopy
-from typing import Any, Callable, Optional, Type, Union
+from typing import Any, cast
 
 # noinspection PyProtectedMember
 from kivy.animation import Animation, CompoundAnimation                                                 # type: ignore
@@ -50,7 +51,7 @@ from .behaviors import ModalBehavior
 from .widgets import AbsolutePosSizeBinder
 
 
-PageAnimationType = tuple[str, Union[Animation, str]]
+PageAnimationType = tuple[str, Animation | str]
 """ tuple of a widget id string and an :class:`~kivy.animation.Animation` instance/evaluation-expression.
 
     if the first character of the widget id is a `@` then the :attr:`~kivy.animation.Animation.repeat` attribute of
@@ -70,7 +71,7 @@ PageAnimationType = tuple[str, Union[Animation, str]]
 
 PageAnimationsType = tuple[PageAnimationType, ...]  #: tuple of :data:`PageAnimationType` items
 
-WidgetValues = dict[str, Union[list, tuple, dict, float]]
+WidgetValues = dict[str, list | tuple | dict | float]
 """ a key of this dict specifies the name, the dict value the value of a widget property/attribute. """
 
 
@@ -89,7 +90,7 @@ def ani_start_check(ani: Animation, wid: Widget):                               
             break
 
 
-def animated_widget_values(wid: Widget, ani: Union[Animation, CompoundAnimation]) -> WidgetValues:  # pragma: no cover
+def animated_widget_values(wid: Widget, ani: Animation | CompoundAnimation) -> WidgetValues:  # pragma: no cover
     """ determine from a widget the attribute/property values animated/changed by an animation.
 
     :param wid:                 widget of which the animation property values will get retrieved.
@@ -128,14 +129,14 @@ class AnimatedTourMixin:                                                        
         self._added_shaders: list[tuple[Widget, ShaderIdType]] = []
         self._explained_binder = AbsolutePosSizeBinder()
 
-        self.pages_animations: dict[Optional[str], PageAnimationsType] = {}
+        self.pages_animations: dict[str | None, PageAnimationsType] = {}
         """ dict of compound animation instances of the pages of this tour.
 
         the key of this dict is the page id or None (for animations available in all pages of this tour).
         each value of this dict is of the type :data:`PageAnimationsType`.
         """
 
-        self.pages_shaders: dict[Optional[str], tuple[tuple[str, ShaderIdType], ...]] = {}
+        self.pages_shaders: dict[str | None, tuple[tuple[str, ShaderIdType], ...]] = {}
         """ dict of widget shaders for the pages of this tour.
 
         the key of this dict is the page id or None (for shaders available in all pages of this tour).
@@ -154,7 +155,7 @@ class AnimatedTourMixin:                                                        
         :class:`~kivy.clock.Clock`, :class:`~kivy.core.window.Window` and the `tour` instance.
         """
 
-        self.switch_next_animations: dict[Optional[str], PageAnimationsType] = {}
+        self.switch_next_animations: dict[str | None, PageAnimationsType] = {}
         """ dict of compound animation instances for the next page switch transition of the pages of this tour.
 
         the key of this dict is the page id or None (for animations available in all pages of this tour).
@@ -175,6 +176,7 @@ class AnimatedTourMixin:                                                        
                 glo_vars = self.main_app.global_variables(layout=layout, sp=sp, tour=self,
                                                           A=Animation, Animation=Animation, Clock=Clock, Window=Window)
                 anim = try_eval(anim, glo_vars=glo_vars)
+            anim = cast(Animation, anim)
 
             if wid_id[0:1] == '@':
                 wid_id = wid_id[1:]
@@ -277,6 +279,7 @@ class AnimatedTourMixin:                                                        
                 self.main_app.call_method_delayed(next_delay, self.simulate_text_input, text_input, text_to_delay[1:],
                                                   text_to_insert=text_to_delay[0], deltas=deltas[1:] + (next_delay, ))
 
+    # noinspection PyNoneFunctionAssignment
     def tap_animation(self, wid_id: str = '', pos_delay: float = 2.34, press_delay: float = 0.69,
                       release_delay: float = 0.39) -> PageAnimationType:
         """ create a compound animation instance simulating a user touch/tap on the specified widget.
@@ -313,6 +316,7 @@ class AnimatedTourMixin:                                                        
         if isinstance(tap_wid, ButtonBehavior):
             release_ani = Animation(x=poi_x, y=poi_y, width=poi_w, height=poi_h, opacity=0.39, d=release_delay - 0.03)
 
+            # noinspection PyNoneFunctionAssignment
             def _touched_anim():
                 wid_state = tap_wid.state
                 tap_wid.state = 'normal' if wid_state == 'down' else 'down'
@@ -444,6 +448,7 @@ class AnimatedOnboardingTour(AnimatedTourMixin, OnboardingTour):                
         if page_id == 'responsible_layout':
             self._bound = self.main_app.framework_app.fbind('landscape', lambda *_args: self.setup_texts())
         elif page_id == 'layout_font_size':
+            # noinspection PyUnresolvedReferences
             self._bound = self._added_animations[-1][1].fbind('on_progress', lambda *_args: self.setup_texts())
 
     def teardown_shaders_and_animations(self):
@@ -513,7 +518,7 @@ class TourOverlay(ModalBehavior, ShadersMixin, FloatLayout):                    
     :attr:`tour_instance` is a :class:`~kivy.properties.ObjectProperty` and is read-only.
     """
 
-    def __init__(self, main_app: MainAppBase, tour_class: Optional[Type[TourBase]] = None, **kwargs):
+    def __init__(self, main_app: MainAppBase, tour_class: type[TourBase] | None = None, **kwargs):
         """ prepare app and tour overlay (singleton instance of this class) to start tour.
 
         :param main_app:        main app instance.
@@ -559,7 +564,9 @@ class TourOverlay(ModalBehavior, ShadersMixin, FloatLayout):                    
             exp_y = self.explained_pos[1]
             pos1 = min(exp_y, tooltip.y)
             pos2 = max(exp_y + self.explained_size[1], tooltip.top)
+            # noinspection PyUnresolvedReferences
             if pos1 < win_height - pos2:
+                # noinspection PyTypeChecker
                 nav_y = max(nav_y + pos2, win_height - self.ids.tour_page_texts.height)
 
         ani_kwargs = {'t': 'in_out_sine', 'd': 2.1}
@@ -582,7 +589,7 @@ class TourOverlay(ModalBehavior, ShadersMixin, FloatLayout):                    
         self.tour_instance.cancel_auto_page_switch_request()
         self.tour_instance.prev_page()
 
-    def start_tour(self, tour_cls: Optional[Type[TourBase]] = None) -> bool:
+    def start_tour(self, tour_cls: type[TourBase] | None = None) -> bool:
         """ reset app state and prepare tour to start.
 
         :param tour_cls:        optional tour (pages) class, default: tour of currently shown help id or OnboardingTour.
