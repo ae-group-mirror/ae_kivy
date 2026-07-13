@@ -6,7 +6,8 @@ this module is adding translatable f-strings to the python and kv code of your a
 via the helper function :func:`~ae.kivy.i18n.get_txt` and the :class:`~ae.kivy.i18n._GetTextBinder` class.
 
 """
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from kivy.app import App                                                                                # type: ignore
 from kivy.event import Observable                                                                       # type: ignore
@@ -94,8 +95,8 @@ class _GetTextBinder(Observable):
 
         app.title = get_txt(app.main_app.app_title)
 
-    def __call__(self, text: str, count: Optional[int] = None, language: str = '',
-                 loc_vars: Optional[dict[str, Any]] = None, **kwargs) -> str:
+    def __call__(self, text: str, count: int | None = None, language: str = '',
+                 loc_vars: dict[str, Any] | None = None, **kwargs) -> str:
         """ translate text into the current-default or the passed language.
 
         :param text:            text to translate.

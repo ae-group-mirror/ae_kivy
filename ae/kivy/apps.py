@@ -61,9 +61,11 @@ in the following order (the Kivy event/callback-method name is given in brackets
     * on_app_stopped (one clock tick after on_app_stop)
 
 """
+from __future__ import annotations
 import os
 
-from typing import Any, Callable, Optional, Type, Union
+from collections.abc import Callable
+from typing import Any
 
 from plyer import vibrator                                                                              # type: ignore
 
@@ -127,7 +129,7 @@ class FrameworkApp(App):
     mixed_back_ink = ListProperty([.69, .69, .69, 1.])  #: background color mixed from available back inks
     tour_layout = ObjectProperty(allownone=True)        #: overlay layout widget if tour is active else None
 
-    def __init__(self, main_app: 'KivyMainApp', **kwargs):
+    def __init__(self, main_app: KivyMainApp, **kwargs):
         """ init kivy app """
         super().__init__(**kwargs)
 
@@ -162,7 +164,7 @@ class FrameworkApp(App):
         self.main_app.call_method('on_app_built')
         return root
 
-    def key_press_from_kivy(self, win_inst: Any, key_code: int, _scan_code: int, key_text: Optional[str],
+    def key_press_from_kivy(self, win_inst: Any, key_code: int, _scan_code: int, key_text: str | None,
                             modifiers: list[str]) -> bool:
         """ convert and redistribute key down/press events coming from Window.on_key_down.
 
@@ -250,16 +252,16 @@ class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-method
     """ Kivy application """
     documents_root_path: str = "."                      #: the root file path for app documents; for import/export
     get_txt_: Any = get_txt                             #: make i18n translations available via main app instance
-    help_dropdown: Optional[Widget] = None              #: instance of an opened help menu
+    help_dropdown: Widget | None = None                 #: instance of an opened help menu
     kbd_input_mode: str = 'scale'                       #: optional app state to set Window[Base].softinput_mode
-    tour_overlay_class: Optional[Any] = TourOverlay     #: Kivy main app tour overlay class
+    tour_overlay_class: Any | None = TourOverlay        #: Kivy main app tour overlay class
 
     _debug_enable_clicks: int = 0
 
     # implementation of abstract methods
 
-    def init_app(self, framework_app_class: Type[FrameworkApp] = FrameworkApp
-                 ) -> tuple[Optional[Callable], Optional[Callable]]:
+    def init_app(self, framework_app_class: type[FrameworkApp] = FrameworkApp
+                 ) -> tuple[Callable | None, Callable | None]:
         """ initialize framework app instance and prepare app startup.
 
         :param framework_app_class:     class to create the framework app instance (optionally extended by the
@@ -324,6 +326,7 @@ class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-method
             coll.collect("{khd}", append='config.ini')    # 'config.ini' name set in kivy/__init__.py
             coll.collect("{khd}/logs", append="*.txt")    # .. 'logs' in kivy/config.py&kivy/logger.py
             for file in coll.files:
+                # noinspection PyTypeChecker
                 copy_file(file, os_path_join(backup_kivy_home_dir, os_path_basename(file)))
 
         except (PermissionError, Exception) as ex:                  # pylint: disable=broad-exception-caught
@@ -331,7 +334,7 @@ class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-method
 
         return backup_root
 
-    def call_method_delayed(self, delay: float, callback: Union[Callable, str], *args, **kwargs) -> Any:
+    def call_method_delayed(self, delay: float, callback: Callable | str, *args, **kwargs) -> Any:
         """ delayed call of passed callable/method with args/kwargs catching and logging exceptions preventing app exit.
 
         :param delay:           delay in seconds before calling the callable/method specified by
@@ -339,12 +342,12 @@ class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-method
         :param callback:        either callable or name of the main app method to call.
         :param args:            args passed to the callable/main-app-method to be called.
         :param kwargs:          kwargs passed to the callable/main-app-method to be called.
-        :return:                delayed call event (in Kivy of Type[ClockEvent]) providing a `cancel` method to allow
+        :return:                delayed call event (in Kivy of type[ClockEvent]) providing a `cancel` method to allow
                                 the cancellation of the delayed call within the delay time.
         """
         return Clock.schedule_once(lambda dt: self.call_method(callback, *args, **kwargs), timeout=delay)
 
-    def call_method_repeatedly(self, interval: float, callback: Union[Callable, str], *args, **kwargs) -> Any:
+    def call_method_repeatedly(self, interval: float, callback: Callable | str, *args, **kwargs) -> Any:
         """ repeated call of passed callable/method with args/kwargs catching and logging exceptions preventing app exit
 
         :param interval:        interval in seconds between two calls of the callable/method specified by
@@ -366,7 +369,7 @@ class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-method
         self.framework_app.font_color = THEME_LIGHT_FONT_COLOR if light_theme else THEME_DARK_FONT_COLOR
 
     @staticmethod
-    def class_by_name(class_name: str) -> Optional[Type]:
+    def class_by_name(class_name: str) -> type | None:
         """ resolve kv widgets """
         try:
             return Factory.get(class_name)
@@ -406,6 +409,7 @@ class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-method
         """ button tapped event handler to switch help mode between active and inactive (also inactivating tour). """
         help_layout = self.help_layout
         if help_layout:
+            # noinspection PyUnresolvedReferences
             help_layout.stop_help()
 
         tour_layout = self.tour_layout
@@ -436,6 +440,7 @@ class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-method
     def load_sounds(self):
         """ override to preload audio sounds from app folder snd into sound file cache. """
         super().load_sounds()  # load from sound file paths all files into :class:`~ae.files.RegisteredFile` instances
+        # noinspection PyUnresolvedReferences
         self.sound_files.reclassify(object_loader=lambda f: SoundLoader.load(f.path))  # :class:`~ae.files.CachedFile`
 
     def on_app_build(self):
@@ -574,6 +579,7 @@ class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-method
         liw = self.widget_by_flow_id(self.flow_id)
         self.vpo(f"KivyMainApp.on_flow_widget_focused() '{self.flow_id}'"
                  f" {liw} has={getattr(liw, 'focus', 'unsupported') if liw else ''}")
+        # noinspection PyUnresolvedReferences
         if liw and getattr(liw, 'is_focusable', False) and not liw.focus:
             liw.focus = True
 
@@ -625,7 +631,8 @@ class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-method
     def play_sound(self, sound_name: str):
         """ play an audio/sound file. """
         self.vpo(f"KivyMainApp.play_sound {sound_name}")
-        file: Optional[CachedFile] = self.find_sound(sound_name)
+        # noinspection PyTypeChecker
+        file: CachedFile | None = self.find_sound(sound_name)
         if file:
             try:
                 sound_obj = file.loaded_object
@@ -649,7 +656,7 @@ class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-method
             except Exception as ex:         # pylint: disable=broad-exception-caught
                 self.po(f"KivyMainApp.play_vibrate exception {ex}")
 
-    def open_popup(self, popup_class: Type[Union[FlowPopup, Popup, DropDown]], **popup_kwargs) -> Widget:
+    def open_popup(self, popup_class: type[FlowPopup | Popup | DropDown], **popup_kwargs) -> Widget:
         """ open Popup or DropDown using the `open` method. overwriting the main app class method.
 
         :param popup_class:     class of the Popup or DropDown widget.
@@ -658,7 +665,7 @@ class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-method
                                 `opener` gets not specified, then the framework window will be used.
         :return:                the created and displayed/opened popup class instance.
         """
-        self.dpo(f"KivyMainApp.open_popup {popup_class} {popup_kwargs}")
+        self.dpo(f"KivyMainApp.open_popup {popup_class.__name__} {popup_kwargs}")
 
         # use framework_root as opener default, having absolute screen coordinates (framework_win lacks pos property)
         opener = popup_kwargs.pop('opener', self.framework_root)
@@ -693,7 +700,7 @@ class KivyMainApp(MainAppBase):         # pylint: disable=too-many-public-method
 
         return max_width + (padding[0] if text else 0.0), lines_height + (padding[1] if text else 0.0)
 
-    def widget_by_id(self, widget_id: str, root_widget: Optional[Widget] = None) -> Optional[Widget]:  # pragma:no cover
+    def widget_by_id(self, widget_id: str, root_widget: Widget | None = None) -> Widget | None:  # pragma:no cover
         """ search the z-axis top/foremost widget within/underneath the specified root widget by its id.
 
         :param widget_id:       widget id string to bottom-up-search for.
