@@ -3,8 +3,7 @@ ae.kivy.i18n module
 -------------------
 
 this module is adding translatable f-strings to the python and kv code of your app,
-via the helper function :func:`~ae.kivy.i18n.get_txt` and the :class:`~ae.kivy.i18n._GetTextBinder` class.
-
+via the callable object :func:`~ae.kivy.i18n.get_txt` and the :class:`~ae.kivy.i18n._GetTextBinder` class.
 """
 from collections.abc import Callable
 from typing import Any
@@ -116,6 +115,8 @@ class _GetTextBinder(Observable):
         return get_f_string(text, language=language, loc_vars=loc_vars, **kwargs)
 
 
-get_txt = _GetTextBinder()              #: instantiate global i18n translation callable and language switcher helper
-get_txt.__qualname__ = 'GetTextBinder'  # hide sphinx build warning (build crashes if the get_txt var gets documented)
-global_idmap['_'] = get_txt             # bind as function/callable with the name `_` to be used in kv files
+get_txt = _GetTextBinder()  #: global/singleton callable i18n translation helper and language switcher object/instance
+# get_txt.__qualname__ = '_GetTextBinder' # hide Sphinx build warning (build crashes if the get_txt var gets documented)
+# crash fixed in Sphinx 9.1, but get_txt still show warnings and docstring is missing in HTML (issue #14576; fix #14578)
+
+global_idmap['_'] = get_txt  # bind as function/callable with the name `_` to be used in kv files
